@@ -6,7 +6,7 @@ import 'package:manajemensekolah/services/api_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClassActivityService {
-  static const String baseUrl = ApiService.baseUrl;
+  static String get baseUrl => ApiService.baseUrl;
 
   static Future<Map<String, String>> _getHeaders() async {
     try {

@@ -9,7 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 
 class ExcelNilaiService {
-  static const String baseUrl = ApiService.baseUrl; // Ganti dengan URL backend Anda
+  // static const String baseUrl = ApiService.baseUrl;
+  static String get baseUrl => ApiService.baseUrl;
 
   // Export data nilai ke Excel melalui backend
   static Future<void> exportNilaiToExcel({

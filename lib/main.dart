@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:manajemensekolah/components/error_handler.dart';
 import 'package:manajemensekolah/components/token_service.dart';
+import 'package:manajemensekolah/firebase_options.dart';
+import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/services/fcm_service.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:manajemensekolah/screen/dashboard.dart';
@@ -17,6 +21,27 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize ApiService FIRST (before anything else)
+  await ApiService.init();
+  if (kDebugMode) {
+    print('✅ ApiService initialized');
+  }
+
+  // Initialize Firebase
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    if (kDebugMode) {
+      print('✅ Firebase initialized');
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print('❌ Firebase initialization error: $e');
+      print('⚠️ Please configure Firebase using FlutterFire CLI or update firebase_options.dart');
+    }
+  }
 
   await initializeDateFormatting('id_ID', null);
   
@@ -63,6 +88,18 @@ class _SchoolManagementAppState extends State<SchoolManagementApp> {
       
       // Setup error handling
       _setupErrorHandling();
+      
+      // Initialize FCM Service
+      try {
+        await FCMService().initialize();
+        if (kDebugMode) {
+          print('✅ FCM Service initialized in app');
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('⚠️ FCM Service initialization failed (non-critical): $e');
+        }
+      }
       
       setState(() {
         _isInitialized = true;

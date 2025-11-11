@@ -11,14 +11,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // static const String baseUrl = 'http://10.0.2.2:3000/api'; // Android emulator
-  static const String baseUrl =
-      'http://localhost:3000/api'; // iOS simulator atau web
+  // static const String baseUrl = 'http://localhost:3001/api'; // iOS simulator atau web
 
   // static const String baseUrl = 'https://backendmanajemensekolah2.vercel.app/api';
   // static const String baseUrl = 'https://libra.web.id/apimanajemen';
 
   // static const String baseUrl = 'http://aieasytech.id/api';
   // static const String baseUrl = 'http://192.168.1.100:3000/api';
+
+  static late final String baseUrl;
+
+  static Future<void> init() async {
+    if (kIsWeb) {
+      // web pakai localhost
+      baseUrl = 'http://localhost:3001/api';
+    } else if (Platform.isAndroid) {
+      // pakai IP LAN server
+      // ganti dengan IP server kamu di jaringan Wi-Fi
+      baseUrl = 'http://192.168.1.4:3001/api';
+      if (kDebugMode) {
+        print('📡 API Base URL: $baseUrl');
+      }
+    } else {
+      baseUrl = 'http://localhost:3001/api';
+    }
+  }
 
   Future<dynamic> get(String endpoint) async {
     try {
@@ -727,6 +744,81 @@ class ApiService {
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error input pembayaran manual: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // Send FCM token to backend
+  static Future<Map<String, dynamic>> sendFCMToken(
+    String token,
+    String deviceType,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('token');
+
+      if (authToken == null) {
+        throw Exception('No auth token found');
+      }
+
+      if (kDebugMode) {
+        print('📤 Sending to: $baseUrl/fcm/token');
+        print('📤 Device type: $deviceType');
+        print('📤 FCM Token length: ${token.length}');
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/fcm/token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: json.encode({
+          'token': token,
+          'device_type': deviceType,
+        }),
+      );
+
+      if (kDebugMode) {
+        print('📥 FCM Response Status: ${response.statusCode}');
+        print('📥 FCM Response Body: ${response.body}');
+      }
+
+      return _handleResponse(response);
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error sending FCM token: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // Delete FCM token from backend
+  static Future<Map<String, dynamic>> deleteFCMToken(String token) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final authToken = prefs.getString('token');
+
+      if (authToken == null) {
+        throw Exception('No auth token found');
+      }
+
+      final response = await http.delete(
+        Uri.parse('$baseUrl/fcm/token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: json.encode({
+          'token': token,
+        }),
+      );
+
+      return _handleResponse(response);
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error deleting FCM token: $e');
       }
       rethrow;
     }

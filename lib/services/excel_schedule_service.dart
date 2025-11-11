@@ -9,7 +9,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 
 class ExcelScheduleService {
-  static const String baseUrl = ApiService.baseUrl; // Ganti dengan URL backend Anda
+  // static const String baseUrl = ApiService.baseUrl;
+  static String get baseUrl => ApiService.baseUrl;
 
   // Export data jadwal mengajar ke Excel melalui backend
   static Future<void> exportSchedulesToExcel({

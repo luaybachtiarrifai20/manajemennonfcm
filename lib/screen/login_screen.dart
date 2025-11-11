@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/services/fcm_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -270,6 +271,33 @@ class LoginScreenState extends State<LoginScreen> {
 
     // Clear force logout flag
     await prefs.setBool('force_logout', false);
+
+    // Force refresh and send FCM token to backend after successful login
+    try {
+      final fcmService = FCMService();
+      
+      if (kDebugMode) {
+        print('🔄 Force refreshing FCM token after login...');
+      }
+      
+      // Force refresh to get new token (in case Firebase project changed)
+      final fcmToken = await fcmService.forceRefreshToken();
+      
+      if (fcmToken != null) {
+        if (kDebugMode) {
+          print('✅ FCM token refreshed and sent successfully');
+        }
+      } else {
+        if (kDebugMode) {
+          print('⚠️ No FCM token available after refresh');
+        }
+      }
+    } catch (e) {
+      // Don't fail login if FCM token sending fails
+      if (kDebugMode) {
+        print('⚠️ Failed to refresh FCM token (non-critical): $e');
+      }
+    }
   }
 
   Future<void> _selectSchool(String sekolahId) async {

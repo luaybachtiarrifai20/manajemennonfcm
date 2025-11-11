@@ -10,7 +10,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 
 class ExcelClassActivityService {
-  static const String baseUrl = ApiService.baseUrl;
+  // static const String baseUrl = ApiService.baseUrl;
+  static String get baseUrl => ApiService.baseUrl;
 
   // Export data kegiatan kelas ke Excel melalui backend
   static Future<void> exportClassActivitiesToExcel({

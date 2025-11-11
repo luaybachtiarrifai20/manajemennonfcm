@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "631663251271",
+    "project_id": "managemen-sekolah-f352d",
+    "storage_bucket": "managemen-sekolah-f352d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:631663251271:android:6407fc58ae059d32970662",
+        "android_client_info": {
+          "package_name": "com.example.manajemensekolah"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlONxMfvI_n0al8_gHrPrj2S2MMQHpBSc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:manajemensekolah/services/fcm_service.dart';
 
 class TokenService {
   static final TokenService _instance = TokenService._internal();
@@ -103,6 +104,19 @@ class TokenService {
     try {
       if (kDebugMode) {
         print('🚪 Logging out user...');
+      }
+      
+      // Delete FCM token from backend before logout
+      try {
+        await FCMService().deleteTokenFromBackend();
+        await FCMService().clearLocalToken();
+        if (kDebugMode) {
+          print('✅ FCM token cleaned up');
+        }
+      } catch (fcmError) {
+        if (kDebugMode) {
+          print('⚠️ FCM token cleanup failed (non-critical): $fcmError');
+        }
       }
       
       final prefs = await SharedPreferences.getInstance();
