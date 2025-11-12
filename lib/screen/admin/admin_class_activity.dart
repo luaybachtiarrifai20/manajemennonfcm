@@ -1,4 +1,5 @@
 // admin_class_activity.dart
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
@@ -94,7 +95,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
         _isLoading = false;
         _errorMessage = e.toString();
       });
-      _showErrorSnackBar('Gagal memuat data guru: $e');
+      _showErrorSnackBar('Failed to load teacher data: $e');
     }
   }
 
@@ -120,7 +121,9 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
         context: context,
       );
     } catch (e) {
-      print('Error exporting activities: $e');
+      if (kDebugMode) {
+        print('Error exporting activities: $e');
+      }
     } finally {
       setState(() {
         _isLoading = false;
@@ -141,7 +144,6 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
         _showTeacherList = false;
       });
 
-      // Cek apakah sudah ada data aktivitas untuk guru ini
       if (_activitiesByTeacher.containsKey(teacherId)) {
         setState(() {
           _activityList = _activitiesByTeacher[teacherId]!;
@@ -151,8 +153,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
         return;
       }
 
-      // Load data baru dari API
-      final activities = await ApiClassActivityService.getKegiatanByGuru(
+      final activities = await ApiClassActivityService.getActivityByGuru(
         teacherId,
       );
 
@@ -168,7 +169,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
         _isLoading = false;
         _errorMessage = e.toString();
       });
-      _showErrorSnackBar('Gagal memuat kegiatan: $e');
+      _showErrorSnackBar('Failed to load activity data: $e');
     }
   }
 

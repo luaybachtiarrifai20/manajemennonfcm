@@ -6,7 +6,7 @@ import 'package:manajemensekolah/screen/admin/admin_class_activity.dart';
 import 'package:manajemensekolah/screen/admin/admin_presence_report.dart';
 import 'package:manajemensekolah/screen/admin/admin_rpp_screen.dart';
 import 'package:manajemensekolah/screen/admin/admin_teachers_screen.dart';
-import 'package:manajemensekolah/screen/admin/class_management.dart';
+import 'package:manajemensekolah/screen/admin/admin_class_management.dart';
 import 'package:manajemensekolah/screen/admin/keuangan.dart';
 import 'package:manajemensekolah/screen/admin/laporan.dart';
 import 'package:manajemensekolah/screen/admin/pengumuman_admin.dart';

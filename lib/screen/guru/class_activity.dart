@@ -1549,7 +1549,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
 
   Future<void> _loadActivities() async {
     try {
-      final activities = await ApiClassActivityService.getKegiatanByGuru(
+      final activities = await ApiClassActivityService.getActivityByGuru(
         _teacherId,
       );
       setState(() {

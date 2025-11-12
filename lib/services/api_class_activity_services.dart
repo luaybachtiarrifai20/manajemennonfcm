@@ -62,7 +62,7 @@ class ApiClassActivityService {
   }
 
   // Get kegiatan by guru - DIPERBAIKI
-  static Future<List<dynamic>> getKegiatanByGuru(String guruId) async {
+  static Future<List<dynamic>> getActivityByGuru(String guruId) async {
     try {
       final headers = await _getHeaders();
 
