@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/services/api_class_activity_services.dart';
 import 'package:manajemensekolah/services/api_student_services.dart';
+import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ParentClassActivityScreen extends StatefulWidget {
@@ -597,12 +598,7 @@ class ParentClassActivityScreenState extends State<ParentClassActivityScreen> {
 
   String _formatDate(String? date) {
     if (date == null) return '-';
-    try {
-      final parsed = DateTime.parse(date);
-      return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
-    } catch (e) {
-      return date;
-    }
+    return AppDateUtils.formatDateString(date, format: 'dd/MM/yyyy');
   }
 
   Color _getDayColor(String day) {

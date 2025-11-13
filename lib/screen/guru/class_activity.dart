@@ -11,6 +11,7 @@ import 'package:manajemensekolah/services/api_subject_services.dart';
 import 'package:manajemensekolah/services/api_class_activity_services.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:provider/provider.dart';
@@ -1508,12 +1509,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
 
   String _formatDate(String? dateString) {
     if (dateString == null) return '-';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return dateString;
-    }
+    return AppDateUtils.formatDateString(dateString, format: 'dd/MM/yyyy');
   }
 
   // ========== API METHODS ==========

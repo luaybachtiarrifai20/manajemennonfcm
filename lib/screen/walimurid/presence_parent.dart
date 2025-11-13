@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:manajemensekolah/models/siswa.dart';
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/services/api_student_services.dart';
+import 'package:manajemensekolah/utils/date_utils.dart';
 
 class PresenceParentPage extends StatefulWidget {
   final Map<String, dynamic> parent;
@@ -483,23 +484,8 @@ class PresenceParentPageState extends State<PresenceParentPage> {
 
   // Helper function to parse date string as local date (not UTC)
   DateTime _parseLocalDate(String dateString) {
-    // Handle ISO datetime format (e.g., "2025-10-29T17:00:00.000Z")
-    // Extract just the date part before 'T'
-    String datePart = dateString.contains('T') 
-        ? dateString.split('T')[0] 
-        : dateString;
-    
-    // Parse YYYY-MM-DD as local date to avoid timezone conversion
-    final parts = datePart.split('-');
-    if (parts.length == 3) {
-      return DateTime(
-        int.parse(parts[0]), // year
-        int.parse(parts[1]), // month
-        int.parse(parts[2]), // day
-      );
-    }
-    // Fallback to normal parsing if format is unexpected
-    return DateTime.parse(dateString);
+    // Gunakan AppDateUtils untuk parsing yang konsisten dan benar
+    return AppDateUtils.parseApiDate(dateString) ?? DateTime.now();
   }
 
   Color _getPrimaryColor() {

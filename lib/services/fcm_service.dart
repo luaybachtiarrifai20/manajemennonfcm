@@ -14,6 +14,50 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     print('Body: ${message.notification?.body}');
     print('Data: ${message.data}');
   }
+
+  // Show notification when app is in background
+  if (message.notification != null) {
+    final FlutterLocalNotificationsPlugin localNotifications =
+        FlutterLocalNotificationsPlugin();
+
+    // Initialize with basic settings
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings();
+    const InitializationSettings settings = InitializationSettings(
+      android: androidSettings,
+      iOS: iosSettings,
+    );
+    await localNotifications.initialize(settings);
+
+    // Show notification
+    await localNotifications.show(
+      message.notification.hashCode,
+      message.notification!.title,
+      message.notification!.body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription: 'This channel is used for important notifications.',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(message.data),
+    );
+
+    if (kDebugMode) {
+      print('✅ Background notification displayed');
+    }
+  }
 }
 
 class FCMService {
@@ -229,6 +273,13 @@ class FCMService {
       // This will be handled by the app's navigation system
       if (kDebugMode) {
         print('Navigate to absensi screen for siswa: ${data['siswa_id']}');
+      }
+    } else if (type == 'class_activity') {
+      // Navigate to class activity screen
+      // This will be handled by the app's navigation system
+      if (kDebugMode) {
+        print('Navigate to class activity for kegiatan: ${data['kegiatan_id']}');
+        print('Student: ${data['siswa_nama']}, Subject: ${data['mata_pelajaran']}');
       }
     }
   }

@@ -8,6 +8,7 @@ import 'package:manajemensekolah/services/api_class_activity_services.dart';
 import 'package:manajemensekolah/services/api_teacher_services.dart';
 import 'package:manajemensekolah/services/excel_class_activity_service.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
+import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
@@ -1097,12 +1098,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
 
   String _formatDate(String? date) {
     if (date == null) return '-';
-    try {
-      final parsed = DateTime.parse(date);
-      return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
-    } catch (e) {
-      return date;
-    }
+    return AppDateUtils.formatDateString(date, format: 'dd/MM/yyyy');
   }
 
   @override

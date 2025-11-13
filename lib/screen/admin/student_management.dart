@@ -11,6 +11,7 @@ import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/services/api_student_services.dart';
+import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 
 class StudentManagementScreen extends StatefulWidget {
@@ -1384,12 +1385,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
   String _formatDate(String? date) {
     if (date == null) return '-';
-    try {
-      final parsed = DateTime.parse(date);
-      return '${parsed.day.toString().padLeft(2, '0')}/${parsed.month.toString().padLeft(2, '0')}/${parsed.year}';
-    } catch (e) {
-      return date;
-    }
+    return AppDateUtils.formatDateString(date, format: 'dd/MM/yyyy');
   }
 
   Widget _buildStudentCard(Map<String, dynamic> student, int index) {
