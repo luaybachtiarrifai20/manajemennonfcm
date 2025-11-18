@@ -281,6 +281,24 @@ class FCMService {
         print('Navigate to class activity for kegiatan: ${data['kegiatan_id']}');
         print('Student: ${data['siswa_nama']}, Subject: ${data['mata_pelajaran']}');
       }
+    } else if (type == 'pengumuman') {
+      // Navigate to announcement screen
+      // This will be handled by the app's navigation system
+      if (kDebugMode) {
+        print('Navigate to pengumuman: ${data['pengumuman_id']}');
+        print('Title: ${data['judul']}, Priority: ${data['prioritas']}');
+        print('Target: ${data['role_target']}, Class: ${data['kelas_nama']}');
+      }
+    } else if (type == 'tagihan') {
+      // Navigate to tagihan (billing) screen
+      // This will be handled by the app's navigation system
+      if (kDebugMode) {
+        print('Navigate to tagihan: ${data['tagihan_id']}');
+        print('Siswa: ${data['siswa_nama']}');
+        print('Jenis: ${data['jenis_pembayaran_nama']}');
+        print('Jumlah: Rp ${data['jumlah']}');
+        print('Jatuh Tempo: ${data['jatuh_tempo']}');
+      }
     }
   }
 

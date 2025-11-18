@@ -420,15 +420,17 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
       context: context,
       builder: (context) => Consumer<LanguageProvider>(
         builder: (context, languageProvider, child) {
-          return Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return Dialog(
+                backgroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                   // Header dengan gradient
                   Container(
                     width: double.infinity,
@@ -505,7 +507,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                         _buildPrioritasDropdown(
                           value: selectedPrioritas,
                           onChanged: (value) {
-                            setState(() {
+                            setDialogState(() {
                               selectedPrioritas = value;
                             });
                           },
@@ -515,7 +517,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                         _buildRoleTargetDropdown(
                           value: selectedRole,
                           onChanged: (value) {
-                            setState(() {
+                            setDialogState(() {
                               selectedRole = value;
                             });
                           },
@@ -532,7 +534,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                 }),
                                 value: tanggalAwal,
                                 onTap: () => _selectDate(context, true, (date) {
-                                  setState(() {
+                                  setDialogState(() {
                                     tanggalAwal = date;
                                   });
                                 }),
@@ -548,7 +550,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                 value: tanggalAkhir,
                                 onTap: () =>
                                     _selectDate(context, false, (date) {
-                                      setState(() {
+                                      setDialogState(() {
                                         tanggalAkhir = date;
                                       });
                                     }),
@@ -704,9 +706,11 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
+                    ],
+                  ),
+                ),
+              );
+            },
           );
         },
       ),

@@ -27,13 +27,18 @@ class ApiService {
       baseUrl = 'http://localhost:3001/api';
     } else if (Platform.isAndroid) {
       // pakai IP LAN server
-      // ganti dengan IP server kamu di jaringan Wi-Fi
-      baseUrl = 'http://192.168.1.4:3001/api';
+      // PENTING: Ganti IP ini jika Mac Anda pindah jaringan
+      // Cek IP Mac dengan: ifconfig | grep "inet " | grep -v 127.0.0.1
+      baseUrl = 'http://192.168.1.6:3001/api';
       if (kDebugMode) {
-        print('📡 API Base URL: $baseUrl');
+        print('📡 API Base URL (Android): $baseUrl');
+        print('💡 Pastikan Android dan Mac di jaringan Wi-Fi yang sama!');
       }
     } else {
       baseUrl = 'http://localhost:3001/api';
+      if (kDebugMode) {
+        print('📡 API Base URL (iOS/Other): $baseUrl');
+      }
     }
   }
 
