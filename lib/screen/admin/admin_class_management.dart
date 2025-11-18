@@ -33,10 +33,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   final TextEditingController _searchController = TextEditingController();
 
   // Filter States
-  String? _selectedTingkatFilter; // 'SD', 'SMP', 'SMA', atau null untuk semua
-  String? _selectedKelasFilter; // '1' sampai '12', atau null untuk semua
-  String? _selectedHomeroomFilter; // 'ada', 'tidak_ada', atau null untuk semua
-  String? _selectedSiswaFilter; // 'ada', 'kosong', atau null untuk semua
+  String? _selectedLevelFilter; // 'Elementary', 'Middle', 'High School', or null for all
+  String? _selectedGradeFilter; // '1' to '12', or null for all
+  String? _selectedHomeroomFilter; // 'has', 'no_homeroom', or null for all
+  String? _selectedStudentFilter; // 'has_students', 'empty', or null for all
   bool _hasActiveFilter = false;
 
   @override
@@ -69,19 +69,19 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   void _checkActiveFilter() {
     setState(() {
       _hasActiveFilter =
-          _selectedTingkatFilter != null ||
-          _selectedKelasFilter != null ||
+          _selectedLevelFilter != null ||
+          _selectedGradeFilter != null ||
           _selectedHomeroomFilter != null ||
-          _selectedSiswaFilter != null;
+          _selectedStudentFilter != null;
     });
   }
 
   void _clearAllFilters() {
     setState(() {
-      _selectedTingkatFilter = null;
-      _selectedKelasFilter = null;
+      _selectedLevelFilter = null;
+      _selectedGradeFilter = null;
       _selectedHomeroomFilter = null;
-      _selectedSiswaFilter = null;
+      _selectedStudentFilter = null;
       _hasActiveFilter = false;
     });
   }
@@ -91,26 +91,26 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   ) {
     List<Map<String, dynamic>> filterChips = [];
 
-    if (_selectedTingkatFilter != null) {
+    if (_selectedLevelFilter != null) {
       filterChips.add({
         'label':
-            '${languageProvider.getTranslatedText({'en': 'Level', 'id': 'Tingkat'})}: $_selectedTingkatFilter',
+            '${languageProvider.getTranslatedText({'en': 'Level', 'id': 'Tingkat'})}: $_selectedLevelFilter',
         'onRemove': () {
           setState(() {
-            _selectedTingkatFilter = null;
+            _selectedLevelFilter = null;
             _checkActiveFilter();
           });
         },
       });
     }
 
-    if (_selectedKelasFilter != null) {
+    if (_selectedGradeFilter != null) {
       filterChips.add({
         'label':
-            '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})}: $_selectedKelasFilter',
+            '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})}: $_selectedGradeFilter',
         'onRemove': () {
           setState(() {
-            _selectedKelasFilter = null;
+            _selectedGradeFilter = null;
             _checkActiveFilter();
           });
         },
@@ -139,8 +139,8 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       });
     }
 
-    if (_selectedSiswaFilter != null) {
-      final siswaText = _selectedSiswaFilter == 'ada'
+    if (_selectedStudentFilter != null) {
+      final siswaText = _selectedStudentFilter == 'ada'
           ? languageProvider.getTranslatedText({
               'en': 'Has Students',
               'id': 'Ada Siswa',
@@ -151,7 +151,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
             '${languageProvider.getTranslatedText({'en': 'Students', 'id': 'Siswa'})}: $siswaText',
         'onRemove': () {
           setState(() {
-            _selectedSiswaFilter = null;
+            _selectedStudentFilter = null;
             _checkActiveFilter();
           });
         },
@@ -165,10 +165,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     final languageProvider = context.read<LanguageProvider>();
 
     // Temporary state for bottom sheet
-    String? tempSelectedTingkat = _selectedTingkatFilter;
-    String? tempSelectedKelas = _selectedKelasFilter;
+    String? tempSelectedTingkat = _selectedLevelFilter;
+    String? tempSelectedKelas = _selectedGradeFilter;
     String? tempSelectedHomeroom = _selectedHomeroomFilter;
-    String? tempSelectedSiswa = _selectedSiswaFilter;
+    String? tempSelectedSiswa = _selectedStudentFilter;
 
     showModalBottomSheet(
       context: context,
@@ -461,10 +461,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _selectedTingkatFilter = tempSelectedTingkat;
-                        _selectedKelasFilter = tempSelectedKelas;
+                        _selectedLevelFilter = tempSelectedTingkat;
+                        _selectedGradeFilter = tempSelectedKelas;
                         _selectedHomeroomFilter = tempSelectedHomeroom;
-                        _selectedSiswaFilter = tempSelectedSiswa;
+                        _selectedStudentFilter = tempSelectedSiswa;
                       });
                       _checkActiveFilter();
                       Navigator.pop(context);
@@ -1515,13 +1515,13 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
             }
           }
           final matchesTingkatFilter =
-              _selectedTingkatFilter == null ||
-              tingkat == _selectedTingkatFilter;
+              _selectedLevelFilter == null ||
+              tingkat == _selectedLevelFilter;
 
           // Kelas filter (1-12 berdasarkan grade_level)
           final matchesKelasFilter =
-              _selectedKelasFilter == null ||
-              gradeLevel?.toString() == _selectedKelasFilter;
+              _selectedGradeFilter == null ||
+              gradeLevel?.toString() == _selectedGradeFilter;
 
           // Homeroom filter
           final hasHomeroom =
@@ -1535,9 +1535,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
           // Siswa filter (based on jumlah_siswa)
           final jumlahSiswa = classItem['jumlah_siswa'] ?? 0;
           final matchesSiswaFilter =
-              _selectedSiswaFilter == null ||
-              (_selectedSiswaFilter == 'ada' && jumlahSiswa > 0) ||
-              (_selectedSiswaFilter == 'kosong' && jumlahSiswa == 0);
+              _selectedStudentFilter == null ||
+              (_selectedStudentFilter == 'ada' && jumlahSiswa > 0) ||
+              (_selectedStudentFilter == 'kosong' && jumlahSiswa == 0);
 
           return matchesSearch &&
               matchesTingkatFilter &&

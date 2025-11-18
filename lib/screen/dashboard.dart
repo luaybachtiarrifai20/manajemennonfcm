@@ -9,7 +9,7 @@ import 'package:manajemensekolah/screen/admin/admin_teachers_screen.dart';
 import 'package:manajemensekolah/screen/admin/admin_class_management.dart';
 import 'package:manajemensekolah/screen/admin/keuangan.dart';
 import 'package:manajemensekolah/screen/admin/laporan.dart';
-import 'package:manajemensekolah/screen/admin/pengumuman_admin.dart';
+import 'package:manajemensekolah/screen/admin/admin_announcement.dart';
 import 'package:manajemensekolah/screen/admin/student_management.dart';
 import 'package:manajemensekolah/screen/admin/subject_management.dart';
 import 'package:manajemensekolah/screen/admin/teacher_admin.dart';
@@ -1864,7 +1864,7 @@ class _DashboardState extends State<Dashboard>
         'icon': "📢",
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => PengumumanManagementScreen()),
+          MaterialPageRoute(builder: (context) => AnnouncementManagementScreen()),
         ),
         'roles': ['admin'],
       },

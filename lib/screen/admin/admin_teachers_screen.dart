@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/services/api_teacher_services.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
 import 'admin_rpp_screen.dart';
 
 class AdminTeachersScreen extends StatefulWidget {
@@ -72,6 +73,10 @@ class _AdminTeachersScreenState extends State<AdminTeachersScreen> {
         ),
       ),
     );
+  }
+
+  Color _getPrimaryColor() {
+    return ColorUtils.getRoleColor('admin');
   }
 
   Color _getSubjectColor(String? subject) {

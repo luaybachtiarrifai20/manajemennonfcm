@@ -26,7 +26,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
   final TextEditingController _searchController = TextEditingController();
 
   // Filter States
-  String? _selectedStatusFilter; // 'Menunggu', 'Disetujui', 'Ditolak', atau null untuk semua
+  String? _selectedStatusFilter; // 'Pending', 'Approved', 'Rejected', or null for all
   bool _hasActiveFilter = false;
 
   late AnimationController _animationController;
@@ -385,7 +385,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
     );
   }
 
-  void _lihatDetailRpp(Map<String, dynamic> rpp) {
+  void _viewRppDetail(Map<String, dynamic> rpp) {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => RppAdminDetailPage(rpp: rpp)),
@@ -455,7 +455,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _lihatDetailRpp(rpp),
+            onTap: () => _viewRppDetail(rpp),
             borderRadius: BorderRadius.circular(16),
             child: Container(
               decoration: BoxDecoration(
@@ -671,7 +671,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                               icon: Icons.visibility,
                               label: 'Detail',
                               color: _getPrimaryColor(),
-                              onPressed: () => _lihatDetailRpp(rpp),
+                              onPressed: () => _viewRppDetail(rpp),
                             ),
                             SizedBox(width: 8),
                             _buildActionButton(

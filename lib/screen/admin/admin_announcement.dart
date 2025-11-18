@@ -6,20 +6,21 @@ import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
+import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 
-class PengumumanManagementScreen extends StatefulWidget {
-  const PengumumanManagementScreen({super.key});
+class AnnouncementManagementScreen extends StatefulWidget {
+  const AnnouncementManagementScreen({super.key});
 
   @override
-  PengumumanManagementScreenState createState() =>
-      PengumumanManagementScreenState();
+  AnnouncementManagementScreenState createState() =>
+      AnnouncementManagementScreenState();
 }
 
-class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
+class AnnouncementManagementScreenState extends State<AnnouncementManagementScreen>
     with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
-  List<dynamic> _pengumuman = [];
+  List<dynamic> _announcements = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -30,9 +31,9 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
   final TextEditingController _searchController = TextEditingController();
 
   // Filter States
-  String? _selectedPrioritasFilter; // 'Penting', 'Biasa', atau null untuk semua
-  String? _selectedTargetFilter; // 'Guru', 'Siswa', 'Orang Tua', 'Semua', atau null
-  String? _selectedStatusFilter; // 'Aktif', 'Terjadwal', 'Kedaluwarsa', atau null
+  String? _selectedPriorityFilter; // 'Important', 'Normal', or null for all
+  String? _selectedTargetFilter; // 'Teacher', 'Student', 'Parent', 'All', or null
+  String? _selectedStatusFilter; // 'Active', 'Scheduled', 'Expired', or null
   bool _hasActiveFilter = false;
 
   @override
@@ -64,7 +65,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
 
   void _checkActiveFilter() {
     setState(() {
-      _hasActiveFilter = _selectedPrioritasFilter != null || 
+      _hasActiveFilter = _selectedPriorityFilter != null || 
                          _selectedTargetFilter != null || 
                          _selectedStatusFilter != null;
     });
@@ -72,7 +73,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
 
   void _clearAllFilters() {
     setState(() {
-      _selectedPrioritasFilter = null;
+      _selectedPriorityFilter = null;
       _selectedTargetFilter = null;
       _selectedStatusFilter = null;
       _hasActiveFilter = false;
@@ -82,12 +83,12 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
   List<Map<String, dynamic>> _buildFilterChips(LanguageProvider languageProvider) {
     List<Map<String, dynamic>> filterChips = [];
     
-    if (_selectedPrioritasFilter != null) {
+    if (_selectedPriorityFilter != null) {
       filterChips.add({
-        'label': '${languageProvider.getTranslatedText({'en': 'Priority', 'id': 'Prioritas'})}: $_selectedPrioritasFilter',
+        'label': '${languageProvider.getTranslatedText({'en': 'Priority', 'id': 'Prioritas'})}: $_selectedPriorityFilter',
         'onRemove': () {
           setState(() {
-            _selectedPrioritasFilter = null;
+            _selectedPriorityFilter = null;
             _checkActiveFilter();
           });
         },
@@ -125,7 +126,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     final languageProvider = context.read<LanguageProvider>();
     
     // Temporary state for bottom sheet
-    String? tempSelectedPrioritas = _selectedPrioritasFilter;
+    String? tempSelectedPrioritas = _selectedPriorityFilter;
     String? tempSelectedTarget = _selectedTargetFilter;
     String? tempSelectedStatus = _selectedStatusFilter;
 
@@ -331,7 +332,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _selectedPrioritasFilter = tempSelectedPrioritas;
+                        _selectedPriorityFilter = tempSelectedPrioritas;
                         _selectedTargetFilter = tempSelectedTarget;
                         _selectedStatusFilter = tempSelectedStatus;
                       });
@@ -369,10 +370,10 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
         _errorMessage = null;
       });
 
-      final pengumumanData = await _apiService.get('/pengumuman');
+      final announcementData = await _apiService.get('/pengumuman');
 
       setState(() {
-        _pengumuman = pengumumanData is List ? pengumumanData : [];
+        _announcements = announcementData is List ? announcementData : [];
         _isLoading = false;
       });
 
@@ -397,24 +398,24 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     }
   }
 
-  void _showAddEditDialog({Map<String, dynamic>? pengumumanData}) {
+  void _showAddEditDialog({Map<String, dynamic>? announcementData}) {
     final judulController = TextEditingController(
-      text: pengumumanData?['judul'] ?? '',
+      text: announcementData?['judul'] ?? '',
     );
     final kontenController = TextEditingController(
-      text: pengumumanData?['konten'] ?? '',
+      text: announcementData?['konten'] ?? '',
     );
-    String? selectedKelas = pengumumanData?['kelas_id'];
-    String? selectedRole = pengumumanData?['role_target'] ?? 'all';
-    String? selectedPrioritas = pengumumanData?['prioritas'] ?? 'biasa';
-    DateTime? tanggalAwal = pengumumanData?['tanggal_awal'] != null
-        ? DateTime.parse(pengumumanData!['tanggal_awal'])
+    String? selectedKelas = announcementData?['kelas_id'];
+    String? selectedRole = announcementData?['role_target'] ?? 'all';
+    String? selectedPrioritas = announcementData?['prioritas'] ?? 'biasa';
+    DateTime? tanggalAwal = announcementData?['tanggal_awal'] != null
+        ? DateTime.parse(announcementData!['tanggal_awal'])
         : null;
-    DateTime? tanggalAkhir = pengumumanData?['tanggal_akhir'] != null
-        ? DateTime.parse(pengumumanData!['tanggal_akhir'])
+    DateTime? tanggalAkhir = announcementData?['tanggal_akhir'] != null
+        ? DateTime.parse(announcementData!['tanggal_akhir'])
         : null;
 
-    final isEdit = pengumumanData != null;
+    final isEdit = announcementData != null;
 
     showDialog(
       context: context,
@@ -625,7 +626,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
 
                                 if (isEdit) {
                                   await _apiService.put(
-                                    '/pengumuman/${pengumumanData!['id']}',
+                                    '/pengumuman/${announcementData!['id']}',
                                     data,
                                   );
                                   if (context.mounted) {
@@ -902,7 +903,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     }
   }
 
-  Future<void> _deletePengumuman(Map<String, dynamic> pengumumanData) async {
+  Future<void> _deleteAnnouncement(Map<String, dynamic> announcementData) async {
     final confirmed = await showDialog(
       context: context,
       builder: (context) => ConfirmationDialog(
@@ -924,7 +925,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
 
     if (confirmed == true) {
       try {
-        await _apiService.delete('/pengumuman/${pengumumanData['id']}');
+        await _apiService.delete('/pengumuman/${announcementData['id']}');
         await _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -957,7 +958,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     }
   }
 
-  Widget _buildPengumumanCard(Map<String, dynamic> pengumumanData, int index) {
+  Widget _buildAnnouncementCard(Map<String, dynamic> announcementData, int index) {
     final languageProvider = context.read<LanguageProvider>();
 
     return AnimatedBuilder(
@@ -979,14 +980,14 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
       },
       child: GestureDetector(
         onTap: () {
-          _showPengumumanDetail(pengumumanData);
+          _showAnnouncementDetail(announcementData);
         },
         child: Container(
           margin: EdgeInsets.symmetric(vertical: 6, horizontal: 16),
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _showPengumumanDetail(pengumumanData),
+              onTap: () => _showAnnouncementDetail(announcementData),
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 decoration: BoxDecoration(
@@ -1034,7 +1035,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                     ),
 
                     // Priority badge
-                    if (pengumumanData['prioritas'] == 'penting')
+                    if (announcementData['prioritas'] == 'penting')
                       Positioned(
                         top: 12,
                         right: 12,
@@ -1086,7 +1087,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      pengumumanData['judul'] ?? 'No Title',
+                                      announcementData['judul'] ?? 'No Title',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1097,7 +1098,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                     ),
                                     SizedBox(height: 2),
                                     Text(
-                                      _formatDate(pengumumanData['created_at']),
+                                      _formatDate(announcementData['created_at']),
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,
@@ -1145,7 +1146,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                     ),
                                     SizedBox(height: 1),
                                     Text(
-                                      pengumumanData['konten'] ?? '',
+                                      announcementData['konten'] ?? '',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -1196,7 +1197,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                     ),
                                     SizedBox(height: 1),
                                     Text(
-                                      pengumumanData['pembuat_nama'] ??
+                                      announcementData['pembuat_nama'] ??
                                           'Unknown',
                                       style: TextStyle(
                                         fontSize: 14,
@@ -1247,7 +1248,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                     SizedBox(height: 1),
                                     Text(
                                       _getTargetText(
-                                        pengumumanData,
+                                        announcementData,
                                         languageProvider,
                                       ),
                                       style: TextStyle(
@@ -1278,7 +1279,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                 backgroundColor: Colors.white,
                                 borderColor: _getPrimaryColor(),
                                 onPressed: () => _showAddEditDialog(
-                                  pengumumanData: pengumumanData,
+                                  announcementData: announcementData,
                                 ),
                               ),
                               SizedBox(width: 8),
@@ -1292,7 +1293,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                 backgroundColor: Colors.white,
                                 borderColor: Colors.red,
                                 onPressed: () =>
-                                    _deletePengumuman(pengumumanData),
+                                    _deleteAnnouncement(announcementData),
                               ),
                             ],
                           ),
@@ -1348,7 +1349,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     );
   }
 
-  void _showPengumumanDetail(Map<String, dynamic> pengumumanData) {
+  void _showAnnouncementDetail(Map<String, dynamic> announcementData) {
     final languageProvider = context.read<LanguageProvider>();
 
     showDialog(
@@ -1392,7 +1393,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            pengumumanData['judul'] ?? 'No Title',
+                            announcementData['judul'] ?? 'No Title',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1404,7 +1405,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                     ),
                     SizedBox(height: 8),
                     Text(
-                      _formatDate(pengumumanData['created_at']),
+                      _formatDate(announcementData['created_at']),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white.withOpacity(0.9),
@@ -1421,7 +1422,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Priority badge
-                    if (pengumumanData['prioritas'] == 'penting')
+                    if (announcementData['prioritas'] == 'penting')
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
@@ -1456,7 +1457,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
 
                     // Content text
                     Text(
-                      pengumumanData['konten'] ?? '',
+                      announcementData['konten'] ?? '',
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.6,
@@ -1481,7 +1482,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                               'en': 'Created by',
                               'id': 'Dibuat oleh',
                             }),
-                            value: pengumumanData['pembuat_nama'] ?? 'Unknown',
+                            value: announcementData['pembuat_nama'] ?? 'Unknown',
                           ),
                           SizedBox(height: 8),
                           _buildDetailRow(
@@ -1491,13 +1492,13 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                               'id': 'Role Target',
                             }),
                             value: _getTargetText(
-                              pengumumanData,
+                              announcementData,
                               languageProvider,
                             ),
                           ),
-                          if (pengumumanData['tanggal_awal'] != null)
+                          if (announcementData['tanggal_awal'] != null)
                             SizedBox(height: 8),
-                          if (pengumumanData['tanggal_awal'] != null)
+                          if (announcementData['tanggal_awal'] != null)
                             _buildDetailRow(
                               icon: Icons.calendar_today,
                               label: languageProvider.getTranslatedText({
@@ -1505,12 +1506,12 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                 'id': 'Tanggal Mulai',
                               }),
                               value: _formatDate(
-                                pengumumanData['tanggal_awal'],
+                                announcementData['tanggal_awal'],
                               ),
                             ),
-                          if (pengumumanData['tanggal_akhir'] != null)
+                          if (announcementData['tanggal_akhir'] != null)
                             SizedBox(height: 8),
-                          if (pengumumanData['tanggal_akhir'] != null)
+                          if (announcementData['tanggal_akhir'] != null)
                             _buildDetailRow(
                               icon: Icons.event_busy,
                               label: languageProvider.getTranslatedText({
@@ -1518,7 +1519,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                                 'id': 'Tanggal Berakhir',
                               }),
                               value: _formatDate(
-                                pengumumanData['tanggal_akhir'],
+                                announcementData['tanggal_akhir'],
                               ),
                             ),
                         ],
@@ -1596,11 +1597,11 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
   }
 
   String _getTargetText(
-    Map<String, dynamic> pengumumanData,
+    Map<String, dynamic> announcementData,
     LanguageProvider languageProvider,
   ) {
-    final roleTarget = pengumumanData['role_target'] ?? 'all';
-    final kelasNama = pengumumanData['kelas_nama'];
+    final roleTarget = announcementData['role_target'] ?? 'all';
+    final kelasNama = announcementData['kelas_nama'];
 
     if (roleTarget == 'all' && kelasNama == null) {
       return languageProvider.getTranslatedText({
@@ -1616,12 +1617,12 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
 
   String _formatDate(String? dateString) {
     if (dateString == null) return '-';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateString;
-    }
+    // Use AppDateUtils for consistent date formatting with timezone handling
+    final date = AppDateUtils.parseApiDate(dateString);
+    if (date == null) return dateString;
+    
+    // Format as: dd/MM/yyyy HH:mm
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
   }
 
   Color _getPrimaryColor() {
@@ -1637,8 +1638,8 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     );
   }
 
-  List<dynamic> get _filteredPengumuman {
-    var filtered = _pengumuman;
+  List<dynamic> get _filteredAnnouncements {
+    var filtered = _announcements;
 
     // Filter berdasarkan search
     if (_searchController.text.isNotEmpty) {
@@ -1654,9 +1655,9 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
     }
 
     // Filter berdasarkan prioritas
-    if (_selectedPrioritasFilter != null) {
+    if (_selectedPriorityFilter != null) {
       filtered = filtered.where((p) {
-        return p['prioritas']?.toString() == _selectedPrioritasFilter;
+        return p['prioritas']?.toString() == _selectedPriorityFilter;
       }).toList();
     }
 
@@ -1963,7 +1964,7 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                         errorMessage: _errorMessage!,
                         onRetry: _loadData,
                       )
-                    : _filteredPengumuman.isEmpty
+                    : _filteredAnnouncements.isEmpty
                     ? EmptyState(
                         icon: Icons.announcement_outlined,
                         title: languageProvider.getTranslatedText({
@@ -1990,10 +1991,10 @@ class PengumumanManagementScreenState extends State<PengumumanManagementScreen>
                         backgroundColor: Colors.white,
                         child: ListView.builder(
                           padding: EdgeInsets.only(top: 8, bottom: 16),
-                          itemCount: _filteredPengumuman.length,
+                          itemCount: _filteredAnnouncements.length,
                           itemBuilder: (context, index) {
-                            return _buildPengumumanCard(
-                              _filteredPengumuman[index],
+                            return _buildAnnouncementCard(
+                              _filteredAnnouncements[index],
                               index,
                             );
                           },

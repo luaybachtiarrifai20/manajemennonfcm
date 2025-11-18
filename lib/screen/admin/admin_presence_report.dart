@@ -14,31 +14,30 @@ import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
-// Model untuk Summary Absensi (sama seperti di teacher page)
-// Model untuk Summary Absensi (diperbarui)
-class AbsensiSummary {
-  final String mataPelajaranId;
-  final String mataPelajaranNama;
-  final DateTime tanggal;
-  final int totalSiswa;
-  final int hadir;
-  final int tidakHadir;
-  final String kelasId; // Tambahkan
-  final String kelasNama; // Tambahkan
+// Model for Attendance Summary
+class AttendanceSummary {
+  final String subjectId;
+  final String subjectName;
+  final DateTime date;
+  final int totalStudents;
+  final int present;
+  final int absent;
+  final String classId;
+  final String className;
 
-  AbsensiSummary({
-    required this.mataPelajaranId,
-    required this.mataPelajaranNama,
-    required this.tanggal,
-    required this.totalSiswa,
-    required this.hadir,
-    required this.tidakHadir,
-    required this.kelasId, // Tambahkan
-    required this.kelasNama, // Tambahkan
+  AttendanceSummary({
+    required this.subjectId,
+    required this.subjectName,
+    required this.date,
+    required this.totalStudents,
+    required this.present,
+    required this.absent,
+    required this.classId,
+    required this.className,
   });
 
   String get key =>
-      '$mataPelajaranId-$kelasId-${DateFormat('yyyy-MM-dd').format(tanggal)}';
+      '$subjectId-$classId-${DateFormat('yyyy-MM-dd').format(date)}';
 }
 
 class AdminPresenceReportScreen extends StatefulWidget {
@@ -52,7 +51,7 @@ class AdminPresenceReportScreen extends StatefulWidget {
 class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
     with SingleTickerProviderStateMixin {
   // Data untuk mode View Results
-  List<AbsensiSummary> _absensiSummaryList = [];
+  List<AttendanceSummary> _absensiSummaryList = [];
   bool _isLoadingSummary = false;
 
   // Search dan Filter
@@ -90,7 +89,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    _loadAbsensiSummary();
+    _loadAttendanceSummary();
     _loadFilterData();
   }
 
@@ -188,7 +187,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
     super.dispose();
   }
 
-  Future<void> _loadAbsensiSummary() async {
+  Future<void> _loadAttendanceSummary() async {
     if (!mounted) return;
 
     setState(() {
@@ -198,7 +197,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
     try {
       final absensiData = await ApiService.getAbsensi();
 
-      final Map<String, AbsensiSummary> summaryMap = {};
+      final Map<String, AttendanceSummary> summaryMap = {};
 
       // Load data mata pelajaran dan kelas
       final [mataPelajaranList, kelasList] = await Future.wait([
@@ -227,15 +226,15 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         final kelasNama = _getKelasName(kelasId, kelasList);
 
         if (!summaryMap.containsKey(key)) {
-          summaryMap[key] = AbsensiSummary(
-            mataPelajaranId: mataPelajaranId,
-            mataPelajaranNama: mataPelajaranNama,
-            tanggal: _parseLocalDate(tanggal),
-            totalSiswa: 0,
-            hadir: 0,
-            tidakHadir: 0,
-            kelasId: kelasId ?? '', // Handle null
-            kelasNama: kelasNama,
+          summaryMap[key] = AttendanceSummary(
+            subjectId: mataPelajaranId,
+            subjectName: mataPelajaranNama,
+            date: _parseLocalDate(tanggal),
+            totalStudents: 0,
+            present: 0,
+            absent: 0,
+            classId: kelasId ?? '', // Handle null
+            className: kelasNama,
           );
         }
 
@@ -243,15 +242,15 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         final status =
             absen['status']?.toString() ?? 'alpha'; // Default jika status null
 
-        summaryMap[key] = AbsensiSummary(
-          mataPelajaranId: summary.mataPelajaranId,
-          mataPelajaranNama: summary.mataPelajaranNama,
-          tanggal: summary.tanggal,
-          totalSiswa: summary.totalSiswa + 1,
-          hadir: summary.hadir + (status == 'hadir' ? 1 : 0),
-          tidakHadir: summary.tidakHadir + (status != 'hadir' ? 1 : 0),
-          kelasId: summary.kelasId,
-          kelasNama: summary.kelasNama,
+        summaryMap[key] = AttendanceSummary(
+          subjectId: summary.subjectId,
+          subjectName: summary.subjectName,
+          date: summary.date,
+          totalStudents: summary.totalStudents + 1,
+          present: summary.present + (status == 'hadir' ? 1 : 0),
+          absent: summary.absent + (status != 'hadir' ? 1 : 0),
+          classId: summary.classId,
+          className: summary.className,
         );
       }
 
@@ -259,7 +258,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
 
       setState(() {
         _absensiSummaryList = summaryMap.values.toList()
-          ..sort((a, b) => b.tanggal.compareTo(a.tanggal));
+          ..sort((a, b) => b.date.compareTo(a.date));
         _isLoadingSummary = false;
       });
 
@@ -324,14 +323,14 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
   }
 
   Color _getPrimaryColor() {
-    return Color(0xFF4361EE); // Blue untuk admin
+    return ColorUtils.getRoleColor('admin');
   }
 
   LinearGradient _getCardGradient() {
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withOpacity(0.7)],
+      colors: [_getPrimaryColor(), _getPrimaryColor()],
     );
   }
 
@@ -616,12 +615,12 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
 
 
   Widget _buildSummaryCard(
-    AbsensiSummary summary,
+    AttendanceSummary summary,
     LanguageProvider languageProvider,
     int index,
   ) {
-    final presentaseHadir = summary.totalSiswa > 0
-        ? (summary.hadir / summary.totalSiswa * 100).round()
+    final presentaseHadir = summary.totalStudents > 0
+        ? (summary.present / summary.totalStudents * 100).round()
         : 0;
 
     return AnimatedBuilder(
@@ -706,7 +705,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  summary.mataPelajaranNama,
+                                  summary.subjectName,
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -717,7 +716,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  summary.kelasNama, // Tampilkan nama kelas
+                                  summary.className, // Tampilkan nama kelas
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: _getPrimaryColor(),
@@ -731,7 +730,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                   DateFormat(
                                     'EEEE, dd MMMM yyyy',
                                     'id_ID',
-                                  ).format(summary.tanggal),
+                                  ).format(summary.date),
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: Colors.grey[600],
@@ -755,7 +754,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                               ),
                             ),
                             child: Text(
-                              '${summary.totalSiswa} Siswa',
+                              '${summary.totalStudents} Siswa',
                               style: TextStyle(
                                 color: _getPrimaryColor(),
                                 fontSize: 10,
@@ -799,7 +798,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                 ),
                                 SizedBox(height: 1),
                                 Text(
-                                  '${summary.hadir} Hadir • ${summary.tidakHadir} Tidak Hadir',
+                                  '${summary.present} Hadir • ${summary.absent} Tidak Hadir',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -828,8 +827,8 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                 return Container(
                                   width:
                                       constraints.maxWidth *
-                                      (summary.totalSiswa > 0
-                                          ? summary.hadir / summary.totalSiswa
+                                      (summary.totalStudents > 0
+                                          ? summary.present / summary.totalStudents
                                           : 0),
                                   decoration: BoxDecoration(
                                     color: presentaseHadir >= 80
@@ -910,7 +909,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
     );
   }
 
-  List<AbsensiSummary> _getFilteredSummaries() {
+  List<AttendanceSummary> _getFilteredSummaries() {
     final searchTerm = _searchController.text.toLowerCase();
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
@@ -921,34 +920,34 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
     return _absensiSummaryList.where((summary) {
       // Search filter
       final matchesSearch = searchTerm.isEmpty ||
-          summary.mataPelajaranNama.toLowerCase().contains(searchTerm) ||
-          summary.kelasNama.toLowerCase().contains(searchTerm);
+          summary.subjectName.toLowerCase().contains(searchTerm) ||
+          summary.className.toLowerCase().contains(searchTerm);
 
       // Date filter
       bool matchesDateFilter = true;
       if (_selectedDateFilter != null) {
         if (_selectedDateFilter == 'today') {
-          matchesDateFilter = _isSameDay(summary.tanggal, now);
+          matchesDateFilter = _isSameDay(summary.date, now);
         } else if (_selectedDateFilter == 'week') {
-          matchesDateFilter = summary.tanggal.isAfter(
+          matchesDateFilter = summary.date.isAfter(
                 startOfWeek.subtract(Duration(days: 1)),
               ) &&
-              summary.tanggal.isBefore(endOfWeek.add(Duration(days: 1)));
+              summary.date.isBefore(endOfWeek.add(Duration(days: 1)));
         } else if (_selectedDateFilter == 'month') {
-          matchesDateFilter = summary.tanggal.isAfter(
+          matchesDateFilter = summary.date.isAfter(
                 startOfMonth.subtract(Duration(days: 1)),
               ) &&
-              summary.tanggal.isBefore(endOfMonth.add(Duration(days: 1)));
+              summary.date.isBefore(endOfMonth.add(Duration(days: 1)));
         }
       }
 
       // Subject filter
       final matchesSubject = _selectedSubjectIds.isEmpty ||
-          _selectedSubjectIds.contains(summary.mataPelajaranId);
+          _selectedSubjectIds.contains(summary.subjectId);
 
       // Class filter
       final matchesClass = _selectedClassIds.isEmpty ||
-          _selectedClassIds.contains(summary.kelasId);
+          _selectedClassIds.contains(summary.classId);
 
       return matchesSearch &&
           matchesDateFilter &&
@@ -963,16 +962,16 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         date1.day == date2.day;
   }
 
-  void _navigateToDetailAbsensi(AbsensiSummary summary) {
+  void _navigateToDetailAbsensi(AttendanceSummary summary) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => AdminAbsensiDetailPage(
-          mataPelajaranId: summary.mataPelajaranId,
-          mataPelajaranNama: summary.mataPelajaranNama,
-          tanggal: summary.tanggal,
-          kelasId: summary.kelasId, // Kirim kelasId ke detail page
-          kelasNama: summary.kelasNama, // Kirim kelasNama ke detail page
+          mataPelajaranId: summary.subjectId,
+          mataPelajaranNama: summary.subjectName,
+          tanggal: summary.date,
+          kelasId: summary.classId, // Kirim kelasId ke detail page
+          kelasNama: summary.className, // Kirim kelasNama ke detail page
         ),
       ),
     );
@@ -1071,7 +1070,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                           onSelected: (value) {
                             switch (value) {
                               case 'refresh':
-                                _loadAbsensiSummary();
+                                _loadAttendanceSummary();
                                 break;
                             }
                           },
