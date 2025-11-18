@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -37,11 +38,31 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
-  // Filter States
+  // Scroll Controller for Infinite Scroll
+  final ScrollController _scrollController = ScrollController();
+
+  // Pagination States (Infinite Scroll)
+  int _currentPage = 1;
+  int _perPage = 10; // Fixed 10 items per load
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
+  // Filter States (Backend filtering)
   String? _selectedStatusFilter; // 'active', 'inactive', atau null untuk semua
   List<String> _selectedKelasIds = [];
   String? _selectedGenderFilter; // 'L', 'P', atau null untuk semua
+  String? _selectedGradeLevel; // '7', '8', '9', '10', '11', '12'
   bool _hasActiveFilter = false;
+
+  // Filter Options (from backend)
+  Map<String, dynamic>? _filterOptions;
+  List<String> _availableGradeLevels = [];
+  List<dynamic> _availableKelas = [];
+  List<Map<String, String>> _availableGenderOptions = [];
+
+  // Search debounce
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -60,13 +81,75 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+
+    _loadFilterOptions();
     _loadData();
+  }
+
+  void _onScroll() {
+    // Detect when user scrolls near bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      // 200px before bottom
+      if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+        _loadMoreData();
+      }
+    }
+  }
+
+  Future<void> _loadFilterOptions() async {
+    try {
+      final response = await ApiStudentService.getStudentFilterOptions();
+      
+      if (!mounted) return;
+
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _filterOptions = response['data'];
+          _availableGradeLevels = List<String>.from(response['data']['grade_levels'] ?? []);
+          _availableKelas = response['data']['kelas'] ?? [];
+          _availableGenderOptions = List<Map<String, String>>.from(
+            (response['data']['gender_options'] ?? []).map((item) => {
+              'value': item['value'].toString(),
+              'label': item['label'].toString(),
+            })
+          );
+        });
+        print('✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableKelas.length} kelas');
+      }
+    } catch (e) {
+      print('Error loading filter options: $e');
+      // Continue with empty options - not critical error
+    }
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+    
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1; // Reset to first page on search
+      });
+      _loadData();
+      _checkActiveFilter();
+    });
   }
 
   Future<void> _exportToExcel() async {
@@ -114,21 +197,37 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     await ExcelService.downloadTemplate(context);
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool resetPage = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+      if (resetPage) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+          _currentPage = 1;
+          _hasMoreData = true;
+          _students = []; // Reset list
+        });
+      }
 
-      final studentData = await ApiStudentService.getStudent();
+      // Load with pagination and backend filtering
+      final response = await ApiStudentService.getStudentPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        kelasId: _selectedKelasIds.isNotEmpty ? _selectedKelasIds.first : null,
+        gradeLevel: _selectedGradeLevel,
+        jenisKelamin: _selectedGenderFilter,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
       final classData = await apiServiceClass.getClass();
 
       if (!mounted) return;
 
       setState(() {
-        _students = studentData;
+        _students = response['data'] ?? [];
+        _paginationMeta = response['pagination'];
         _classList = classData;
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
       });
 
@@ -155,11 +254,73 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     }
   }
 
+  Future<void> _loadMoreData() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+
+      // Load next page
+      final response = await ApiStudentService.getStudentPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        kelasId: _selectedKelasIds.isNotEmpty ? _selectedKelasIds.first : null,
+        gradeLevel: _selectedGradeLevel,
+        jenisKelamin: _selectedGenderFilter,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        // Append new data to existing list
+        _students.addAll(response['data'] ?? []);
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+        _isLoadingMore = false;
+      });
+
+      print('✅ Loaded more data: Page $_currentPage, Total items: ${_students.length}');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page increment on error
+      });
+
+      print('Error loading more data: $e');
+    }
+  }
+
+  void _applyFilter({
+    String? kelasId,
+    String? gradeLevel,
+    String? jenisKelamin,
+  }) {
+    setState(() {
+      if (kelasId != null) {
+        _selectedKelasIds = [kelasId];
+      }
+      _selectedGradeLevel = gradeLevel;
+      _selectedGenderFilter = jenisKelamin;
+      _currentPage = 1; // Reset to first page
+    });
+    _loadData();
+    _checkActiveFilter();
+  }
+
   void _checkActiveFilter() {
     setState(() {
       _hasActiveFilter = _selectedStatusFilter != null || 
                          _selectedKelasIds.isNotEmpty || 
-                         _selectedGenderFilter != null;
+                         _selectedGenderFilter != null ||
+                         _selectedGradeLevel != null ||
+                         _searchController.text.trim().isNotEmpty;
     });
   }
 
@@ -168,8 +329,12 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       _selectedStatusFilter = null;
       _selectedKelasIds.clear();
       _selectedGenderFilter = null;
+      _selectedGradeLevel = null;
+      _searchController.clear();
+      _currentPage = 1; // Reset to first page
       _hasActiveFilter = false;
     });
+    _loadData();
   }
 
   List<Map<String, dynamic>> _buildFilterChips(LanguageProvider languageProvider) {
@@ -184,8 +349,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedStatusFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // ← Reload data setelah remove filter
         },
       });
     }
@@ -201,8 +367,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
           'onRemove': () {
             setState(() {
               _selectedKelasIds.remove(kelasId);
-              _checkActiveFilter();
             });
+            _checkActiveFilter();
+            _loadData(); // ← Reload data setelah remove filter
           },
         });
       }
@@ -217,8 +384,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedGenderFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // ← Reload data setelah remove filter
         },
       });
     }
@@ -512,6 +680,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                             });
                             _checkActiveFilter();
                             Navigator.pop(context);
+                            _loadData(); // ← Reload data dengan filter baru
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _getPrimaryColor(),
@@ -1738,32 +1907,8 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
           return ErrorScreen(errorMessage: _errorMessage!, onRetry: _loadData);
         }
 
-        final filteredStudents = _students.where((student) {
-          final searchTerm = _searchController.text.toLowerCase();
-          final matchesSearch =
-              searchTerm.isEmpty ||
-              (student['nama']?.toLowerCase().contains(searchTerm) ?? false) ||
-              (student['nis']?.toLowerCase().contains(searchTerm) ?? false) ||
-              (student['kelas_nama']?.toLowerCase().contains(searchTerm) ??
-                  false);
-
-          // Status filter
-          final matchesStatusFilter =
-              _selectedStatusFilter == null ||
-              (student['status'] ?? 'active') == _selectedStatusFilter;
-
-          // Kelas filter
-          final matchesKelasFilter =
-              _selectedKelasIds.isEmpty ||
-              _selectedKelasIds.contains(student['kelas_id']?.toString());
-
-          // Gender filter
-          final matchesGenderFilter =
-              _selectedGenderFilter == null ||
-              student['jenis_kelamin'] == _selectedGenderFilter;
-
-          return matchesSearch && matchesStatusFilter && matchesKelasFilter && matchesGenderFilter;
-        }).toList();
+        // No need to filter here - backend already handles filtering
+        final filteredStudents = _students;
 
         return Scaffold(
           backgroundColor: Color(0xFFF8F9FA),
@@ -2083,19 +2228,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                 ),
               ),
 
-              if (filteredStudents.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${filteredStudents.length} ${languageProvider.getTranslatedText({'en': 'students found', 'id': 'siswa ditemukan'})}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              SizedBox(height: 4),
               Expanded(
                 child: filteredStudents.isEmpty
                     ? EmptyState(
@@ -2119,15 +2251,41 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         child: ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: filteredStudents.length,
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(top: 8, bottom: 16),
+                          itemCount: filteredStudents.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            // Show loading indicator at bottom
+                            if (index == filteredStudents.length) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            }
+                            
                             final student = filteredStudents[index];
                             return _buildStudentCard(student, index);
                           },
                         ),
                       ),
               ),
+              
+              // Show total count at bottom
+              if (_paginationMeta != null && filteredStudents.isNotEmpty && !_isLoadingMore && !_hasMoreData)
+                Container(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${languageProvider.getTranslatedText({'en': 'Showing all', 'id': 'Menampilkan semua'})} ${_paginationMeta!['total_items']} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
             ],
           ),
           floatingActionButton: FloatingActionButton(

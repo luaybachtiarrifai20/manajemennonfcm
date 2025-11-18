@@ -165,7 +165,7 @@ class ApiStudentService {
     }
   }
 
-  // Kelola Siswa
+  // Kelola Siswa (Deprecated - use getStudentPaginated)
   static Future<List<dynamic>> getStudent() async {
     final response = await http.get(
       Uri.parse('$baseUrl/siswa'),
@@ -173,7 +173,109 @@ class ApiStudentService {
     );
 
     final result = _handleResponse(response);
+    
+    // Handle new pagination format
+    if (result is Map<String, dynamic>) {
+      // New format: { success, data, pagination }
+      return (result['data'] as List?) ?? [];
+    }
+    
+    // Backward compatibility: old format (direct list)
     return result is List ? result : [];
+  }
+
+  // Get Filter Options for Student Filters
+  static Future<Map<String, dynamic>> getStudentFilterOptions() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/siswa/filter-options'),
+        headers: await _getHeaders(),
+      );
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback
+      return {
+        'success': false,
+        'data': {
+          'grade_levels': [],
+          'kelas': [],
+          'gender_options': [
+            {'value': 'L', 'label': 'Laki-laki'},
+            {'value': 'P', 'label': 'Perempuan'}
+          ],
+          'status_options': [
+            {'value': 'active', 'label': 'Aktif'},
+            {'value': 'inactive', 'label': 'Tidak Aktif'}
+          ]
+        }
+      };
+    } catch (e) {
+      print('Error getting filter options: $e');
+      rethrow;
+    }
+  }
+
+  // Get Students with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getStudentPaginated({
+    int page = 1,
+    int limit = 10,
+    String? kelasId,
+    String? gradeLevel,
+    String? jenisKelamin,
+    String? search,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (kelasId != null && kelasId.isNotEmpty) {
+      queryParams['kelas_id'] = kelasId;
+    }
+    if (gradeLevel != null && gradeLevel.isNotEmpty) {
+      queryParams['grade_level'] = gradeLevel;
+    }
+    if (jenisKelamin != null && jenisKelamin.isNotEmpty) {
+      queryParams['jenis_kelamin'] = jenisKelamin;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    // Build URI with query parameters
+    String queryString = Uri(queryParameters: queryParams).query;
+    
+    final response = await http.get(
+      Uri.parse('$baseUrl/siswa?$queryString'),
+      headers: await _getHeaders(),
+    );
+
+    final result = _handleResponse(response);
+    
+    // Return full response with pagination metadata
+    if (result is Map<String, dynamic>) {
+      return result;
+    }
+    
+    // Fallback for old format
+    return {
+      'success': true,
+      'data': result is List ? result : [],
+      'pagination': {
+        'total_items': result is List ? result.length : 0,
+        'total_pages': 1,
+        'current_page': 1,
+        'per_page': limit,
+        'has_next_page': false,
+        'has_prev_page': false,
+      }
+    };
   }
 
   static Future<dynamic> addStudent(Map<String, dynamic> data) async {
