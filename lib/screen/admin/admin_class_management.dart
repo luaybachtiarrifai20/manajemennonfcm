@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -30,14 +31,32 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
+  // Scroll Controller for Infinite Scroll
+  final ScrollController _scrollController = ScrollController();
+
   final TextEditingController _searchController = TextEditingController();
 
-  // Filter States
+  // Pagination States (Infinite Scroll)
+  int _currentPage = 1;
+  int _perPage = 10; // Fixed 10 items per load
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
+  // Filter States (Backend filtering)
   String? _selectedLevelFilter; // 'Elementary', 'Middle', 'High School', or null for all
   String? _selectedGradeFilter; // '1' to '12', or null for all
   String? _selectedHomeroomFilter; // 'has', 'no_homeroom', or null for all
   String? _selectedStudentFilter; // 'has_students', 'empty', or null for all
+  String? _selectedWaliKelasId; // Filter by wali kelas
   bool _hasActiveFilter = false;
+
+  // Filter Options (from backend)
+  List<String> _availableGradeLevels = [];
+  List<dynamic> _availableWaliKelas = [];
+
+  // Search debounce
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -56,14 +75,67 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
+    _loadFilterOptions();
     _loadData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Detect when user scrolls near bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      // 200px before bottom
+      if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+        _loadMoreData();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+    
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1;
+      });
+      _loadData();
+    });
+  }
+
+  Future<void> _loadFilterOptions() async {
+    try {
+      final response = await ApiClassService.getClassFilterOptions();
+      
+      if (!mounted) return;
+
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _availableGradeLevels = List<String>.from(response['data']['grade_levels'] ?? []);
+          _availableWaliKelas = response['data']['wali_kelas'] ?? [];
+        });
+        print('✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableWaliKelas.length} wali kelas');
+      }
+    } catch (e) {
+      print('Error loading filter options: $e');
+      // Continue with empty options - not critical error
+    }
   }
 
   void _checkActiveFilter() {
@@ -82,8 +154,12 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       _selectedGradeFilter = null;
       _selectedHomeroomFilter = null;
       _selectedStudentFilter = null;
+      _selectedWaliKelasId = null;
+      _searchController.clear();
+      _currentPage = 1;
       _hasActiveFilter = false;
     });
+    _loadData(); // Reload data setelah clear filters
   }
 
   List<Map<String, dynamic>> _buildFilterChips(
@@ -98,8 +174,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedLevelFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // Reload data setelah remove filter
         },
       });
     }
@@ -111,8 +188,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedGradeFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // Reload data setelah remove filter
         },
       });
     }
@@ -133,8 +211,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedHomeroomFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // Reload data setelah remove filter
         },
       });
     }
@@ -152,8 +231,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedStudentFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // Reload data setelah remove filter
         },
       });
     }
@@ -468,6 +548,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                       });
                       _checkActiveFilter();
                       Navigator.pop(context);
+                      _loadData(); // Reload data dengan filter baru
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _getPrimaryColor(),
@@ -493,27 +574,45 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     );
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool resetPage = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+      if (resetPage) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+          _currentPage = 1;
+          _hasMoreData = true;
+          _classes = []; // Reset list
+        });
+      }
 
-      final classData = await _classService.getClass();
+      // Load with pagination and backend filtering
+      final response = await ApiClassService.getClassPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        gradeLevel: _selectedGradeFilter,
+        waliKelasId: _selectedWaliKelasId,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
 
       setState(() {
-        _classes = classData;
+        _classes = response['data'] ?? [];
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
       });
 
       _animationController.forward();
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
         _errorMessage = e.toString();
       });
-      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -525,6 +624,48 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+
+      // Load next page
+      final response = await ApiClassService.getClassPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        gradeLevel: _selectedGradeFilter,
+        waliKelasId: _selectedWaliKelasId,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        // Append new data to existing list
+        _classes.addAll(response['data'] ?? []);
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+        _isLoadingMore = false;
+      });
+
+      print('✅ Loaded more data: Page $_currentPage, Total items: ${_classes.length}');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page increment on error
+      });
+
+      print('Error loading more data: $e');
     }
   }
 
@@ -1488,63 +1629,8 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
           return ErrorScreen(errorMessage: _errorMessage!, onRetry: _loadData);
         }
 
-        final filteredClasses = _classes.where((classItem) {
-          final searchTerm = _searchController.text.toLowerCase();
-          final nama = classItem['nama']?.toString().toLowerCase() ?? '';
-          final waliKelas =
-              classItem['wali_kelas_nama']?.toString().toLowerCase() ?? '';
-
-          final matchesSearch =
-              searchTerm.isEmpty ||
-              nama.contains(searchTerm) ||
-              waliKelas.contains(searchTerm);
-
-          // Tingkat filter (SD/SMP/SMA berdasarkan grade_level)
-          final gradeLevel = classItem['grade_level'];
-          String? tingkat;
-          if (gradeLevel != null) {
-            final level = int.tryParse(gradeLevel.toString());
-            if (level != null) {
-              if (level <= 6) {
-                tingkat = 'SD';
-              } else if (level <= 9) {
-                tingkat = 'SMP';
-              } else {
-                tingkat = 'SMA';
-              }
-            }
-          }
-          final matchesTingkatFilter =
-              _selectedLevelFilter == null ||
-              tingkat == _selectedLevelFilter;
-
-          // Kelas filter (1-12 berdasarkan grade_level)
-          final matchesKelasFilter =
-              _selectedGradeFilter == null ||
-              gradeLevel?.toString() == _selectedGradeFilter;
-
-          // Homeroom filter
-          final hasHomeroom =
-              classItem['wali_kelas_nama'] != null &&
-              classItem['wali_kelas_nama'].toString().isNotEmpty;
-          final matchesHomeroomFilter =
-              _selectedHomeroomFilter == null ||
-              (_selectedHomeroomFilter == 'ada' && hasHomeroom) ||
-              (_selectedHomeroomFilter == 'tidak_ada' && !hasHomeroom);
-
-          // Siswa filter (based on jumlah_siswa)
-          final jumlahSiswa = classItem['jumlah_siswa'] ?? 0;
-          final matchesSiswaFilter =
-              _selectedStudentFilter == null ||
-              (_selectedStudentFilter == 'ada' && jumlahSiswa > 0) ||
-              (_selectedStudentFilter == 'kosong' && jumlahSiswa == 0);
-
-          return matchesSearch &&
-              matchesTingkatFilter &&
-              matchesKelasFilter &&
-              matchesHomeroomFilter &&
-              matchesSiswaFilter;
-        }).toList();
+        // Backend handles all filtering, so we use _classes directly
+        final filteredClasses = _classes;
 
         return Scaffold(
           backgroundColor: Color(0xFFF8F9FA),
@@ -1916,15 +2002,41 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         child: ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: filteredClasses.length,
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(top: 8, bottom: 16),
+                          itemCount: filteredClasses.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            // Show loading indicator at bottom
+                            if (index == filteredClasses.length) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            }
+                            
                             final classData = filteredClasses[index];
                             return _buildClassCard(classData, index);
                           },
                         ),
                       ),
               ),
+              
+              // Show total count at bottom
+              if (_paginationMeta != null && filteredClasses.isNotEmpty && !_isLoadingMore && !_hasMoreData)
+                Container(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${languageProvider.getTranslatedText({'en': 'Showing all', 'id': 'Menampilkan semua'})} ${_paginationMeta!['total_items']} ${languageProvider.getTranslatedText({'en': 'classes', 'id': 'kelas'})}',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
             ],
           ),
           floatingActionButton: FloatingActionButton(

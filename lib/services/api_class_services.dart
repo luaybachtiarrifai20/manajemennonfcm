@@ -112,6 +112,94 @@ class ApiClassService {
     }
   }
 
+  // Get Filter Options for Class Filters
+  static Future<Map<String, dynamic>> getClassFilterOptions() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/kelas/filter-options'),
+        headers: await _getHeaders(),
+      );
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback
+      return {
+        'success': false,
+        'data': {
+          'grade_levels': [],
+          'wali_kelas': [],
+        }
+      };
+    } catch (e) {
+      print('Error getting filter options: $e');
+      rethrow;
+    }
+  }
+
+  // Get Classes with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getClassPaginated({
+    int page = 1,
+    int limit = 10,
+    String? gradeLevel,
+    String? waliKelasId,
+    String? search,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (gradeLevel != null && gradeLevel.isNotEmpty) {
+      queryParams['grade_level'] = gradeLevel;
+    }
+    if (waliKelasId != null && waliKelasId.isNotEmpty) {
+      queryParams['wali_kelas_id'] = waliKelasId;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    // Build query string
+    String queryString = Uri(queryParameters: queryParams).query;
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/kelas?$queryString'),
+        headers: await _getHeaders(),
+      );
+
+      print('GET /kelas?$queryString - Status: ${response.statusCode}');
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback untuk backward compatibility
+      return {
+        'success': true,
+        'data': result is List ? result : [],
+        'pagination': {
+          'total_items': result is List ? result.length : 0,
+          'total_pages': 1,
+          'current_page': 1,
+          'per_page': limit,
+          'has_next_page': false,
+          'has_prev_page': false,
+        }
+      };
+    } catch (e) {
+      print('Error getting paginated classes: $e');
+      rethrow;
+    }
+  }
+
   // Existing methods...
   Future<List<dynamic>> getClass() async {
     try {
