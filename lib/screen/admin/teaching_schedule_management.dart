@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -56,11 +57,33 @@ class TeachingScheduleManagementScreenState
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
-  // Filter state
+  // Scroll Controller for Infinite Scroll
+  final ScrollController _scrollController = ScrollController();
+
+  // Pagination States (Infinite Scroll)
+  int _currentPage = 1;
+  int _perPage = 10; // Fixed 10 items per load
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
+  // Filter state (Backend filtering)
+  String? _selectedGuruId; // Filter by teacher
+  String? _selectedKelasId; // Filter by class
+  String? _selectedHariId; // Filter by day
   String? _selectedFilterConflict;
   String? _selectedFilterSemester;
   String? _selectedFilterAcademicYear;
   bool _hasActiveFilter = false;
+
+  // Filter Options (from backend)
+  List<dynamic> _availableTeachers = [];
+  List<dynamic> _availableClasses = [];
+  List<dynamic> _availableDays = [];
+  List<dynamic> _availableSemesters = [];
+
+  // Search debounce
+  Timer? _searchDebounce;
 
   // Tambahan untuk tampilan tabel
   bool _showTableView = false;
@@ -84,9 +107,16 @@ class TeachingScheduleManagementScreenState
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
     // Set default academic year and semester based on current date
     _setDefaultAcademicPeriod();
 
+    _loadFilterOptions();
     _loadData();
   }
 
@@ -185,8 +215,55 @@ class TeachingScheduleManagementScreenState
   @override
   void dispose() {
     _animationController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Detect when user scrolls near bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+        _loadMoreData();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+    
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1;
+      });
+      _loadData();
+    });
+  }
+
+  Future<void> _loadFilterOptions() async {
+    try {
+      final response = await ApiScheduleService.getScheduleFilterOptions();
+      
+      if (!mounted) return;
+
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _availableTeachers = response['data']['teachers'] ?? [];
+          _availableClasses = response['data']['classes'] ?? [];
+          _availableDays = response['data']['days'] ?? [];
+          _availableSemesters = response['data']['semesters'] ?? [];
+        });
+        print('✅ Schedule filter options loaded');
+      }
+    } catch (e) {
+      print('Error loading filter options: $e');
+      // Continue with empty options - not critical error
+    }
   }
 
   void _showInfoSnackBar(String message) {
@@ -200,29 +277,33 @@ class TeachingScheduleManagementScreenState
     );
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool resetPage = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-      });
+      if (resetPage) {
+        setState(() {
+          _isLoading = true;
+          _currentPage = 1;
+          _hasMoreData = true;
+          _scheduleList = []; // Reset list
+        });
+      }
 
       // Gunakan nilai semester dan tahun ajaran yang sudah diset
       final semesterToUse = _selectedFilterSemester ?? _selectedSemester;
       final academicYearToUse =
           _selectedFilterAcademicYear ?? _selectedAcademicYear;
 
-      final [
-        schedule,
-        teacher,
-        subject,
-        classData,
-        hari,
-        semester,
-        jamPelajaran,
-      ] = await Future.wait([
-        ApiScheduleService.getSchedule(
+      // Load with pagination and backend filtering
+      final results = await Future.wait([
+        ApiScheduleService.getSchedulesPaginated(
+          page: _currentPage,
+          limit: _perPage,
+          guruId: _selectedGuruId,
+          kelasId: _selectedKelasId,
+          hariId: _selectedHariId,
           semesterId: semesterToUse,
           tahunAjaran: academicYearToUse,
+          search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
         ),
         apiTeacherService.getTeacher(),
         _apiSubjectService.getSubject(),
@@ -234,14 +315,24 @@ class TeachingScheduleManagementScreenState
 
       if (!mounted) return;
 
+      final scheduleResponse = results[0] as Map<String, dynamic>;
+      final teacher = results[1] as List<dynamic>;
+      final subject = results[2] as List<dynamic>;
+      final classData = results[3] as List<dynamic>;
+      final hari = results[4] as List<dynamic>;
+      final semester = results[5] as List<dynamic>;
+      final jamPelajaran = results[6] as List<dynamic>;
+
       setState(() {
-        _scheduleList = schedule;
+        _scheduleList = scheduleResponse['data'] ?? [];
         _teacherList = teacher;
         _subjectList = subject;
         _classList = classData;
         _hariList = hari;
         _semesterList = semester;
         _jamPelajaranList = jamPelajaran;
+        _paginationMeta = scheduleResponse['pagination'];
+        _hasMoreData = scheduleResponse['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
       });
 
@@ -264,6 +355,61 @@ class TeachingScheduleManagementScreenState
 
       _showErrorSnackBar('Failed to load data: $e');
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+
+      // Gunakan nilai semester dan tahun ajaran yang sudah diset
+      final semesterToUse = _selectedFilterSemester ?? _selectedSemester;
+      final academicYearToUse =
+          _selectedFilterAcademicYear ?? _selectedAcademicYear;
+
+      // Load next page
+      final response = await ApiScheduleService.getSchedulesPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        guruId: _selectedGuruId,
+        kelasId: _selectedKelasId,
+        hariId: _selectedHariId,
+        semesterId: semesterToUse,
+        tahunAjaran: academicYearToUse,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        // Append new data to existing list
+        _scheduleList.addAll(response['data'] ?? []);
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+        _isLoadingMore = false;
+      });
+
+      // Update grid data
+      _updateGridData();
+
+      print('✅ Loaded more schedules: Page $_currentPage, Total items: ${_scheduleList.length}');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page increment on error
+      });
+
+      if (kDebugMode) {
+        print('Error loading more data: $e');
+      }
     }
   }
 
@@ -1701,9 +1847,21 @@ class TeachingScheduleManagementScreenState
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         child: ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: filteredSchedules.length,
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 16),
+                          itemCount: filteredSchedules.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            // Show loading indicator at bottom
+                            if (index == filteredSchedules.length) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            }
+                            
                             final schedule = filteredSchedules[index];
                             return _buildScheduleCard(schedule, index);
                           },

@@ -614,6 +614,18 @@ class ApiService {
       final result = await get(
         '/kelas-by-mata-pelajaran?mata_pelajaran_id=$mataPelajaranId',
       );
+      
+      // Handle Map format (pagination or error response)
+      if (result is Map<String, dynamic>) {
+        // Check if it's paginated response
+        if (result.containsKey('data')) {
+          return result['data'] ?? [];
+        }
+        // If Map but no 'data' key, return empty (error case)
+        return [];
+      }
+      
+      // Handle List format (direct response)
       return result is List ? result : [];
     } catch (e) {
       print('Error getting kelas by mata pelajaran: $e');

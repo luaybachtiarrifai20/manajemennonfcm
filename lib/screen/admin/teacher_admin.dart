@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -38,13 +39,30 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
+  // Scroll Controller for Infinite Scroll
+  final ScrollController _scrollController = ScrollController();
+
   final TextEditingController _searchController = TextEditingController();
 
-  // Filter States
+  // Pagination States (Infinite Scroll)
+  int _currentPage = 1;
+  int _perPage = 10; // Fixed 10 items per load
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
+  // Filter States (Backend filtering)
+  String? _selectedKelasId; // Filter by class
   String? _selectedHomeroomFilter; // 'wali_kelas', 'guru_biasa', atau null untuk semua
   List<String> _selectedSubjectIds = [];
   String? _selectedGenderFilter; // 'L', 'P', atau null untuk semua
   bool _hasActiveFilter = false;
+
+  // Filter Options (from backend)
+  List<dynamic> _availableKelas = [];
+
+  // Search debounce
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -63,14 +81,65 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
+    _loadFilterOptions();
     _loadData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Detect when user scrolls near bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+        _loadMoreData();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+    
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1;
+      });
+      _loadData();
+    });
+  }
+
+  Future<void> _loadFilterOptions() async {
+    try {
+      final response = await ApiTeacherService.getTeacherFilterOptions();
+      
+      if (!mounted) return;
+
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _availableKelas = response['data']['kelas'] ?? [];
+        });
+        print('✅ Filter options loaded: ${_availableKelas.length} kelas');
+      }
+    } catch (e) {
+      print('Error loading filter options: $e');
+      // Continue with empty options - not critical error
+    }
   }
 
   void _checkActiveFilter() {
@@ -83,11 +152,15 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
 
   void _clearAllFilters() {
     setState(() {
+      _selectedKelasId = null;
       _selectedHomeroomFilter = null;
       _selectedSubjectIds.clear();
       _selectedGenderFilter = null;
+      _searchController.clear();
+      _currentPage = 1;
       _hasActiveFilter = false;
     });
+    _loadData(); // Reload data setelah clear filters
   }
 
   List<Map<String, dynamic>> _buildFilterChips(LanguageProvider languageProvider) {
@@ -102,8 +175,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
         'onRemove': () {
           setState(() {
             _selectedHomeroomFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // Reload data setelah remove filter
         },
       });
     }
@@ -119,8 +193,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
           'onRemove': () {
             setState(() {
               _selectedSubjectIds.remove(subjectId);
-              _checkActiveFilter();
             });
+            _checkActiveFilter();
+            _loadData(); // Reload data setelah remove filter
           },
         });
       }
@@ -135,8 +210,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
         'onRemove': () {
           setState(() {
             _selectedGenderFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData(); // Reload data setelah remove filter
         },
       });
     }
@@ -430,6 +506,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                             });
                             _checkActiveFilter();
                             Navigator.pop(context);
+                            _loadData(); // Reload data dengan filter baru
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _getPrimaryColor(),
@@ -504,31 +581,51 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     );
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool resetPage = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = null;
-      });
+      if (resetPage) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = null;
+          _currentPage = 1;
+          _hasMoreData = true;
+          _teachers = []; // Reset list
+        });
+      }
 
-      final teacherData = await _teacherService.getTeacher();
+      // Load subjects and classes (untuk dropdown/reference)
       final subjectData = await _subjectService.getSubject();
       final classData = await _classService.getClass();
 
+      // Load with pagination and backend filtering
+      final response = await ApiTeacherService.getTeachersPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        kelasId: _selectedKelasId,
+        jenisKelamin: _selectedGenderFilter,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
       setState(() {
-        _teachers = teacherData;
+        _teachers = response['data'] ?? [];
         _subjects = subjectData;
         _classes = classData;
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
       });
 
       _animationController.forward();
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
         _errorMessage = e.toString();
       });
-      if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -540,6 +637,48 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _loadMoreData() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+
+      // Load next page
+      final response = await ApiTeacherService.getTeachersPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        kelasId: _selectedKelasId,
+        jenisKelamin: _selectedGenderFilter,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        // Append new data to existing list
+        _teachers.addAll(response['data'] ?? []);
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+        _isLoadingMore = false;
+      });
+
+      print('✅ Loaded more data: Page $_currentPage, Total items: ${_teachers.length}');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page increment on error
+      });
+
+      print('Error loading more data: $e');
     }
   }
 
@@ -1968,9 +2107,21 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                     : RefreshIndicator(
                         onRefresh: _loadData,
                         child: ListView.builder(
-                          padding: EdgeInsets.symmetric(vertical: 8),
-                          itemCount: filteredTeachers.length,
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(top: 8, bottom: 16),
+                          itemCount: filteredTeachers.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            // Show loading indicator at bottom
+                            if (index == filteredTeachers.length) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            }
+                            
                             final teacher = filteredTeachers[index];
                             return AnimatedBuilder(
                               animation: _animationController,

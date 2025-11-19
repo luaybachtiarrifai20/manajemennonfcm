@@ -76,7 +76,115 @@ class ApiScheduleService {
     return _handleResponse(response);
   }
 
-  // Jadwal Mengajar dengan struktur baru
+  // Get Filter Options for Teaching Schedule Filters
+  static Future<Map<String, dynamic>> getScheduleFilterOptions() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/jadwal-mengajar/filter-options'),
+        headers: await _getHeaders(),
+      );
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback
+      return {
+        'success': false,
+        'data': {
+          'teachers': [],
+          'classes': [],
+          'days': [],
+          'semesters': [],
+        }
+      };
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting schedule filter options: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // Get Teaching Schedules with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getSchedulesPaginated({
+    int page = 1,
+    int limit = 10,
+    String? guruId,
+    String? kelasId,
+    String? hariId,
+    String? semesterId,
+    String? tahunAjaran,
+    String? search,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (guruId != null && guruId.isNotEmpty) {
+      queryParams['guru_id'] = guruId;
+    }
+    if (kelasId != null && kelasId.isNotEmpty) {
+      queryParams['kelas_id'] = kelasId;
+    }
+    if (hariId != null && hariId.isNotEmpty) {
+      queryParams['hari_id'] = hariId;
+    }
+    if (semesterId != null && semesterId.isNotEmpty) {
+      queryParams['semester_id'] = semesterId;
+    }
+    if (tahunAjaran != null && tahunAjaran.isNotEmpty) {
+      queryParams['tahun_ajaran'] = tahunAjaran;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    // Build query string
+    String queryString = Uri(queryParameters: queryParams).query;
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/jadwal-mengajar?$queryString'),
+        headers: await _getHeaders(),
+      );
+
+      if (kDebugMode) {
+        print('GET /jadwal-mengajar?$queryString - Status: ${response.statusCode}');
+      }
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback untuk backward compatibility
+      return {
+        'success': true,
+        'data': result is List ? result : [],
+        'pagination': {
+          'total_items': result is List ? result.length : 0,
+          'total_pages': 1,
+          'current_page': 1,
+          'per_page': limit,
+          'has_next_page': false,
+          'has_prev_page': false,
+        }
+      };
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error getting paginated schedules: $e');
+      }
+      rethrow;
+    }
+  }
+
+  // Jadwal Mengajar dengan struktur baru (Legacy - use getSchedulesPaginated instead)
   static Future<List<dynamic>> getSchedule({
     String? guruId,
     String? kelasId,

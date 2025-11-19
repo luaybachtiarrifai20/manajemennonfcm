@@ -71,9 +71,104 @@ class ApiTeacherService {
     }
   }
 
+  // Get Filter Options for Teacher Filters
+  static Future<Map<String, dynamic>> getTeacherFilterOptions() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/guru/filter-options'),
+        headers: await _getHeaders(),
+      );
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback
+      return {
+        'success': false,
+        'data': {
+          'kelas': [],
+          'gender_options': [],
+        }
+      };
+    } catch (e) {
+      print('Error getting filter options: $e');
+      rethrow;
+    }
+  }
+
+  // Get Teachers with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getTeachersPaginated({
+    int page = 1,
+    int limit = 10,
+    String? kelasId,
+    String? jenisKelamin,
+    String? search,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (kelasId != null && kelasId.isNotEmpty) {
+      queryParams['kelas_id'] = kelasId;
+    }
+    if (jenisKelamin != null && jenisKelamin.isNotEmpty) {
+      queryParams['jenis_kelamin'] = jenisKelamin;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    // Build query string
+    String queryString = Uri(queryParameters: queryParams).query;
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/guru?$queryString'),
+        headers: await _getHeaders(),
+      );
+
+      print('GET /guru?$queryString - Status: ${response.statusCode}');
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback untuk backward compatibility
+      return {
+        'success': true,
+        'data': result is List ? result : [],
+        'pagination': {
+          'total_items': result is List ? result.length : 0,
+          'total_pages': 1,
+          'current_page': 1,
+          'per_page': limit,
+          'has_next_page': false,
+          'has_prev_page': false,
+        }
+      };
+    } catch (e) {
+      print('Error getting paginated teachers: $e');
+      rethrow;
+    }
+  }
+
   // Existing methods tetap dipertahankan...
   Future<List<dynamic>> getTeacher() async {
     final result = await ApiService().get('/guru');
+    
+    // Handle new pagination format
+    if (result is Map<String, dynamic>) {
+      return result['data'] ?? [];
+    }
+    
+    // Handle old format (List)
     return result is List ? result : [];
   }
 
@@ -98,6 +193,16 @@ class ApiTeacherService {
   Future<List<dynamic>> getSubjectByTeacher(String guruId) async {
     try {
       final result = await ApiService().get('/guru/$guruId/mata-pelajaran');
+      
+      // Handle Map format (pagination or error response)
+      if (result is Map<String, dynamic>) {
+        if (result.containsKey('data')) {
+          return result['data'] ?? [];
+        }
+        return [];
+      }
+      
+      // Handle List format (direct response)
       return result is List ? result : [];
     } catch (e) {
       print('Error getting mata pelajaran by guru: $e');

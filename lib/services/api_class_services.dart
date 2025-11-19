@@ -204,10 +204,17 @@ class ApiClassService {
   Future<List<dynamic>> getClass() async {
     try {
       final result = await ApiService().get('/kelas');
+      
+      // Handle new pagination format
+      if (result is Map<String, dynamic>) {
+        return result['data'] ?? [];
+      }
+      
+      // Handle old format (List)
       return result is List ? result : [];
     } catch (e) {
       print('Error getting classes: $e');
-      throw Exception('Gagal mengambil data kelas: $e');
+      return [];
     }
   }
 
@@ -280,6 +287,16 @@ class ApiClassService {
   Future<List<dynamic>> getStudentsByClassId(String classId) async {
     try {
       final result = await ApiService().get('/siswa/kelas/$classId');
+      
+      // Handle Map format (pagination or error response)
+      if (result is Map<String, dynamic>) {
+        if (result.containsKey('data')) {
+          return result['data'] ?? [];
+        }
+        return [];
+      }
+      
+      // Handle List format (direct response)
       return result is List ? result : [];
     } catch (e) {
       print('Error getting students by class: $e');

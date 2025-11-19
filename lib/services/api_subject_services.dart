@@ -32,8 +32,100 @@ class ApiSubjectService {
     }
   }
 
+  // Get Filter Options for Subject Filters
+  static Future<Map<String, dynamic>> getSubjectFilterOptions() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/mata-pelajaran/filter-options'),
+        headers: await _getHeaders(),
+      );
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback
+      return {
+        'success': false,
+        'data': {
+          'status_options': [],
+        }
+      };
+    } catch (e) {
+      print('Error getting filter options: $e');
+      rethrow;
+    }
+  }
+
+  // Get Subjects with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getSubjectsPaginated({
+    int page = 1,
+    int limit = 10,
+    String? status,
+    String? search,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (status != null && status.isNotEmpty) {
+      queryParams['status'] = status;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    // Build query string
+    String queryString = Uri(queryParameters: queryParams).query;
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/mata-pelajaran?$queryString'),
+        headers: await _getHeaders(),
+      );
+
+      print('GET /mata-pelajaran?$queryString - Status: ${response.statusCode}');
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback untuk backward compatibility
+      return {
+        'success': true,
+        'data': result is List ? result : [],
+        'pagination': {
+          'total_items': result is List ? result.length : 0,
+          'total_pages': 1,
+          'current_page': 1,
+          'per_page': limit,
+          'has_next_page': false,
+          'has_prev_page': false,
+        }
+      };
+    } catch (e) {
+      print('Error getting paginated subjects: $e');
+      rethrow;
+    }
+  }
+
+  // Legacy method (keep for backward compatibility)
+  // Now handles paginated response from backend
   Future<List<dynamic>> getSubject() async {
     final result = await ApiService().get('/mata-pelajaran');
+    
+    // Handle new pagination format
+    if (result is Map<String, dynamic>) {
+      return result['data'] ?? [];
+    }
+    
+    // Handle old format (List)
     return result is List ? result : [];
   }
 

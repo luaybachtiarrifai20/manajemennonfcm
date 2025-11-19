@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -28,10 +29,21 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
   bool _isLoading = true;
   String _errorMessage = '';
 
+  // Scroll Controller for Infinite Scroll
+  final ScrollController _scrollController = ScrollController();
+
   // Search dan filter
   final TextEditingController _searchController = TextEditingController();
 
-  // Filter States
+  // Pagination States (Infinite Scroll)
+  int _currentPage = 1;
+  int _perPage = 10; // Fixed 10 items per load
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
+  // Filter States (Backend filtering)
+  String? _selectedStatusFilter; // 'active', 'inactive', atau null untuk semua
   String?
   _selectedKategoriFilter; // 'Utama', 'Tambahan', 'Ekstrakurikuler', atau null untuk semua
   String?
@@ -44,6 +56,12 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
   // Dynamic list untuk nama kelas yang tersedia
   List<String> _availableClassNames = [];
   List<String> _availableGradeLevels = [];
+
+  // Filter Options (from backend)
+  List<dynamic> _availableStatusOptions = [];
+
+  // Search debounce
+  Timer? _searchDebounce;
 
   // Animations
   late AnimationController _animationController;
@@ -67,14 +85,65 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
+    _loadFilterOptions();
     _loadSubjects();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Detect when user scrolls near bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+        _loadMoreSubjects();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+    
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1;
+      });
+      _loadSubjects();
+    });
+  }
+
+  Future<void> _loadFilterOptions() async {
+    try {
+      final response = await ApiSubjectService.getSubjectFilterOptions();
+      
+      if (!mounted) return;
+
+      if (response['success'] == true && response['data'] != null) {
+        setState(() {
+          _availableStatusOptions = response['data']['status_options'] ?? [];
+        });
+        print('✅ Filter options loaded');
+      }
+    } catch (e) {
+      print('Error loading filter options: $e');
+      // Continue with empty options - not critical error
+    }
   }
 
   void _checkActiveFilter() {
@@ -89,12 +158,16 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
 
   void _clearAllFilters() {
     setState(() {
+      _selectedStatusFilter = null;
       _selectedKategoriFilter = null;
       _selectedKelasStatusFilter = null;
       _selectedGradeLevelFilter = null;
       _selectedClassNameFilter = null;
+      _searchController.clear();
+      _currentPage = 1;
       _hasActiveFilter = false;
     });
+    _loadSubjects(); // Reload data setelah clear filters
   }
 
   List<Map<String, dynamic>> _buildFilterChips(
@@ -109,8 +182,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedKategoriFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadSubjects();
         },
       });
     }
@@ -131,8 +205,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedKelasStatusFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadSubjects();
         },
       });
     }
@@ -144,8 +219,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedGradeLevelFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadSubjects();
         },
       });
     }
@@ -157,8 +233,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         'onRemove': () {
           setState(() {
             _selectedClassNameFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadSubjects();
         },
       });
     }
@@ -498,6 +575,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                       });
                       _checkActiveFilter();
                       Navigator.pop(context);
+                      _loadSubjects(); // Reload data setelah apply filter
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: _getPrimaryColor(),
@@ -523,19 +601,35 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
     );
   }
 
-  Future<void> _loadSubjects() async {
+  Future<void> _loadSubjects({bool resetPage = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = '';
-      });
+      if (resetPage) {
+        setState(() {
+          _isLoading = true;
+          _currentPage = 1;
+          _hasMoreData = true;
+          _subjectList = []; // Reset list
+          _errorMessage = '';
+        });
+      }
 
-      final response = await _apiService.getMataPelajaranWithKelas();
-      // Extract unique class names and grade levels from all subjects
+      // Load with pagination and backend filtering
+      final response = await ApiSubjectService.getSubjectsPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        status: _selectedStatusFilter,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      final data = response['data'] ?? [];
+      
+      // Extract unique class names and grade levels from subjects
       Set<String> classNamesSet = {};
       Set<String> gradeLevelsSet = {};
 
-      for (var subject in response) {
+      for (var subject in data) {
         final kelasNames = subject['kelas_names']?.toString() ?? '';
         if (kelasNames.isNotEmpty) {
           final names = kelasNames
@@ -558,7 +652,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
       }
 
       setState(() {
-        _subjectList = response;
+        _subjectList = data;
         _availableClassNames = classNamesSet.toList()..sort();
         _availableGradeLevels = gradeLevelsSet.toList()
           ..sort((a, b) {
@@ -566,15 +660,93 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
             final bInt = int.tryParse(b) ?? 0;
             return aInt.compareTo(bInt);
           });
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
+        _errorMessage = '';
       });
 
       _animationController.forward();
     } catch (error) {
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Failed to load subject data';
+        _errorMessage = 'Failed to load subject data: $error';
       });
+    }
+  }
+
+  Future<void> _loadMoreSubjects() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+
+      final response = await ApiSubjectService.getSubjectsPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        status: _selectedStatusFilter,
+        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      final data = response['data'] ?? [];
+      
+      // Extract class names and grade levels
+      Set<String> classNamesSet = Set.from(_availableClassNames);
+      Set<String> gradeLevelsSet = Set.from(_availableGradeLevels);
+
+      for (var subject in data) {
+        final kelasNames = subject['kelas_names']?.toString() ?? '';
+        if (kelasNames.isNotEmpty) {
+          final names = kelasNames
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty);
+          classNamesSet.addAll(names);
+        }
+
+        final kelasGradeLevels = subject['kelas_grade_levels']?.toString() ?? '';
+        if (kelasGradeLevels.isNotEmpty) {
+          final levels = kelasGradeLevels
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty);
+          gradeLevelsSet.addAll(levels);
+        }
+      }
+
+      setState(() {
+        // Append new data to existing list
+        _subjectList.addAll(data);
+        _availableClassNames = classNamesSet.toList()..sort();
+        _availableGradeLevels = gradeLevelsSet.toList()
+          ..sort((a, b) {
+            final aInt = int.tryParse(a) ?? 0;
+            final bInt = int.tryParse(b) ?? 0;
+            return aInt.compareTo(bInt);
+          });
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+        _isLoadingMore = false;
+      });
+
+      print('✅ Loaded more subjects: Page $_currentPage, Total: ${_subjectList.length}');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page increment on error
+      });
+
+      print('Error loading more data: $e');
     }
   }
 
@@ -1729,9 +1901,21 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                     : RefreshIndicator(
                         onRefresh: _loadSubjects,
                         child: ListView.builder(
+                          controller: _scrollController,
                           padding: EdgeInsets.all(16),
-                          itemCount: filteredSubjects.length,
+                          itemCount: filteredSubjects.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            // Show loading indicator at bottom
+                            if (index == filteredSubjects.length) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              );
+                            }
+                            
                             return _buildSubjectCard(
                               filteredSubjects[index],
                               index,
@@ -1818,16 +2002,27 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
       });
 
       // Load semua kelas yang tersedia
-      final allClasses = await _apiService.get('/kelas');
+      final allClassesResponse = await _apiService.get('/kelas');
 
       // Load kelas yang sudah ditetapkan untuk mata pelajaran ini
+      // getKelasByMataPelajaran already returns List<dynamic>
       final assignedClasses = await _apiService.getKelasByMataPelajaran(
-        widget.subject['id'],
+        widget.subject['id'].toString(),
       );
 
+      // Handle both Map (pagination) and List formats for allClasses
+      List<dynamic> allClasses;
+      if (allClassesResponse is Map<String, dynamic>) {
+        allClasses = allClassesResponse['data'] ?? [];
+      } else if (allClassesResponse is List) {
+        allClasses = allClassesResponse;
+      } else {
+        allClasses = [];
+      }
+
       setState(() {
-        _availableClasses = List<dynamic>.from(allClasses);
-        _assignedClasses = List<dynamic>.from(assignedClasses);
+        _availableClasses = allClasses;
+        _assignedClasses = assignedClasses;
         _isLoading = false;
       });
 
