@@ -2272,20 +2272,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         ),
                       ),
               ),
-              
-              // Show total count at bottom
-              if (_paginationMeta != null && filteredStudents.isNotEmpty && !_isLoadingMore && !_hasMoreData)
-                Container(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '${languageProvider.getTranslatedText({'en': 'Showing all', 'id': 'Menampilkan semua'})} ${_paginationMeta!['total_items']} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ),
             ],
           ),
           floatingActionButton: FloatingActionButton(
