@@ -190,23 +190,61 @@ class ApiTeacherService {
     await ApiService().delete('/guru/$id');
   }
 
-  Future<List<dynamic>> getSubjectByTeacher(String guruId) async {
+   Future<List<dynamic>> getSubjectByTeacher(String guruId) async {
     try {
       final result = await ApiService().get('/guru/$guruId/mata-pelajaran');
-      
-      // Handle Map format (pagination or error response)
-      if (result is Map<String, dynamic>) {
-        if (result.containsKey('data')) {
-          return result['data'] ?? [];
-        }
-        return [];
-      }
-      
-      // Handle List format (direct response)
       return result is List ? result : [];
     } catch (e) {
       print('Error getting mata pelajaran by guru: $e');
       return [];
+    }
+  }
+
+  // Get Subjects by Teacher with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getSubjectsByTeacherPaginated({
+    required String guruId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    // Build query string
+    String queryString = Uri(queryParameters: queryParams).query;
+    
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/guru/$guruId/mata-pelajaran?$queryString'),
+        headers: await _getHeaders(),
+      );
+
+      print('GET /guru/$guruId/mata-pelajaran?$queryString - Status: ${response.statusCode}');
+
+      final result = _handleResponse(response);
+      
+      if (result is Map<String, dynamic>) {
+        return result;
+      }
+      
+      // Fallback untuk backward compatibility
+      return {
+        'success': true,
+        'data': result is List ? result : [],
+        'pagination': {
+          'total_items': result is List ? result.length : 0,
+          'total_pages': 1,
+          'current_page': 1,
+          'per_page': limit,
+          'has_next_page': false,
+          'has_prev_page': false,
+        }
+      };
+    } catch (e) {
+      print('Error getting paginated subjects by teacher: $e');
+      rethrow;
     }
   }
 

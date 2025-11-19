@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
@@ -30,21 +31,63 @@ class GradePageState extends State<GradePage> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
 
+  // Scroll Controller for Infinite Scroll
+  final ScrollController _scrollController = ScrollController();
+
+  // Pagination States (Infinite Scroll)
+  int _currentPage = 1;
+  int _perPage = 10; // Fixed 10 items per load
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
   // Filter States
   List<String> _selectedSubjectIds = [];
   bool _hasActiveFilter = false;
 
+  // Search debounce
+  Timer? _searchDebounce;
+
   @override
   void initState() {
     super.initState();
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
     _loadData();
-    _searchController.addListener(_filterMataPelajaran);
   }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Detect when user scrolls near bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+        _loadMoreSubjects();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1;
+      });
+      _loadData();
+    });
   }
 
   void _filterMataPelajaran() {
@@ -65,20 +108,38 @@ class GradePageState extends State<GradePage> {
     });
   }
 
-  Future<void> _loadData() async {
+  Future<void> _loadData({bool resetPage = true}) async {
     try {
-      setState(() {
-        _isLoading = true;
-      });
+      if (resetPage) {
+        setState(() {
+          _isLoading = true;
+          _currentPage = 1;
+          _hasMoreData = true;
+          _mataPelajaranList = []; // Reset list
+        });
+      }
 
       List<dynamic> mataPelajaran;
 
       if (widget.guru['role'] == 'guru') {
-        mataPelajaran = await apiTeacherService.getSubjectByTeacher(
-          widget.guru['id'],
+        // For teachers, get subjects by teacher with pagination
+        final response = await ApiTeacherService.getSubjectsByTeacherPaginated(
+          guruId: widget.guru['id'],
+          page: _currentPage,
+          limit: _perPage,
         );
+        mataPelajaran = response['data'] ?? [];
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
       } else {
-        mataPelajaran = await apiSubjectService.getSubject();
+        // For admins, get all subjects with pagination
+        final response = await ApiSubjectService.getSubjectsPaginated(
+          page: _currentPage,
+          limit: _perPage,
+        );
+        mataPelajaran = response['data'] ?? [];
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
       }
 
       setState(() {
@@ -92,6 +153,60 @@ class GradePageState extends State<GradePage> {
         _isLoading = false;
       });
       _showErrorSnackBar('Failed to load data: $e');
+    }
+  }
+
+  Future<void> _loadMoreSubjects() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+
+      List<dynamic> newSubjects;
+
+      if (widget.guru['role'] == 'guru') {
+        // For teachers, get subjects by teacher
+        final response = await ApiTeacherService.getSubjectsByTeacherPaginated(
+          guruId: widget.guru['id'],
+          page: _currentPage,
+          limit: _perPage,
+        );
+        newSubjects = response['data'] ?? [];
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+      } else {
+        // For admins, get all subjects
+        final response = await ApiSubjectService.getSubjectsPaginated(
+          page: _currentPage,
+          limit: _perPage,
+        );
+        newSubjects = response['data'] ?? [];
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
+      }
+
+      setState(() {
+        // Append new data to existing list
+        _mataPelajaranList.addAll(newSubjects);
+        _filteredMataPelajaranList = List.from(_mataPelajaranList);
+        _isLoadingMore = false;
+      });
+
+      print('✅ Loaded more subjects: Page $_currentPage, Total: ${_mataPelajaranList.length}');
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoadingMore = false;
+        _currentPage--; // Revert page increment on error
+      });
+
+      print('Error loading more subjects: $e');
+      _showErrorSnackBar('Failed to load more subjects: $e');
     }
   }
 
@@ -165,8 +280,11 @@ class GradePageState extends State<GradePage> {
   void _clearAllFilters() {
     setState(() {
       _selectedSubjectIds.clear();
+      _searchController.clear();
+      _currentPage = 1;
       _hasActiveFilter = false;
     });
+    _loadData(); // Reload data setelah clear filters
   }
 
   List<Map<String, dynamic>> _buildFilterChips(
@@ -181,8 +299,9 @@ class GradePageState extends State<GradePage> {
         'onRemove': () {
           setState(() {
             _selectedSubjectIds.clear();
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData();
         },
       });
     }
@@ -228,6 +347,8 @@ class GradePageState extends State<GradePage> {
             _selectedSubjectIds = List<String>.from(filters['subjectIds'] ?? []);
             _checkActiveFilter();
           });
+          Navigator.pop(context);
+          _loadData(); // Reload data setelah apply filter
         },
       ),
     );
@@ -763,11 +884,23 @@ class GradePageState extends State<GradePage> {
                               ),
                             Expanded(
                               child: ListView.builder(
+                                controller: _scrollController,
                                 padding: EdgeInsets.only(top: 8, bottom: 16),
-                                itemCount: filteredSubjects.length,
+                                itemCount: _mataPelajaranList.length + (_isLoadingMore ? 1 : 0),
                                 itemBuilder: (context, index) {
+                                  // Show loading indicator at bottom
+                                  if (index == _mataPelajaranList.length) {
+                                    return Container(
+                                      padding: EdgeInsets.symmetric(vertical: 16),
+                                      alignment: Alignment.center,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    );
+                                  }
+
                                   return _buildSubjectCard(
-                                    filteredSubjects[index],
+                                    _mataPelajaranList[index],
                                     languageProvider,
                                     index,
                                   );
