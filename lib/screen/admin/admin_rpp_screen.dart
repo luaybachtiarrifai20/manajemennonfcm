@@ -1,12 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:manajemensekolah/services/api_services.dart';
-import 'package:manajemensekolah/services/excel_rpp_service.dart';
-import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
-import 'package:provider/provider.dart';
+import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/services/excel_rpp_service.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:provider/provider.dart';
 
 class AdminRppScreen extends StatefulWidget {
   final String? teacherId;
@@ -24,14 +26,23 @@ class _AdminRppScreenState extends State<AdminRppScreen>
   bool _isLoading = true;
   String? _errorMessage;
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  // Pagination state
+  int _currentPage = 1;
+  final int _perPage = 10;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  // pagination meta kept server-side; not stored locally to avoid unused warnings
+  Timer? _searchDebounce;
 
   // Filter States
-  String? _selectedStatusFilter; // 'Pending', 'Approved', 'Rejected', or null for all
+  String?
+  _selectedStatusFilter; // 'Pending', 'Approved', 'Rejected', or null for all
   bool _hasActiveFilter = false;
 
   late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
+  // animations: only controller is needed; per-card animations are created locally
 
   @override
   void initState() {
@@ -42,21 +53,28 @@ class _AdminRppScreenState extends State<AdminRppScreen>
       duration: Duration(milliseconds: 800),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
-    );
+    // per-card animations use local CurvedAnimation instances
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoadingMore &&
+          _hasMoreData &&
+          !_isLoading) {
+        _loadMoreRpp();
+      }
+    });
 
-    _loadRppByTeacher();
+    // initial load
+    _loadRppPaginated(reset: true);
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -75,17 +93,19 @@ class _AdminRppScreenState extends State<AdminRppScreen>
 
   String _buildFilterSummary(LanguageProvider languageProvider) {
     List<String> filters = [];
-    
+
     if (_selectedStatusFilter != null) {
-      filters.add('${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $_selectedStatusFilter');
+      filters.add(
+        '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $_selectedStatusFilter',
+      );
     }
-    
+
     return filters.join(' • ');
   }
 
   void _showFilterSheet() {
     final languageProvider = context.read<LanguageProvider>();
-    
+
     // Temporary state for bottom sheet
     String? tempSelectedStatus = _selectedStatusFilter;
 
@@ -296,7 +316,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
     required VoidCallback onSelected,
   }) {
     final isSelected = selectedValue == value;
-    
+
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
@@ -323,23 +343,8 @@ class _AdminRppScreenState extends State<AdminRppScreen>
         _errorMessage = null;
       });
 
-      final rppData = await ApiService.getRPP();
-
-      List<dynamic> filteredData;
-      if (widget.teacherId != null) {
-        filteredData = rppData
-            .where((rpp) => rpp['guru_id']?.toString() == widget.teacherId)
-            .toList();
-      } else {
-        filteredData = rppData;
-      }
-
-      setState(() {
-        _rppList = filteredData;
-        _isLoading = false;
-      });
-
-      _animationController.forward();
+      // deprecated: use paginated loader
+      await _loadRppPaginated(reset: true);
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -355,14 +360,8 @@ class _AdminRppScreenState extends State<AdminRppScreen>
         _errorMessage = null;
       });
 
-      final rppData = await ApiService.getRPP();
-
-      setState(() {
-        _rppList = rppData;
-        _isLoading = false;
-      });
-
-      _animationController.forward();
+      // Refresh using paginated endpoint
+      await _loadRppPaginated(reset: true);
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -371,6 +370,79 @@ class _AdminRppScreenState extends State<AdminRppScreen>
     }
   }
 
+  Future<void> _loadRppPaginated({bool reset = false}) async {
+    try {
+      if (reset) {
+        _currentPage = 1;
+        _hasMoreData = true;
+      }
+
+      setState(() {
+        if (reset) {
+          _isLoading = true;
+          _errorMessage = null;
+        } else {
+          _isLoadingMore = true;
+        }
+      });
+
+      final result = await ApiService.getRppPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        guruId: widget.teacherId,
+        status: _selectedStatusFilter,
+        search: _searchController.text.isNotEmpty
+            ? _searchController.text
+            : null,
+      );
+
+      if (result['success'] == true) {
+        final List<dynamic> data = result['data'] ?? [];
+
+        final pagination = result['pagination'] ?? {};
+
+        setState(() {
+          if (reset) {
+            _rppList = data;
+          } else {
+            _rppList.addAll(data);
+          }
+
+          _hasMoreData =
+              pagination['has_next_page'] ?? (data.length == _perPage);
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+
+        _animationController.forward();
+      } else {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+          _errorMessage = 'Failed to load RPP';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+        _errorMessage = e.toString();
+      });
+    }
+  }
+
+  Future<void> _loadMoreRpp() async {
+    if (!_hasMoreData) return;
+    _currentPage += 1;
+    await _loadRppPaginated(reset: false);
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      _loadRppPaginated(reset: true);
+    });
+  }
 
   void _updateStatus(String rppId, String status) {
     showDialog(
@@ -405,18 +477,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
     }
   }
 
-  IconData _getStatusIcon(String status) {
-    switch (status) {
-      case 'Disetujui':
-        return Icons.check_circle;
-      case 'Menunggu':
-        return Icons.access_time;
-      case 'Ditolak':
-        return Icons.cancel;
-      default:
-        return Icons.help;
-    }
-  }
+  // status icon helper not used currently
 
   Color _getPrimaryColor() {
     return ColorUtils.getRoleColor('admin');
@@ -431,8 +492,6 @@ class _AdminRppScreenState extends State<AdminRppScreen>
   }
 
   Widget _buildRppCard(Map<String, dynamic> rpp, int index) {
-    final languageProvider = context.read<LanguageProvider>();
-
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: AnimatedBuilder(
@@ -443,7 +502,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
             parent: _animationController,
             curve: Interval(delay, 1.0, curve: Curves.easeOut),
           );
-      
+
           return FadeTransition(
             opacity: animation,
             child: Transform.translate(
@@ -487,7 +546,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                       ),
                     ),
                   ),
-      
+
                   // Background pattern effect
                   Positioned(
                     right: -8,
@@ -501,7 +560,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                       ),
                     ),
                   ),
-      
+
                   Padding(
                     padding: EdgeInsets.all(16),
                     child: Column(
@@ -567,9 +626,9 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                             ),
                           ],
                         ),
-      
+
                         SizedBox(height: 12),
-      
+
                         // Informasi kelas dan guru
                         Row(
                           children: [
@@ -613,9 +672,9 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                             ),
                           ],
                         ),
-      
+
                         SizedBox(height: 8),
-      
+
                         Row(
                           children: [
                             Container(
@@ -660,9 +719,9 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                             ),
                           ],
                         ),
-      
+
                         SizedBox(height: 12),
-      
+
                         // Action buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -751,9 +810,11 @@ class _AdminRppScreenState extends State<AdminRppScreen>
 
         final filteredRpp = _rppList.where((rpp) {
           final searchTerm = _searchController.text.toLowerCase();
-          final matchesSearch = searchTerm.isEmpty ||
+          final matchesSearch =
+              searchTerm.isEmpty ||
               (rpp['judul']?.toLowerCase().contains(searchTerm) ?? false) ||
-              (rpp['mata_pelajaran_nama']?.toLowerCase().contains(searchTerm) ?? false) ||
+              (rpp['mata_pelajaran_nama']?.toLowerCase().contains(searchTerm) ??
+                  false) ||
               (rpp['guru_nama']?.toLowerCase().contains(searchTerm) ?? false) ||
               (rpp['kelas_nama']?.toLowerCase().contains(searchTerm) ?? false);
 
@@ -831,7 +892,8 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                               Text(
                                 languageProvider.getTranslatedText({
                                   'en': 'Manage lesson plans',
-                                  'id': 'Kelola rencana pelaksanaan pembelajaran',
+                                  'id':
+                                      'Kelola rencana pelaksanaan pembelajaran',
                                 }),
                                 style: TextStyle(
                                   fontSize: 14,
@@ -913,7 +975,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                             ),
                             child: TextField(
                               controller: _searchController,
-                              onChanged: (value) => setState(() {}),
+                              onChanged: (value) => _onSearchChanged(value),
                               style: TextStyle(color: Colors.black87),
                               decoration: InputDecoration(
                                 hintText: languageProvider.getTranslatedText({
@@ -1046,8 +1108,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                           'id': 'Tidak ada RPP',
                         }),
                         subtitle:
-                            _searchController.text.isEmpty &&
-                                !_hasActiveFilter
+                            _searchController.text.isEmpty && !_hasActiveFilter
                             ? languageProvider.getTranslatedText({
                                 'en': 'No RPP data available',
                                 'id': 'Tidak ada data RPP',
@@ -1061,9 +1122,26 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                     : RefreshIndicator(
                         onRefresh: _loadRppByTeacher,
                         child: ListView.builder(
-                          padding: EdgeInsets.only(top: 16, bottom: 16, left: 5, right: 5),
-                          itemCount: filteredRpp.length,
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(
+                            top: 16,
+                            bottom: 16,
+                            left: 5,
+                            right: 5,
+                          ),
+                          itemCount:
+                              filteredRpp.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index >= filteredRpp.length) {
+                              // loading indicator
+                              return Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              );
+                            }
+
                             final rpp = filteredRpp[index];
                             return _buildRppCard(rpp, index);
                           },
@@ -1154,7 +1232,7 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField(
-              value: _selectedStatus,
+              initialValue: _selectedStatus,
               decoration: InputDecoration(
                 labelText: 'Status',
                 border: OutlineInputBorder(),
@@ -1470,7 +1548,7 @@ class RppAdminDetailPage extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
+          SizedBox(
             width: 120,
             child: Text(
               '$label:',

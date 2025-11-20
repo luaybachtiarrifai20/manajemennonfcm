@@ -455,6 +455,61 @@ class ApiService {
     return result is List ? result : [];
   }
 
+  // Get RPP with pagination & filters (recommended)
+  static Future<Map<String, dynamic>> getRppPaginated({
+    int page = 1,
+    int limit = 10,
+    String? guruId,
+    String? status,
+    String? search,
+    String? mataPelajaranId,
+    String? kelasId,
+    String? semester,
+    String? tahunAjaran,
+  }) async {
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (guruId != null && guruId.isNotEmpty) queryParams['guru_id'] = guruId;
+    if (status != null && status.isNotEmpty) queryParams['status'] = status;
+    if (search != null && search.isNotEmpty) queryParams['search'] = search;
+    if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
+      queryParams['mata_pelajaran_id'] = mataPelajaranId;
+    if (kelasId != null && kelasId.isNotEmpty)
+      queryParams['kelas_id'] = kelasId;
+    if (semester != null && semester.isNotEmpty)
+      queryParams['semester'] = semester;
+    if (tahunAjaran != null && tahunAjaran.isNotEmpty)
+      queryParams['tahun_ajaran'] = tahunAjaran;
+
+    final queryString = Uri(queryParameters: queryParams).query;
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/rpp?$queryString'),
+      headers: await _getHeaders(),
+    );
+
+    final result = _handleResponse(response);
+
+    if (result is Map<String, dynamic>) return result;
+
+    // fallback
+    return {
+      'success': true,
+      'data': result is List ? result : [],
+      'pagination': {
+        'total_items': result is List ? result.length : 0,
+        'total_pages': 1,
+        'current_page': page,
+        'per_page': limit,
+        'has_next_page': false,
+        'has_prev_page': false,
+      },
+    };
+  }
+
   static Future<dynamic> tambahRPP(Map<String, dynamic> data) async {
     final response = await http.post(
       Uri.parse('$baseUrl/rpp'),
@@ -614,7 +669,7 @@ class ApiService {
       final result = await get(
         '/kelas-by-mata-pelajaran?mata_pelajaran_id=$mataPelajaranId',
       );
-      
+
       // Handle Map format (pagination or error response)
       if (result is Map<String, dynamic>) {
         // Check if it's paginated response
@@ -624,7 +679,7 @@ class ApiService {
         // If Map but no 'data' key, return empty (error case)
         return [];
       }
-      
+
       // Handle List format (direct response)
       return result is List ? result : [];
     } catch (e) {
@@ -791,10 +846,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $authToken',
         },
-        body: json.encode({
-          'token': token,
-          'device_type': deviceType,
-        }),
+        body: json.encode({'token': token, 'device_type': deviceType}),
       );
 
       if (kDebugMode) {
@@ -827,9 +879,7 @@ class ApiService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $authToken',
         },
-        body: json.encode({
-          'token': token,
-        }),
+        body: json.encode({'token': token}),
       );
 
       return _handleResponse(response);

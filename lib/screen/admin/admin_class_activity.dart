@@ -1,4 +1,6 @@
 // admin_class_activity.dart
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
@@ -24,29 +26,28 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
     with SingleTickerProviderStateMixin {
   List<dynamic> _teacherList = [];
   List<dynamic> _activityList = [];
-  final Map<String, List<dynamic>> _activitiesByTeacher = {};
+  // final Map<String, List<dynamic>> _activitiesByTeacher = {}; // caching removed; using server pagination
   bool _isLoading = true;
   String? _selectedTeacherId;
   String? _selectedTeacherName;
   bool _showTeacherList = true;
   String? _errorMessage;
 
+  // Pagination & search for activities
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  final int _perPage = 10;
+  bool _isLoadingMore = false;
+  bool _hasMoreData = true;
+  Timer? _searchDebounce;
+
   // Search
   final TextEditingController _searchController = TextEditingController();
 
   // Animations
   late AnimationController _animationController;
-  late Animation<double> _scaleAnimation;
-  late Animation<double> _fadeAnimation;
 
-  final Map<String, Color> _dayColorMap = {
-    'Senin': Color(0xFF6366F1),
-    'Selasa': Color(0xFF10B981),
-    'Rabu': Color(0xFFF59E0B),
-    'Kamis': Color(0xFFEF4444),
-    'Jumat': Color(0xFF8B5CF6),
-    'Sabtu': Color(0xFF06B6D4),
-  };
+  // day color map removed (not used currently)
 
   @override
   void initState() {
@@ -57,13 +58,18 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
       duration: Duration(milliseconds: 800),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
-    );
+    // per-card animations use local CurvedAnimation instances in builders
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
+    _scrollController.addListener(() {
+      if (!_showTeacherList &&
+          _scrollController.position.pixels >=
+              _scrollController.position.maxScrollExtent - 200 &&
+          !_isLoadingMore &&
+          _hasMoreData &&
+          !_isLoading) {
+        _loadMoreActivities();
+      }
+    });
 
     _loadTeachers();
   }
@@ -72,6 +78,8 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
   void dispose() {
     _searchController.dispose();
     _animationController.dispose();
+    _scrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -132,46 +140,83 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
     }
   }
 
+  // Paginated load for activities filtered by teacher
   Future<void> _loadActivitiesByTeacher(
     String teacherId,
-    String teacherName,
-  ) async {
+    String teacherName, {
+    bool reset = true,
+  }) async {
     try {
       setState(() {
-        _isLoading = true;
+        _isLoading = reset;
         _errorMessage = null;
         _selectedTeacherId = teacherId;
         _selectedTeacherName = teacherName;
         _showTeacherList = false;
       });
 
-      if (_activitiesByTeacher.containsKey(teacherId)) {
-        setState(() {
-          _activityList = _activitiesByTeacher[teacherId]!;
-          _isLoading = false;
-        });
-        _animationController.forward();
-        return;
+      if (reset) {
+        _currentPage = 1;
+        _hasMoreData = true;
+        _activityList = [];
       }
 
-      final activities = await ApiClassActivityService.getActivityByGuru(
-        teacherId,
+      setState(() {
+        if (!reset) _isLoadingMore = true;
+      });
+
+      final result = await ApiClassActivityService.getClassActivityPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        guruId: teacherId,
+        search: _searchController.text.isNotEmpty
+            ? _searchController.text
+            : null,
       );
 
-      setState(() {
-        _activityList = activities;
-        _activitiesByTeacher[teacherId] = activities;
-        _isLoading = false;
-      });
+      if (result['success'] == true) {
+        final List<dynamic> data = result['data'] ?? [];
+        final pagination = result['pagination'] ?? {};
+
+        setState(() {
+          if (reset) {
+            _activityList = data;
+          } else {
+            _activityList.addAll(data);
+          }
+
+          _hasMoreData =
+              pagination['has_next_page'] ?? (data.length == _perPage);
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+          _errorMessage = 'Failed to load activities';
+        });
+      }
 
       _animationController.forward();
     } catch (e) {
       setState(() {
         _isLoading = false;
+        _isLoadingMore = false;
         _errorMessage = e.toString();
       });
       _showErrorSnackBar('Failed to load activity data: $e');
     }
+  }
+
+  Future<void> _loadMoreActivities() async {
+    if (!_hasMoreData) return;
+    _currentPage += 1;
+    await _loadActivitiesByTeacher(
+      _selectedTeacherId!,
+      _selectedTeacherName ?? '',
+      reset: false,
+    );
   }
 
   void _showErrorSnackBar(String message) {
@@ -192,6 +237,22 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
       _searchController.clear();
     });
     _animationController.forward();
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      if (_showTeacherList) {
+        setState(() {}); // update teacher filtered list
+      } else if (_selectedTeacherId != null) {
+        // reload activities with new search
+        _loadActivitiesByTeacher(
+          _selectedTeacherId!,
+          _selectedTeacherName ?? '',
+          reset: true,
+        );
+      }
+    });
   }
 
   List<dynamic> _getFilteredTeachers() {
@@ -1092,9 +1153,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
     );
   }
 
-  Color _getDayColor(String day) {
-    return _dayColorMap[day] ?? Color(0xFF6B7280);
-  }
+  // day color map exists if needed; helper removed to avoid unused warning
 
   String _formatDate(String? date) {
     if (date == null) return '-';
@@ -1255,7 +1314,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                             ),
                             child: TextField(
                               controller: _searchController,
-                              onChanged: (value) => setState(() {}),
+                              onChanged: (value) => _onSearchChanged(value),
                               style: TextStyle(color: Colors.black87),
                               decoration: InputDecoration(
                                 hintText: _showTeacherList
@@ -1320,16 +1379,47 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                             ? Icons.people_outline
                             : Icons.event_note,
                       )
-                    : ListView.builder(
-                        padding: EdgeInsets.only(top: 8),
-                        itemCount: filteredItems.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredItems[index];
-                          return _showTeacherList
-                              ? _buildTeacherCard(item, index)
-                              : _buildActivityCard(item, index);
-                        },
-                      ),
+                    : (_showTeacherList
+                          ? ListView.builder(
+                              padding: EdgeInsets.only(top: 8),
+                              itemCount: filteredItems.length,
+                              itemBuilder: (context, index) {
+                                final item = filteredItems[index];
+                                return _buildTeacherCard(item, index);
+                              },
+                            )
+                          : RefreshIndicator(
+                              onRefresh: () async {
+                                if (_selectedTeacherId != null) {
+                                  await _loadActivitiesByTeacher(
+                                    _selectedTeacherId!,
+                                    _selectedTeacherName ?? '',
+                                    reset: true,
+                                  );
+                                }
+                              },
+                              child: ListView.builder(
+                                controller: _scrollController,
+                                padding: EdgeInsets.only(top: 8),
+                                itemCount:
+                                    filteredItems.length +
+                                    (_isLoadingMore ? 1 : 0),
+                                itemBuilder: (context, index) {
+                                  if (index >= filteredItems.length) {
+                                    return Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12,
+                                      ),
+                                      child: Center(
+                                        child: CircularProgressIndicator(),
+                                      ),
+                                    );
+                                  }
+                                  final item = filteredItems[index];
+                                  return _buildActivityCard(item, index);
+                                },
+                              ),
+                            )),
               ),
             ],
           ),
