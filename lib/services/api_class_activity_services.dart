@@ -335,4 +335,39 @@ class ApiClassActivityService {
       rethrow;
     }
   }
+
+  // Get filter options for kegiatan (guru, kelas, tanggal, bulan, tahun)
+  static Future<Map<String, dynamic>> getKegiatanFilterOptions({
+    String? guruId,
+    String? kelasId,
+    String? tanggal,
+    String? bulan,
+    String? tahun,
+    String? mataPelajaranId,
+  }) async {
+    try {
+      final params = <String, String>{};
+      if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
+      if (kelasId != null && kelasId.isNotEmpty) params['kelas_id'] = kelasId;
+      if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
+      if (bulan != null && bulan.isNotEmpty) params['bulan'] = bulan;
+      if (tahun != null && tahun.isNotEmpty) params['tahun'] = tahun;
+      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
+        params['mata_pelajaran_id'] = mataPelajaranId;
+
+      final uri = Uri.parse(
+        '$baseUrl/kegiatan/filter-options',
+      ).replace(queryParameters: params.isNotEmpty ? params : null);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+      final result = _handleResponse(response);
+
+      if (result is Map<String, dynamic>) return result;
+
+      return {'success': false};
+    } catch (e) {
+      if (kDebugMode) print('Error getKegiatanFilterOptions: $e');
+      rethrow;
+    }
+  }
 }
