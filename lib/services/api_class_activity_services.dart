@@ -1,11 +1,78 @@
 // api_class_activity_services.dart - Perbaikan lengkap
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiClassActivityService {
+  // Get Class Activities with Pagination & Filters (Recommended)
+  static Future<Map<String, dynamic>> getClassActivityPaginated({
+    int page = 1,
+    int limit = 10,
+    String? guruId,
+    String? kelasId,
+    String? mataPelajaranId,
+    String? target,
+    String? tanggal,
+    String? search,
+  }) async {
+    // Build query parameters
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (guruId != null && guruId.isNotEmpty) {
+      queryParams['guru_id'] = guruId;
+    }
+    if (kelasId != null && kelasId.isNotEmpty) {
+      queryParams['kelas_id'] = kelasId;
+    }
+    if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
+      queryParams['mata_pelajaran_id'] = mataPelajaranId;
+    }
+    if (target != null && target.isNotEmpty) {
+      queryParams['target'] = target;
+    }
+    if (tanggal != null && tanggal.isNotEmpty) {
+      queryParams['tanggal'] = tanggal;
+    }
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    // Build URI with query parameters
+    String queryString = Uri(queryParameters: queryParams).query;
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/kegiatan?$queryString'),
+      headers: await _getHeaders(),
+    );
+
+    final result = _handleResponse(response);
+
+    // Return full response with pagination metadata
+    if (result is Map<String, dynamic>) {
+      return result;
+    }
+
+    // Fallback for old format
+    return {
+      'success': true,
+      'data': result is List ? result : [],
+      'pagination': {
+        'total_items': result is List ? result.length : 0,
+        'total_pages': 1,
+        'current_page': 1,
+        'per_page': limit,
+        'has_next_page': false,
+        'has_prev_page': false,
+      },
+    };
+  }
+
   static String get baseUrl => ApiService.baseUrl;
 
   static Future<Map<String, String>> _getHeaders() async {

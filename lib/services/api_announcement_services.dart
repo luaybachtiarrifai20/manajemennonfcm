@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,11 +15,15 @@ class ApiAnnouncementService {
       final safe = raw.length > 1000
           ? '${raw.substring(0, 1000)}... [truncated]'
           : raw;
-      print(
+      if (kDebugMode) {
+        print(
         '${label ?? 'HTTP Response'} - Status: ${response.statusCode} - Body: $safe',
       );
+      }
     } catch (e) {
-      print('Error printing response debug: $e');
+      if (kDebugMode) {
+        print('Error printing response debug: $e');
+      }
     }
   }
 
@@ -58,7 +63,9 @@ class ApiAnnouncementService {
         final safe = raw.length > 1000
             ? '${raw.substring(0, 1000)}... [truncated]'
             : raw;
-        print('❌ Invalid JSON response (status ${response.statusCode}): $safe');
+        if (kDebugMode) {
+          print('❌ Invalid JSON response (status ${response.statusCode}): $safe');
+        }
       } catch (_) {}
 
       throw Exception('Invalid server response: ${response.statusCode}');
@@ -114,7 +121,9 @@ class ApiAnnouncementService {
         },
       };
     } catch (e) {
-      print('Error getting announcement filter options: $e');
+      if (kDebugMode) {
+        print('Error getting announcement filter options: $e');
+      }
       rethrow;
     }
   }
@@ -179,7 +188,9 @@ class ApiAnnouncementService {
         },
       };
     } catch (e) {
-      print('Error getting paginated announcements: $e');
+      if (kDebugMode) {
+        print('Error getting paginated announcements: $e');
+      }
       rethrow;
     }
   }
@@ -192,14 +203,22 @@ class ApiAnnouncementService {
     // Debug legacy result shape
     try {
       if (result is List) {
-        print('Legacy getAnnouncements: List with ${result.length} items');
+        if (kDebugMode) {
+          print('Legacy getAnnouncements: List with ${result.length} items');
+        }
       } else if (result is Map) {
-        print('Legacy getAnnouncements: Map keys = ${result.keys.toList()}');
+        if (kDebugMode) {
+          print('Legacy getAnnouncements: Map keys = ${result.keys.toList()}');
+        }
       } else {
-        print('Legacy getAnnouncements: unexpected type ${result.runtimeType}');
+        if (kDebugMode) {
+          print('Legacy getAnnouncements: unexpected type ${result.runtimeType}');
+        }
       }
     } catch (e) {
-      print('Error logging legacy getAnnouncements result: $e');
+      if (kDebugMode) {
+        print('Error logging legacy getAnnouncements result: $e');
+      }
     }
 
     // Handle new pagination format
