@@ -524,7 +524,8 @@ class ApiService {
     };
 
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
-    if (siswaId != null && siswaId.isNotEmpty) queryParams['siswa_id'] = siswaId;
+    if (siswaId != null && siswaId.isNotEmpty)
+      queryParams['siswa_id'] = siswaId;
     if (jenisPembayaranId != null && jenisPembayaranId.isNotEmpty)
       queryParams['jenis_pembayaran_id'] = jenisPembayaranId;
 
@@ -776,7 +777,7 @@ class ApiService {
         'success': true,
         'data': result is List ? result : [],
         'pagination': {
-          'total_items': result is List ? (result as List).length : 0,
+          'total_items': result is List ? (result).length : 0,
           'total_pages': 1,
           'current_page': 1,
           'per_page': limit,

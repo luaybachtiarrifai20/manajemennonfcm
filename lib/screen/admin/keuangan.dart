@@ -1,16 +1,16 @@
 // keuangan.dart
-import 'dart:convert';
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:manajemensekolah/services/api_services.dart';
-import 'package:provider/provider.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
+import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:provider/provider.dart';
 
 class KeuanganScreen extends StatefulWidget {
   const KeuanganScreen({super.key});
@@ -52,7 +52,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
   // Variabel untuk modal pemilihan tujuan
   List<dynamic> _selectedKelas = [];
   Map<String, List<dynamic>> _selectedSiswaByKelas = {};
-  List<dynamic> _allSiswaList = [];
+  final List<dynamic> _allSiswaList = [];
   final TextEditingController _searchSiswaController = TextEditingController();
 
   // Animations
@@ -250,7 +250,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                         .start, // Ubah ke start agar konten lebih ke kiri
                     children: [
                       // Status Filter
-                      Container(
+                      SizedBox(
                         width: double
                             .infinity, // Pastikan container memenuhi lebar
                         child: Column(
@@ -332,7 +332,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                       ),
 
                       // Periode Filter
-                      Container(
+                      SizedBox(
                         width: double
                             .infinity, // Pastikan container memenuhi lebar
                         child: Column(
@@ -899,15 +899,13 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   ),
                 )
               else
-                ...filteredSiswa
-                    .map(
-                      (siswa) => _buildSiswaCheckbox(
-                        siswa: siswa,
-                        kelasId: kelasId,
-                        setModalState: setModalState,
-                      ),
-                    )
-                    .toList(),
+                ...filteredSiswa.map(
+                  (siswa) => _buildSiswaCheckbox(
+                    siswa: siswa,
+                    kelasId: kelasId,
+                    setModalState: setModalState,
+                  ),
+                ),
             ],
           ),
         );
@@ -1154,7 +1152,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   ),
                 )
               else
-                ...siswaList.map((siswa) => _buildSiswaCard(siswa)).toList(),
+                ...siswaList.map((siswa) => _buildSiswaCard(siswa)),
             ],
           ),
         ),
@@ -1256,9 +1254,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
               ),
             )
           else
-            ...tagihanList
-                .map((tagihan) => _buildTagihanItem(tagihan))
-                .toList(),
+            ...tagihanList.map((tagihan) => _buildTagihanItem(tagihan)),
         ],
       ),
     );
@@ -1363,7 +1359,10 @@ class KeuanganScreenState extends State<KeuanganScreen>
           ),
           // Content utama
           Padding(
-            padding: EdgeInsets.only(right: 100, bottom: status == 'unpaid' ? 35 : 0),
+            padding: EdgeInsets.only(
+              right: 100,
+              bottom: status == 'unpaid' ? 35 : 0,
+            ),
             child: Row(
               children: [
                 Container(
@@ -1382,16 +1381,25 @@ class KeuanganScreenState extends State<KeuanganScreen>
                     children: [
                       Text(
                         tagihan['jenis_pembayaran_nama'] ?? 'Tagihan',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                       Text(
                         'Rp ${tagihan['jumlah']}',
-                        style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                       if (tagihan['jatuh_tempo'] != null)
                         Text(
                           'Jatuh tempo: ${tagihan['jatuh_tempo']?.split('T')[0] ?? '-'}',
-                          style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey.shade500,
+                          ),
                         ),
                     ],
                   ),
@@ -1407,10 +1415,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
               child: ElevatedButton.icon(
                 onPressed: () => _showManualPaymentDialog(tagihan),
                 icon: Icon(Icons.payment, size: 14),
-                label: Text(
-                  'Bayar',
-                  style: TextStyle(fontSize: 10),
-                ),
+                label: Text('Bayar', style: TextStyle(fontSize: 10)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
@@ -1494,7 +1499,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   ),
                 ),
                 SizedBox(height: 16),
-                
+
                 // Metode Pembayaran
                 Text(
                   'Metode Pembayaran',
@@ -1526,7 +1531,11 @@ class KeuanganScreenState extends State<KeuanganScreen>
                           value: 'transfer',
                           child: Row(
                             children: [
-                              Icon(Icons.account_balance, size: 16, color: Colors.blue),
+                              Icon(
+                                Icons.account_balance,
+                                size: 16,
+                                color: Colors.blue,
+                              ),
                               SizedBox(width: 8),
                               Text('Transfer Bank'),
                             ],
@@ -1542,7 +1551,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   ),
                 ),
                 SizedBox(height: 16),
-                
+
                 // Jumlah Bayar
                 Text(
                   'Jumlah Bayar (Rp)',
@@ -1565,7 +1574,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   ),
                 ),
                 SizedBox(height: 16),
-                
+
                 // Tanggal Bayar
                 Text(
                   'Tanggal Bayar',
@@ -1616,7 +1625,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   );
                   return;
                 }
-                
+
                 try {
                   await _apiService.inputPembayaranManual({
                     'tagihan_id': tagihan['id'],
@@ -1624,24 +1633,26 @@ class KeuanganScreenState extends State<KeuanganScreen>
                     'jumlah_bayar': int.parse(jumlahController.text),
                     'tanggal_bayar': tanggalController.text,
                   });
-                  
+
                   if (!mounted) return;
                   Navigator.pop(context);
-                  
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Pembayaran berhasil dicatat'),
                       backgroundColor: Colors.green,
                     ),
                   );
-                  
+
                   // Reload data
                   _loadData();
                 } catch (e) {
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Gagal mencatat pembayaran: ${e.toString()}'),
+                      content: Text(
+                        'Gagal mencatat pembayaran: ${e.toString()}',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -1698,7 +1709,8 @@ class KeuanganScreenState extends State<KeuanganScreen>
         setState(() {
           _tagihanList.addAll(pageData);
           _paginationMeta = pagination;
-          _hasMoreData = pagination['has_next_page'] ?? (pageData.length == _perPage);
+          _hasMoreData =
+              pagination['has_next_page'] ?? (pageData.length == _perPage);
         });
       } else if (res.containsKey('data')) {
         final List<dynamic> pageData = res['data'] ?? [];
@@ -1706,7 +1718,8 @@ class KeuanganScreenState extends State<KeuanganScreen>
         setState(() {
           _tagihanList.addAll(pageData);
           _paginationMeta = pagination;
-          _hasMoreData = pagination['has_next_page'] ?? (pageData.length == _perPage);
+          _hasMoreData =
+              pagination['has_next_page'] ?? (pageData.length == _perPage);
         });
       }
     } catch (error) {
@@ -1815,7 +1828,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      '${_getImageUrl(pembayaran['bukti_bayar'])}',
+                      _getImageUrl(pembayaran['bukti_bayar']),
                       width: double.infinity,
                       fit: BoxFit.contain,
                       loadingBuilder: (context, child, loadingProgress) {
@@ -2282,7 +2295,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: 12),
         child: DropdownButtonFormField<String>(
-          value: selectedValue, // Gunakan value yang sudah divalidasi
+          initialValue: selectedValue, // Gunakan value yang sudah divalidasi
           decoration: InputDecoration(
             labelText: label,
             prefixIcon: Icon(icon, color: _getPrimaryColor(), size: 20),
@@ -2914,7 +2927,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
     required Color color,
     required VoidCallback onPressed,
   }) {
-    return Container(
+    return SizedBox(
       height: 28,
       child: ElevatedButton.icon(
         onPressed: onPressed,
@@ -3344,7 +3357,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                                           ),
                                         ),
                                       );
-                                    }).toList(),
+                                    }),
                                   ],
                                 ),
                               ),
