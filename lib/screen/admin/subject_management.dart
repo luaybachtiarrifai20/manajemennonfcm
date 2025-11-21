@@ -3,17 +3,17 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:manajemensekolah/services/api_subject_services.dart';
-import 'package:manajemensekolah/services/excel_subject_service.dart';
-import 'package:manajemensekolah/utils/color_utils.dart';
-import 'package:provider/provider.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/enhanced_search_bar.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/services/api_subject_services.dart';
+import 'package:manajemensekolah/services/excel_subject_service.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:provider/provider.dart';
 
 class SubjectManagementScreen extends StatefulWidget {
   const SubjectManagementScreen({super.key});
@@ -108,7 +108,8 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
 
   void _onScroll() {
     // Detect when user scrolls near bottom
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoadingMore && _hasMoreData && !_isLoading) {
         _loadMoreSubjects();
       }
@@ -118,7 +119,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
   void _onSearchChanged() {
     // Cancel previous timer
     _searchDebounce?.cancel();
-    
+
     // Set new timer (500ms debounce)
     _searchDebounce = Timer(Duration(milliseconds: 500), () {
       setState(() {
@@ -131,7 +132,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
   Future<void> _loadFilterOptions() async {
     try {
       final response = await ApiSubjectService.getSubjectFilterOptions();
-      
+
       if (!mounted) return;
 
       if (response['success'] == true && response['data'] != null) {
@@ -248,7 +249,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
 
     // Temporary state for bottom sheet
     String? tempSelectedKategori = _selectedKategoriFilter;
-    String? tempSelectedKelasStatus = _selectedKelasStatusFilter;
+    String? tempSelectedClassStatus = _selectedKelasStatusFilter;
     String? tempSelectedGradeLevel = _selectedGradeLevelFilter;
     String? tempSelectedClassName = _selectedClassNameFilter;
 
@@ -290,7 +291,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                       onPressed: () {
                         setModalState(() {
                           tempSelectedKategori = null;
-                          tempSelectedKelasStatus = null;
+                          tempSelectedClassStatus = null;
                           tempSelectedGradeLevel = null;
                           tempSelectedClassName = null;
                         });
@@ -392,13 +393,13 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                               },
                             ].map((item) {
                               final isSelected =
-                                  tempSelectedKelasStatus == item['value'];
+                                  tempSelectedClassStatus == item['value'];
                               return FilterChip(
                                 label: Text(item['label']!),
                                 selected: isSelected,
                                 onSelected: (selected) {
                                   setModalState(() {
-                                    tempSelectedKelasStatus = selected
+                                    tempSelectedClassStatus = selected
                                         ? item['value']
                                         : null;
                                   });
@@ -569,7 +570,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                     onPressed: () {
                       setState(() {
                         _selectedKategoriFilter = tempSelectedKategori;
-                        _selectedKelasStatusFilter = tempSelectedKelasStatus;
+                        _selectedKelasStatusFilter = tempSelectedClassStatus;
                         _selectedGradeLevelFilter = tempSelectedGradeLevel;
                         _selectedClassNameFilter = tempSelectedClassName;
                       });
@@ -618,13 +619,15 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         page: _currentPage,
         limit: _perPage,
         status: _selectedStatusFilter,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
 
       final data = response['data'] ?? [];
-      
+
       // Extract unique class names and grade levels from subjects
       Set<String> classNamesSet = {};
       Set<String> gradeLevelsSet = {};
@@ -691,13 +694,15 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         page: _currentPage,
         limit: _perPage,
         status: _selectedStatusFilter,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
 
       final data = response['data'] ?? [];
-      
+
       // Extract class names and grade levels
       Set<String> classNamesSet = Set.from(_availableClassNames);
       Set<String> gradeLevelsSet = Set.from(_availableGradeLevels);
@@ -712,7 +717,8 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
           classNamesSet.addAll(names);
         }
 
-        final kelasGradeLevels = subject['kelas_grade_levels']?.toString() ?? '';
+        final kelasGradeLevels =
+            subject['kelas_grade_levels']?.toString() ?? '';
         if (kelasGradeLevels.isNotEmpty) {
           final levels = kelasGradeLevels
               .split(',')
@@ -737,7 +743,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         _isLoadingMore = false;
       });
 
-      print('✅ Loaded more subjects: Page $_currentPage, Total: ${_subjectList.length}');
+      print(
+        '✅ Loaded more subjects: Page $_currentPage, Total: ${_subjectList.length}',
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -1903,7 +1911,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: EdgeInsets.all(16),
-                          itemCount: filteredSubjects.length + (_isLoadingMore ? 1 : 0),
+                          itemCount:
+                              filteredSubjects.length +
+                              (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
                             // Show loading indicator at bottom
                             if (index == filteredSubjects.length) {
@@ -1915,7 +1925,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                 ),
                               );
                             }
-                            
+
                             return _buildSubjectCard(
                               filteredSubjects[index],
                               index,

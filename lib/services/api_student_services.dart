@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -28,7 +29,6 @@ class ApiStudentService {
           responseBody['error'] ??
           'Request failed with status: ${response.statusCode}';
 
-      // Handle specific authentication errors
       if (response.statusCode == 401) {
         _handleAuthenticationError();
       }
@@ -44,7 +44,6 @@ class ApiStudentService {
     // Navigator.of(context).pushReplacementNamed('/login');
   }
 
-  // Import siswa dari Excel
   static Future<Map<String, dynamic>> importStudentsFromExcel(File file) async {
     try {
       var request = http.MultipartRequest(
@@ -70,8 +69,12 @@ class ApiStudentService {
       final response = await request.send();
       final responseBody = await response.stream.bytesToString();
 
-      print('Import Response Status: ${response.statusCode}');
-      print('Import Response Body: $responseBody');
+      if (kDebugMode) {
+        print('Import Response Status: ${response.statusCode}');
+      }
+      if (kDebugMode) {
+        print('Import Response Body: $responseBody');
+      }
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         return json.decode(responseBody);
@@ -81,12 +84,13 @@ class ApiStudentService {
         );
       }
     } catch (e) {
-      print('Import error details: $e');
+      if (kDebugMode) {
+        print('Import error details: $e');
+      }
       throw Exception('Import error: $e');
     }
   }
 
-  // Download template Excel
   static Future<String> downloadTemplate() async {
     try {
       final response = await http.get(
@@ -95,63 +99,36 @@ class ApiStudentService {
       );
 
       if (response.statusCode == 200) {
-        // Save file locally
         final directory = await getExternalStorageDirectory();
         final filePath = '${directory?.path}/template_import_siswa.xlsx';
         final file = File(filePath);
 
         await file.writeAsBytes(response.bodyBytes);
 
-        print('Template downloaded to: $filePath');
+        if (kDebugMode) {
+          print('Template downloaded to: $filePath');
+        }
         return filePath;
       } else {
         throw Exception('Download failed with status: ${response.statusCode}');
       }
     } catch (e) {
-      print('Download template error: $e');
-      throw Exception('Failed to download template: $e');
-    }
-  }
-
-  static Future<String> downloadTemplateGuru() async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/guru/template'),
-        headers: await _getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        // Save file locally
-        final directory = await getExternalStorageDirectory();
-        final filePath = '${directory?.path}/template_import_guru.xlsx';
-        final file = File(filePath);
-
-        await file.writeAsBytes(response.bodyBytes);
-
-        print('Template downloaded to: $filePath');
-        return filePath;
-      } else {
-        throw Exception('Download failed with status: ${response.statusCode}');
+      if (kDebugMode) {
+        print('Download template error: $e');
       }
-    } catch (e) {
-      print('Download template error: $e');
       throw Exception('Failed to download template: $e');
     }
   }
 
-  // Get external storage directory (helper function)
   static Future<Directory?> getExternalStorageDirectory() async {
     try {
-      // For mobile
       final directory = await getApplicationDocumentsDirectory();
       return directory;
     } catch (e) {
-      // For web or other platforms
       return null;
     }
   }
 
-  // Get parent user
   static Future<Map<String, dynamic>?> getParentUser(String studentId) async {
     try {
       final response = await ApiService().get('users?siswa_id=$studentId');
@@ -160,12 +137,13 @@ class ApiStudentService {
       }
       return null;
     } catch (e) {
-      print('Error getting parent user: $e');
+      if (kDebugMode) {
+        print('Error getting parent user: $e');
+      }
       return null;
     }
   }
 
-  // Kelola Siswa (Deprecated - use getStudentPaginated)
   static Future<List<dynamic>> getStudent() async {
     final response = await http.get(
       Uri.parse('$baseUrl/siswa'),
@@ -174,17 +152,13 @@ class ApiStudentService {
 
     final result = _handleResponse(response);
     
-    // Handle new pagination format
     if (result is Map<String, dynamic>) {
-      // New format: { success, data, pagination }
       return (result['data'] as List?) ?? [];
     }
     
-    // Backward compatibility: old format (direct list)
     return result is List ? result : [];
   }
 
-  // Get Filter Options for Student Filters
   static Future<Map<String, dynamic>> getStudentFilterOptions() async {
     try {
       final response = await http.get(
@@ -198,7 +172,6 @@ class ApiStudentService {
         return result;
       }
       
-      // Fallback
       return {
         'success': false,
         'data': {
@@ -215,12 +188,13 @@ class ApiStudentService {
         }
       };
     } catch (e) {
-      print('Error getting filter options: $e');
+      if (kDebugMode) {
+        print('Error getting filter options: $e');
+      }
       rethrow;
     }
   }
 
-  // Get Students with Pagination & Filters (Recommended)
   static Future<Map<String, dynamic>> getStudentPaginated({
     int page = 1,
     int limit = 10,
@@ -229,7 +203,6 @@ class ApiStudentService {
     String? jenisKelamin,
     String? search,
   }) async {
-    // Build query parameters
     Map<String, dynamic> queryParams = {
       'page': page.toString(),
       'limit': limit.toString(),
@@ -248,7 +221,6 @@ class ApiStudentService {
       queryParams['search'] = search;
     }
 
-    // Build URI with query parameters
     String queryString = Uri(queryParameters: queryParams).query;
     
     final response = await http.get(
@@ -257,13 +229,11 @@ class ApiStudentService {
     );
 
     final result = _handleResponse(response);
-    
-    // Return full response with pagination metadata
+
     if (result is Map<String, dynamic>) {
       return result;
     }
-    
-    // Fallback for old format
+
     return {
       'success': true,
       'data': result is List ? result : [],
@@ -314,7 +284,9 @@ class ApiStudentService {
         return siswa['kelas_id'] == kelasId;
       }).toList();
     } catch (e) {
-      print('Error filtering siswa by kelas: $e');
+      if (kDebugMode) {
+        print('Error filtering siswa by kelas: $e');
+      }
       return [];
     }
   }

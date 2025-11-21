@@ -4,7 +4,7 @@ class Siswa {
   final String kelas;
   final String nis;
   final String alamat;
-  final String namaWali;
+  final String nameParent;
   final String noTelepon;
   final String? kelasId;
 
@@ -14,7 +14,7 @@ class Siswa {
     required this.kelas,
     required this.nis,
     required this.alamat,
-    required this.namaWali,
+    required this.nameParent,
     required this.noTelepon,
     this.kelasId,
   });
@@ -26,7 +26,7 @@ class Siswa {
       kelas: json['kelas_nama'] ?? '',
       nis: json['nis'] ?? '',
       alamat: json['alamat'] ?? '',
-      namaWali: json['namaWali'] ?? '',
+      nameParent: json['nameParent'] ?? '',
       noTelepon: json['noTelepon'] ?? '',
       kelasId: json['kelas_id'],
     );

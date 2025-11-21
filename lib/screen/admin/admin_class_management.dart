@@ -1,17 +1,17 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:manajemensekolah/utils/color_utils.dart';
-import 'package:provider/provider.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
-import 'package:manajemensekolah/utils/language_utils.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:manajemensekolah/services/excel_class_service.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
+import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:provider/provider.dart';
 
 class ClassManagementScreen extends StatefulWidget {
   const ClassManagementScreen({super.key});
@@ -44,7 +44,8 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   Map<String, dynamic>? _paginationMeta;
 
   // Filter States (Backend filtering)
-  String? _selectedLevelFilter; // 'Elementary', 'Middle', 'High School', or null for all
+  String?
+  _selectedLevelFilter; // 'Elementary', 'Middle', 'High School', or null for all
   String? _selectedGradeFilter; // '1' to '12', or null for all
   String? _selectedHomeroomFilter; // 'has', 'no_homeroom', or null for all
   String? _selectedStudentFilter; // 'has_students', 'empty', or null for all
@@ -98,7 +99,8 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
   void _onScroll() {
     // Detect when user scrolls near bottom
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       // 200px before bottom
       if (!_isLoadingMore && _hasMoreData && !_isLoading) {
         _loadMoreData();
@@ -109,7 +111,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   void _onSearchChanged() {
     // Cancel previous timer
     _searchDebounce?.cancel();
-    
+
     // Set new timer (500ms debounce)
     _searchDebounce = Timer(Duration(milliseconds: 500), () {
       setState(() {
@@ -122,15 +124,19 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   Future<void> _loadFilterOptions() async {
     try {
       final response = await ApiClassService.getClassFilterOptions();
-      
+
       if (!mounted) return;
 
       if (response['success'] == true && response['data'] != null) {
         setState(() {
-          _availableGradeLevels = List<String>.from(response['data']['grade_levels'] ?? []);
+          _availableGradeLevels = List<String>.from(
+            response['data']['grade_levels'] ?? [],
+          );
           _availableWaliKelas = response['data']['wali_kelas'] ?? [];
         });
-        print('✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableWaliKelas.length} wali kelas');
+        print(
+          '✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableWaliKelas.length} wali kelas',
+        );
       }
     } catch (e) {
       print('Error loading filter options: $e');
@@ -246,7 +252,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
     // Temporary state for bottom sheet
     String? tempSelectedTingkat = _selectedLevelFilter;
-    String? tempSelectedKelas = _selectedGradeFilter;
+    String? tempSelectedClass = _selectedGradeFilter;
     String? tempSelectedHomeroom = _selectedHomeroomFilter;
     String? tempSelectedSiswa = _selectedStudentFilter;
 
@@ -288,7 +294,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                       onPressed: () {
                         setModalState(() {
                           tempSelectedTingkat = null;
-                          tempSelectedKelas = null;
+                          tempSelectedClass = null;
                           tempSelectedHomeroom = null;
                           tempSelectedSiswa = null;
                         });
@@ -370,13 +376,13 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         runSpacing: 8,
                         children: List.generate(12, (index) {
                           final kelas = (index + 1).toString();
-                          final isSelected = tempSelectedKelas == kelas;
+                          final isSelected = tempSelectedClass == kelas;
                           return FilterChip(
                             label: Text(kelas),
                             selected: isSelected,
                             onSelected: (selected) {
                               setModalState(() {
-                                tempSelectedKelas = selected ? kelas : null;
+                                tempSelectedClass = selected ? kelas : null;
                               });
                             },
                             backgroundColor: Colors.grey.shade100,
@@ -542,7 +548,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                     onPressed: () {
                       setState(() {
                         _selectedLevelFilter = tempSelectedTingkat;
-                        _selectedGradeFilter = tempSelectedKelas;
+                        _selectedGradeFilter = tempSelectedClass;
                         _selectedHomeroomFilter = tempSelectedHomeroom;
                         _selectedStudentFilter = tempSelectedSiswa;
                       });
@@ -592,7 +598,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         limit: _perPage,
         gradeLevel: _selectedGradeFilter,
         waliKelasId: _selectedWaliKelasId,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
@@ -643,7 +651,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         limit: _perPage,
         gradeLevel: _selectedGradeFilter,
         waliKelasId: _selectedWaliKelasId,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
@@ -656,7 +666,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         _isLoadingMore = false;
       });
 
-      print('✅ Loaded more data: Page $_currentPage, Total items: ${_classes.length}');
+      print(
+        '✅ Loaded more data: Page $_currentPage, Total items: ${_classes.length}',
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -1987,7 +1999,8 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: EdgeInsets.only(top: 8, bottom: 16),
-                          itemCount: filteredClasses.length + (_isLoadingMore ? 1 : 0),
+                          itemCount:
+                              filteredClasses.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
                             // Show loading indicator at bottom
                             if (index == filteredClasses.length) {
@@ -1999,7 +2012,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                 ),
                               );
                             }
-                            
+
                             final classData = filteredClasses[index];
                             return _buildClassCard(classData, index);
                           },

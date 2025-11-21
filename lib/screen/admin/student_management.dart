@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'dart:async';
+import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:manajemensekolah/services/excel_student_service.dart';
-import 'package:provider/provider.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
@@ -12,8 +11,11 @@ import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/services/api_student_services.dart';
+import 'package:manajemensekolah/services/excel_student_service.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:provider/provider.dart';
 
 class StudentManagementScreen extends StatefulWidget {
   const StudentManagementScreen({super.key});
@@ -38,30 +40,25 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
-  // Scroll Controller for Infinite Scroll
   final ScrollController _scrollController = ScrollController();
 
-  // Pagination States (Infinite Scroll)
   int _currentPage = 1;
-  int _perPage = 10; // Fixed 10 items per load
+  final int _perPage = 10;
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _paginationMeta;
 
-  // Filter States (Backend filtering)
-  String? _selectedStatusFilter; // 'active', 'inactive', atau null untuk semua
-  List<String> _selectedKelasIds = [];
-  String? _selectedGenderFilter; // 'L', 'P', atau null untuk semua
-  String? _selectedGradeLevel; // '7', '8', '9', '10', '11', '12'
+  String? _selectedStatusFilter;
+  List<String> _selectedClassIds = [];
+  String? _selectedGenderFilter;
+  String? _selectedGradeLevel;
   bool _hasActiveFilter = false;
 
-  // Filter Options (from backend)
   Map<String, dynamic>? _filterOptions;
   List<String> _availableGradeLevels = [];
   List<dynamic> _availableKelas = [];
   List<Map<String, String>> _availableGenderOptions = [];
 
-  // Search debounce
   Timer? _searchDebounce;
 
   @override
@@ -81,10 +78,8 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    // Listen to search changes with debounce
     _searchController.addListener(_onSearchChanged);
 
-    // Listen to scroll for infinite scroll
     _scrollController.addListener(_onScroll);
 
     _loadFilterOptions();
@@ -92,9 +87,8 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   }
 
   void _onScroll() {
-    // Detect when user scrolls near bottom
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      // 200px before bottom
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoadingMore && _hasMoreData && !_isLoading) {
         _loadMoreData();
       }
@@ -104,26 +98,35 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   Future<void> _loadFilterOptions() async {
     try {
       final response = await ApiStudentService.getStudentFilterOptions();
-      
+
       if (!mounted) return;
 
       if (response['success'] == true && response['data'] != null) {
         setState(() {
           _filterOptions = response['data'];
-          _availableGradeLevels = List<String>.from(response['data']['grade_levels'] ?? []);
+          _availableGradeLevels = List<String>.from(
+            response['data']['grade_levels'] ?? [],
+          );
           _availableKelas = response['data']['kelas'] ?? [];
           _availableGenderOptions = List<Map<String, String>>.from(
-            (response['data']['gender_options'] ?? []).map((item) => {
-              'value': item['value'].toString(),
-              'label': item['label'].toString(),
-            })
+            (response['data']['gender_options'] ?? []).map(
+              (item) => {
+                'value': item['value'].toString(),
+                'label': item['label'].toString(),
+              },
+            ),
           );
         });
-        print('✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableKelas.length} kelas');
+        if (kDebugMode) {
+          print(
+            '✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableKelas.length} kelas',
+          );
+        }
       }
     } catch (e) {
-      print('Error loading filter options: $e');
-      // Continue with empty options - not critical error
+      if (kDebugMode) {
+        print('Error loading filter options: $e');
+      }
     }
   }
 
@@ -139,13 +142,11 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   }
 
   void _onSearchChanged() {
-    // Cancel previous timer
     _searchDebounce?.cancel();
-    
-    // Set new timer (500ms debounce)
+
     _searchDebounce = Timer(Duration(milliseconds: 500), () {
       setState(() {
-        _currentPage = 1; // Reset to first page on search
+        _currentPage = 1;
       });
       _loadData();
       _checkActiveFilter();
@@ -174,7 +175,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
           File(result.files.single.path!),
         );
 
-        // Refresh data setelah import
         await _loadData();
       }
     } catch (e) {
@@ -205,18 +205,19 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
           _errorMessage = null;
           _currentPage = 1;
           _hasMoreData = true;
-          _students = []; // Reset list
+          _students = [];
         });
       }
 
-      // Load with pagination and backend filtering
       final response = await ApiStudentService.getStudentPaginated(
         page: _currentPage,
         limit: _perPage,
-        kelasId: _selectedKelasIds.isNotEmpty ? _selectedKelasIds.first : null,
+        kelasId: _selectedClassIds.isNotEmpty ? _selectedClassIds.first : null,
         gradeLevel: _selectedGradeLevel,
         jenisKelamin: _selectedGenderFilter,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       final classData = await apiServiceClass.getClass();
@@ -264,36 +265,42 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     try {
       _currentPage++;
 
-      // Load next page
       final response = await ApiStudentService.getStudentPaginated(
         page: _currentPage,
         limit: _perPage,
-        kelasId: _selectedKelasIds.isNotEmpty ? _selectedKelasIds.first : null,
+        kelasId: _selectedClassIds.isNotEmpty ? _selectedClassIds.first : null,
         gradeLevel: _selectedGradeLevel,
         jenisKelamin: _selectedGenderFilter,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
 
       setState(() {
-        // Append new data to existing list
         _students.addAll(response['data'] ?? []);
         _paginationMeta = response['pagination'];
         _hasMoreData = response['pagination']?['has_next_page'] ?? false;
         _isLoadingMore = false;
       });
 
-      print('✅ Loaded more data: Page $_currentPage, Total items: ${_students.length}');
+      if (kDebugMode) {
+        print(
+          '✅ Loaded more data: Page $_currentPage, Total items: ${_students.length}',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
       setState(() {
         _isLoadingMore = false;
-        _currentPage--; // Revert page increment on error
+        _currentPage--;
       });
 
-      print('Error loading more data: $e');
+      if (kDebugMode) {
+        print('Error loading more data: $e');
+      }
     }
   }
 
@@ -304,11 +311,11 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   }) {
     setState(() {
       if (kelasId != null) {
-        _selectedKelasIds = [kelasId];
+        _selectedClassIds = [kelasId];
       }
       _selectedGradeLevel = gradeLevel;
       _selectedGenderFilter = jenisKelamin;
-      _currentPage = 1; // Reset to first page
+      _currentPage = 1;
     });
     _loadData();
     _checkActiveFilter();
@@ -316,90 +323,104 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
   void _checkActiveFilter() {
     setState(() {
-      _hasActiveFilter = _selectedStatusFilter != null || 
-                         _selectedKelasIds.isNotEmpty || 
-                         _selectedGenderFilter != null ||
-                         _selectedGradeLevel != null ||
-                         _searchController.text.trim().isNotEmpty;
+      _hasActiveFilter =
+          _selectedStatusFilter != null ||
+          _selectedClassIds.isNotEmpty ||
+          _selectedGenderFilter != null ||
+          _selectedGradeLevel != null ||
+          _searchController.text.trim().isNotEmpty;
     });
   }
 
   void _clearAllFilters() {
     setState(() {
       _selectedStatusFilter = null;
-      _selectedKelasIds.clear();
+      _selectedClassIds.clear();
       _selectedGenderFilter = null;
       _selectedGradeLevel = null;
       _searchController.clear();
-      _currentPage = 1; // Reset to first page
+      _currentPage = 1;
       _hasActiveFilter = false;
     });
     _loadData();
   }
 
-  List<Map<String, dynamic>> _buildFilterChips(LanguageProvider languageProvider) {
+  List<Map<String, dynamic>> _buildFilterChips(
+    LanguageProvider languageProvider,
+  ) {
     List<Map<String, dynamic>> filterChips = [];
-    
+
     if (_selectedStatusFilter != null) {
       final statusText = _selectedStatusFilter == 'active'
           ? languageProvider.getTranslatedText({'en': 'Active', 'id': 'Aktif'})
-          : languageProvider.getTranslatedText({'en': 'Inactive', 'id': 'Tidak Aktif'});
+          : languageProvider.getTranslatedText({
+              'en': 'Inactive',
+              'id': 'Tidak Aktif',
+            });
       filterChips.add({
-        'label': '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $statusText',
+        'label':
+            '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $statusText',
         'onRemove': () {
           setState(() {
             _selectedStatusFilter = null;
           });
           _checkActiveFilter();
-          _loadData(); // ← Reload data setelah remove filter
+          _loadData();
         },
       });
     }
-    
-    if (_selectedKelasIds.isNotEmpty) {
-      for (var kelasId in _selectedKelasIds) {
+
+    if (_selectedClassIds.isNotEmpty) {
+      for (var kelasId in _selectedClassIds) {
         final kelas = _classList.firstWhere(
           (k) => k['id'].toString() == kelasId,
           orElse: () => {'nama': kelasId},
         );
         filterChips.add({
-          'label': '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['nama']}',
+          'label':
+              '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['nama']}',
           'onRemove': () {
             setState(() {
-              _selectedKelasIds.remove(kelasId);
+              _selectedClassIds.remove(kelasId);
             });
             _checkActiveFilter();
-            _loadData(); // ← Reload data setelah remove filter
+            _loadData();
           },
         });
       }
     }
-    
+
     if (_selectedGenderFilter != null) {
-      final genderText = _selectedGenderFilter == 'L' 
-          ? languageProvider.getTranslatedText({'en': 'Male', 'id': 'Laki-laki'})
-          : languageProvider.getTranslatedText({'en': 'Female', 'id': 'Perempuan'});
+      final genderText = _selectedGenderFilter == 'L'
+          ? languageProvider.getTranslatedText({
+              'en': 'Male',
+              'id': 'Laki-laki',
+            })
+          : languageProvider.getTranslatedText({
+              'en': 'Female',
+              'id': 'Perempuan',
+            });
       filterChips.add({
-        'label': '${languageProvider.getTranslatedText({'en': 'Gender', 'id': 'Jenis Kelamin'})}: $genderText',
+        'label':
+            '${languageProvider.getTranslatedText({'en': 'Gender', 'id': 'Jenis Kelamin'})}: $genderText',
         'onRemove': () {
           setState(() {
             _selectedGenderFilter = null;
           });
           _checkActiveFilter();
-          _loadData(); // ← Reload data setelah remove filter
+          _loadData();
         },
       });
     }
-    
+
     return filterChips;
   }
 
   void _showFilterSheet() {
     final languageProvider = context.read<LanguageProvider>();
-    
-    // Temporary state for bottom sheet
+
     String? tempSelectedStatus = _selectedStatusFilter;
-    List<String> tempSelectedKelas = List.from(_selectedKelasIds);
+    List<String> tempSelectedClass = List.from(_selectedClassIds);
     String? tempSelectedGender = _selectedGenderFilter;
 
     showModalBottomSheet(
@@ -444,7 +465,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         onPressed: () {
                           setModalState(() {
                             tempSelectedStatus = null;
-                            tempSelectedKelas.clear();
+                            tempSelectedClass.clear();
                             tempSelectedGender = null;
                           });
                         },
@@ -544,28 +565,38 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           runSpacing: 8,
                           children: _classList.map((kelas) {
                             final kelasId = kelas['id'].toString();
-                            final isSelected = tempSelectedKelas.contains(kelasId);
-                            
+                            final isSelected = tempSelectedClass.contains(
+                              kelasId,
+                            );
+
                             return FilterChip(
                               label: Text(kelas['nama'] ?? 'Unknown'),
                               selected: isSelected,
                               onSelected: (selected) {
                                 setModalState(() {
                                   if (selected) {
-                                    tempSelectedKelas.add(kelasId);
+                                    tempSelectedClass.add(kelasId);
                                   } else {
-                                    tempSelectedKelas.remove(kelasId);
+                                    tempSelectedClass.remove(kelasId);
                                   }
                                 });
                               },
-                              selectedColor: _getPrimaryColor().withOpacity(0.2),
+                              selectedColor: _getPrimaryColor().withValues(
+                                alpha: 0.2,
+                              ),
                               checkmarkColor: _getPrimaryColor(),
                               labelStyle: TextStyle(
-                                color: isSelected ? _getPrimaryColor() : Colors.grey.shade700,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected
+                                    ? _getPrimaryColor()
+                                    : Colors.grey.shade700,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                               ),
                               side: BorderSide(
-                                color: isSelected ? _getPrimaryColor() : Colors.grey.shade300,
+                                color: isSelected
+                                    ? _getPrimaryColor()
+                                    : Colors.grey.shade300,
                               ),
                             );
                           }).toList(),
@@ -573,7 +604,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
                         SizedBox(height: 24),
 
-                        // Jenis Kelamin Filter
                         Text(
                           languageProvider.getTranslatedText({
                             'en': 'Gender',
@@ -635,7 +665,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                   ),
                 ),
 
-                // Bottom Action Buttons
                 Container(
                   padding: EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -675,12 +704,12 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           onPressed: () {
                             setState(() {
                               _selectedStatusFilter = tempSelectedStatus;
-                              _selectedKelasIds = tempSelectedKelas;
+                              _selectedClassIds = tempSelectedClass;
                               _selectedGenderFilter = tempSelectedGender;
                             });
                             _checkActiveFilter();
                             Navigator.pop(context);
-                            _loadData(); // ← Reload data dengan filter baru
+                            _loadData();
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: _getPrimaryColor(),
@@ -716,12 +745,12 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     required VoidCallback onSelected,
   }) {
     final isSelected = selectedValue == value;
-    
+
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onSelected(),
-      selectedColor: _getPrimaryColor().withOpacity(0.2),
+      selectedColor: _getPrimaryColor().withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: isSelected ? _getPrimaryColor() : Colors.grey.shade700,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -739,12 +768,12 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     required VoidCallback onSelected,
   }) {
     final isSelected = selectedValue == value;
-    
+
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (_) => onSelected(),
-      selectedColor: _getPrimaryColor().withOpacity(0.2),
+      selectedColor: _getPrimaryColor().withValues(alpha: 0.2),
       labelStyle: TextStyle(
         color: isSelected ? _getPrimaryColor() : Colors.grey.shade700,
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
@@ -773,7 +802,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       text: student?['no_telepon'] ?? '',
     );
 
-    final emailWaliController = TextEditingController(
+    final emailParentController = TextEditingController(
       text: student?['email_wali'] ?? '',
     );
 
@@ -812,7 +841,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -954,7 +983,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         ),
                         SizedBox(height: 12),
                         _buildDialogTextField(
-                          controller: emailWaliController,
+                          controller: emailParentController,
                           label: languageProvider.getTranslatedText({
                             'en': 'Parent Email',
                             'id': 'Email Wali Murid',
@@ -1002,23 +1031,25 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         Expanded(
                           child: ElevatedButton(
                             onPressed: () async {
-                              final nama = nameController.text.trim();
+                              final name = nameController.text.trim();
                               final nis = nisController.text.trim();
-                              final alamat = addressController.text.trim();
-                              final tanggalLahir = birthDateController.text
+                              final address = addressController.text.trim();
+                              final birthDate = birthDateController.text
                                   .trim();
-                              final namaWali = parentNameController.text.trim();
-                              final noTelepon = phoneController.text.trim();
-                              final emailWali = emailWaliController.text.trim();
+                              final nameParent = parentNameController.text
+                                  .trim();
+                              final noPhone = phoneController.text.trim();
+                              final emailParent = emailParentController.text
+                                  .trim();
 
-                              if (nama.isEmpty ||
+                              if (name.isEmpty ||
                                   nis.isEmpty ||
                                   selectedClassId == null ||
-                                  alamat.isEmpty ||
-                                  tanggalLahir.isEmpty ||
+                                  address.isEmpty ||
+                                  birthDate.isEmpty ||
                                   selectedGender == null ||
-                                  namaWali.isEmpty ||
-                                  noTelepon.isEmpty) {
+                                  nameParent.isEmpty ||
+                                  noPhone.isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -1033,10 +1064,10 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 return;
                               }
 
-                              if (emailWali.isNotEmpty &&
+                              if (emailParent.isNotEmpty &&
                                   !RegExp(
                                     r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                  ).hasMatch(emailWali)) {
+                                  ).hasMatch(emailParent)) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(
@@ -1053,20 +1084,20 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
                               try {
                                 final data = {
-                                  'nama': nama,
+                                  'nama': name,
                                   'nis': nis,
                                   'kelas_id': selectedClassId,
-                                  'alamat': alamat,
-                                  'tanggal_lahir': tanggalLahir,
+                                  'alamat': address,
+                                  'tanggal_lahir': birthDate,
                                   'jenis_kelamin': selectedGender,
-                                  'nama_wali': namaWali,
-                                  'no_telepon': noTelepon,
-                                  'email_wali': emailWali,
+                                  'nama_wali': nameParent,
+                                  'no_telepon': noPhone,
+                                  'email_wali': emailParent,
                                 };
 
                                 if (isEdit) {
                                   await ApiStudentService.updateStudent(
-                                    student!['id'],
+                                    student['id'],
                                     data,
                                   );
                                   await _loadData();
@@ -1080,7 +1111,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                                 'id':
                                                     'Siswa berhasil diperbarui',
                                               }) +
-                                              (emailWali.isNotEmpty
+                                              (emailParent.isNotEmpty
                                                   ? languageProvider.getTranslatedText({
                                                       'en':
                                                           '\nParent account created/updated with password: password123',
@@ -1107,7 +1138,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                                 'id':
                                                     'Siswa berhasil ditambahkan',
                                               }) +
-                                              (emailWali.isNotEmpty
+                                              (emailParent.isNotEmpty
                                                   ? languageProvider.getTranslatedText({
                                                       'en':
                                                           '\nParent account created with password: password123',
@@ -1211,7 +1242,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: _getPrimaryColor(), size: 20),
@@ -1329,7 +1360,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                       'NIS: ${student['nis'] ?? 'No NIS'}',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -1495,7 +1526,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _getPrimaryColor().withOpacity(0.1),
+              color: _getPrimaryColor().withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 18, color: _getPrimaryColor()),
@@ -1592,7 +1623,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       blurRadius: 5,
                       offset: Offset(0, 4),
                     ),
@@ -1600,7 +1631,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                 ),
                 child: Stack(
                   children: [
-                    // Strip biru di pinggir kiri
                     Positioned(
                       left: 0,
                       top: 0,
@@ -1617,7 +1647,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                       ),
                     ),
 
-                    // Background pattern effect
                     Positioned(
                       right: -8,
                       top: -8,
@@ -1625,7 +1654,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1636,7 +1665,6 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header dengan nama dan NIS
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -1671,10 +1699,10 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withOpacity(0.1),
+                                  color: _getPrimaryColor().withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: _getPrimaryColor().withOpacity(0.3),
+                                    color: _getPrimaryColor().withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Text(
@@ -1691,14 +1719,13 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
                           SizedBox(height: 12),
 
-                          // Informasi kelas
                           Row(
                             children: [
                               Container(
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withOpacity(0.1),
+                                  color: _getPrimaryColor().withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -1751,7 +1778,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withOpacity(0.1),
+                                  color: _getPrimaryColor().withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -1852,10 +1879,10 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white.withOpacity(0.2),
+          color: backgroundColor ?? Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: borderColor ?? Colors.white.withOpacity(0.3),
+            color: borderColor ?? Colors.white.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -1879,14 +1906,14 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   }
 
   Color _getPrimaryColor() {
-    return Color(0xFF2563EB); // Blue untuk admin
+    return ColorUtils.getRoleColor('admin');
   }
 
   LinearGradient _getCardGradient() {
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withOpacity(0.7)],
+      colors: [_getPrimaryColor(), _getPrimaryColor()],
     );
   }
 
@@ -1907,14 +1934,12 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
           return ErrorScreen(errorMessage: _errorMessage!, onRetry: _loadData);
         }
 
-        // No need to filter here - backend already handles filtering
         final filteredStudents = _students;
 
         return Scaffold(
           backgroundColor: Color(0xFFF8F9FA),
           body: Column(
             children: [
-              // Header
               Container(
                 width: double.infinity,
                 padding: EdgeInsets.only(
@@ -1931,7 +1956,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getPrimaryColor().withOpacity(0.3),
+                      color: _getPrimaryColor().withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -1948,7 +1973,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -1982,7 +2007,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 }),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
                             ],
@@ -2006,7 +2031,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -2073,7 +2098,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: TextField(
@@ -2086,7 +2111,10 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                   'id': 'Cari siswa...',
                                 }),
                                 hintStyle: TextStyle(color: Colors.grey),
-                                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: Colors.grey,
+                                ),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -2102,10 +2130,10 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           decoration: BoxDecoration(
                             color: _hasActiveFilter
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Stack(
@@ -2144,18 +2172,18 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         ),
                       ],
                     ),
-                    
+
                     // Show active filters as chips
                     if (_hasActiveFilter) ...[
                       SizedBox(height: 12),
-                      Container(
+                      SizedBox(
                         height: 42,
                         child: Row(
                           children: [
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -2169,7 +2197,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
-                                  ..._buildFilterChips(languageProvider).map((filter) {
+                                  ..._buildFilterChips(languageProvider).map((
+                                    filter,
+                                  ) {
                                     return Container(
                                       margin: EdgeInsets.only(right: 6),
                                       child: Chip(
@@ -2187,19 +2217,25 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                           color: Colors.red,
                                         ),
                                         onDeleted: filter['onRemove'],
-                                        backgroundColor: Colors.white.withOpacity(0.2),
+                                        backgroundColor: Colors.white
+                                            .withValues(alpha: 0.2),
                                         side: BorderSide(
-                                          color: Colors.white.withOpacity(0.3),
+                                          color: Colors.white.withValues(alpha: 0.3),
                                           width: 1,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
-                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -2236,8 +2272,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           'id': 'Tidak ada siswa',
                         }),
                         subtitle:
-                            _searchController.text.isEmpty &&
-                                !_hasActiveFilter
+                            _searchController.text.isEmpty && !_hasActiveFilter
                             ? languageProvider.getTranslatedText({
                                 'en': 'Tap + to add a student',
                                 'id': 'Tap + untuk menambah siswa',
@@ -2253,7 +2288,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: EdgeInsets.only(top: 8, bottom: 16),
-                          itemCount: filteredStudents.length + (_isLoadingMore ? 1 : 0),
+                          itemCount:
+                              filteredStudents.length +
+                              (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
                             // Show loading indicator at bottom
                             if (index == filteredStudents.length) {
@@ -2265,7 +2302,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 ),
                               );
                             }
-                            
+
                             final student = filteredStudents[index];
                             return _buildStudentCard(student, index);
                           },

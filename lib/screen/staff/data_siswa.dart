@@ -23,7 +23,7 @@ class DataSiswaScreen extends StatelessWidget {
                 children: [
                   Text('NIS: ${siswa.nis}'),
                   Text('Kelas: ${siswa.kelas}'),
-                  Text('Wali: ${siswa.namaWali}'),
+                  Text('Wali: ${siswa.nameParent}'),
                   Text('Alamat: ${siswa.alamat}'),
                 ],
               ),
@@ -50,7 +50,7 @@ class DataSiswaScreen extends StatelessWidget {
             Text('NIS: ${siswa.nis}'),
             Text('Kelas: ${siswa.kelas}'),
             Text('Alamat: ${siswa.alamat}'),
-            Text('Nama Wali: ${siswa.namaWali}'),
+            Text('Nama Wali: ${siswa.nameParent}'),
             Text('No. Telepon: ${siswa.noTelepon}'),
           ],
         ),

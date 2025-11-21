@@ -1,12 +1,12 @@
 import 'package:manajemensekolah/models/guru.dart';
 import 'package:manajemensekolah/models/kelas.dart';
 
-import '../models/user.dart';
-import '../models/siswa.dart';
-import '../models/nilai.dart';
 import '../models/absensi.dart';
 import '../models/kegiatan.dart';
+import '../models/nilai.dart';
 import '../models/pengumuman.dart';
+import '../models/siswa.dart';
+import '../models/user.dart';
 
 class DataDummy {
   static List<User> users = [
@@ -19,11 +19,11 @@ class DataDummy {
   ];
 
   static List<Siswa> siswa = [
-    Siswa(id: '1', nama: 'Ahmad Rizki', kelas: '7A', nis: '001', alamat: 'Jl. Merdeka 1', namaWali: 'Wali Ahmad', noTelepon: '081234567890'),
-    Siswa(id: '2', nama: 'Siti Nurhaliza', kelas: '7A', nis: '002', alamat: 'Jl. Sudirman 2', namaWali: 'Wali Siti', noTelepon: '081234567891'),
-    Siswa(id: '3', nama: 'Budi Permana', kelas: '7B', nis: '003', alamat: 'Jl. Gatot Subroto 3', namaWali: 'Wali Budi', noTelepon: '081234567892'),
-    Siswa(id: '4', nama: 'Dewi Sartika', kelas: '8A', nis: '004', alamat: 'Jl. Diponegoro 4', namaWali: 'Wali Dewi', noTelepon: '081234567893'),
-    Siswa(id: '5', nama: 'Andi Wijaya', kelas: '8B', nis: '005', alamat: 'Jl. Ahmad Yani 5', namaWali: 'Wali Andi', noTelepon: '081234567894'),
+    Siswa(id: '1', nama: 'Ahmad Rizki', kelas: '7A', nis: '001', alamat: 'Jl. Merdeka 1', nameParent: 'Wali Ahmad', noTelepon: '081234567890'),
+    Siswa(id: '2', nama: 'Siti Nurhaliza', kelas: '7A', nis: '002', alamat: 'Jl. Sudirman 2', nameParent: 'Wali Siti', noTelepon: '081234567891'),
+    Siswa(id: '3', nama: 'Budi Permana', kelas: '7B', nis: '003', alamat: 'Jl. Gatot Subroto 3', nameParent: 'Wali Budi', noTelepon: '081234567892'),
+    Siswa(id: '4', nama: 'Dewi Sartika', kelas: '8A', nis: '004', alamat: 'Jl. Diponegoro 4', nameParent: 'Wali Dewi', noTelepon: '081234567893'),
+    Siswa(id: '5', nama: 'Andi Wijaya', kelas: '8B', nis: '005', alamat: 'Jl. Ahmad Yani 5', nameParent: 'Wali Andi', noTelepon: '081234567894'),
   ];
 
   static List<Nilai> nilai = [
