@@ -1,5 +1,6 @@
 // keuangan.dart
 import 'dart:convert';
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/services/api_services.dart';
@@ -32,6 +33,15 @@ class KeuanganScreenState extends State<KeuanganScreen>
   bool _isLoading = true;
   String _errorMessage = '';
   int _currentTabIndex = 0;
+
+  // Pagination for tagihan
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  final int _perPage = 10;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+  Timer? _searchDebounce;
 
   // Search dan filter
   final TextEditingController _searchController = TextEditingController();
@@ -67,6 +77,19 @@ class KeuanganScreenState extends State<KeuanganScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(() {
+      if (_scrollController.position.pixels >=
+          _scrollController.position.maxScrollExtent - 200) {
+        if (!_isLoadingMore && _hasMoreData && !_isLoading) {
+          _loadMoreTagihan();
+        }
+      }
+    });
+
     _loadData();
   }
 
@@ -75,6 +98,9 @@ class KeuanganScreenState extends State<KeuanganScreen>
     _animationController.dispose();
     _searchController.dispose();
     _searchSiswaController.dispose();
+    _scrollController.removeListener(() {});
+    _scrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -82,6 +108,20 @@ class KeuanganScreenState extends State<KeuanganScreen>
     setState(() {
       _hasActiveFilter =
           _selectedStatusFilter != null || _selectedPeriodeFilter != null;
+    });
+  }
+
+  void _onSearchChanged() {
+    // Cancel previous timer
+    _searchDebounce?.cancel();
+
+    // Set new timer (500ms debounce)
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1; // Reset to first page on search
+      });
+      _loadTagihan(resetPage: true);
+      _checkActiveFilter();
     });
   }
 
@@ -1631,15 +1671,61 @@ class KeuanganScreenState extends State<KeuanganScreen>
     }
   }
 
-  Future<void> _loadTagihan() async {
+  Future<void> _loadTagihan({bool resetPage = true}) async {
     try {
-      final response = await _apiService.get('/tagihan');
+      if (resetPage) {
+        _currentPage = 1;
+        _tagihanList = [];
+        _hasMoreData = true;
+        _paginationMeta = null;
+      }
+
       setState(() {
-        _tagihanList = response is List ? response : [];
+        _isLoading = resetPage;
+        _isLoadingMore = !resetPage;
       });
+
+      final res = await ApiService.getTagihanPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        status: _selectedStatusFilter,
+      );
+
+      if (res['success'] == true) {
+        final List<dynamic> pageData = res['data'] ?? [];
+        final pagination = res['pagination'] ?? {};
+
+        setState(() {
+          _tagihanList.addAll(pageData);
+          _paginationMeta = pagination;
+          _hasMoreData = pagination['has_next_page'] ?? (pageData.length == _perPage);
+        });
+      } else if (res.containsKey('data')) {
+        final List<dynamic> pageData = res['data'] ?? [];
+        final pagination = res['pagination'] ?? {};
+        setState(() {
+          _tagihanList.addAll(pageData);
+          _paginationMeta = pagination;
+          _hasMoreData = pagination['has_next_page'] ?? (pageData.length == _perPage);
+        });
+      }
     } catch (error) {
-      print('Error loading tagihan: $error');
+      print('Error loading tagihan (paginated): $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+        });
+        _animationController.forward();
+      }
     }
+  }
+
+  Future<void> _loadMoreTagihan() async {
+    if (!_hasMoreData) return;
+    _currentPage += 1;
+    await _loadTagihan(resetPage: false);
   }
 
   Future<void> _loadPembayaranPending() async {
@@ -3394,7 +3480,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
           SizedBox(height: 8),
           ElevatedButton(
             onPressed: () {
-              DefaultTabController.of(context)?.animateTo(2);
+              DefaultTabController.of(context).animateTo(2);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,

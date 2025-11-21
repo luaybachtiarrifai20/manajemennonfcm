@@ -510,6 +510,50 @@ class ApiService {
     };
   }
 
+  // Get Tagihan with pagination & filters
+  static Future<Map<String, dynamic>> getTagihanPaginated({
+    int page = 1,
+    int limit = 10,
+    String? status,
+    String? siswaId,
+    String? jenisPembayaranId,
+  }) async {
+    Map<String, dynamic> queryParams = {
+      'page': page.toString(),
+      'limit': limit.toString(),
+    };
+
+    if (status != null && status.isNotEmpty) queryParams['status'] = status;
+    if (siswaId != null && siswaId.isNotEmpty) queryParams['siswa_id'] = siswaId;
+    if (jenisPembayaranId != null && jenisPembayaranId.isNotEmpty)
+      queryParams['jenis_pembayaran_id'] = jenisPembayaranId;
+
+    final queryString = Uri(queryParameters: queryParams).query;
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/tagihan?$queryString'),
+      headers: await _getHeaders(),
+    );
+
+    final result = _handleResponse(response);
+
+    if (result is Map<String, dynamic>) return result;
+
+    // fallback
+    return {
+      'success': true,
+      'data': result is List ? result : [],
+      'pagination': {
+        'total_items': result is List ? result.length : 0,
+        'total_pages': 1,
+        'current_page': page,
+        'per_page': limit,
+        'has_next_page': false,
+        'has_prev_page': false,
+      },
+    };
+  }
+
   static Future<dynamic> tambahRPP(Map<String, dynamic> data) async {
     final response = await http.post(
       Uri.parse('$baseUrl/rpp'),
