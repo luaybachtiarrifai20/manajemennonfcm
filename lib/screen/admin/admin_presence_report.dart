@@ -54,15 +54,23 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
   List<AttendanceSummary> _absensiSummaryList = [];
   bool _isLoadingSummary = false;
 
+  // Pagination State
+  int _currentPage = 1;
+  final int _perPage = 10;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  final ScrollController _scrollController = ScrollController();
+
   // Search dan Filter
   final TextEditingController _searchController = TextEditingController();
-  
+
   // Filter States
-  String? _selectedDateFilter; // 'today', 'week', 'month', atau null untuk semua
+  String?
+  _selectedDateFilter; // 'today', 'week', 'month', atau null untuk semua
   List<String> _selectedSubjectIds = [];
   List<String> _selectedClassIds = [];
   bool _hasActiveFilter = false;
-  
+
   // Data for filters
   List<dynamic> _subjectList = [];
   List<dynamic> _classList = [];
@@ -89,15 +97,25 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
-    _loadAttendanceSummary();
+    _scrollController.addListener(_onScroll);
+    _loadData();
     _loadFilterData();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+            _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        _hasMoreData) {
+      _loadMoreData();
+    }
   }
 
   Future<void> _loadFilterData() async {
     try {
       final subjects = await ApiSubjectService().getSubject();
       final classes = await ApiClassService().getClass();
-      
+
       if (mounted) {
         setState(() {
           _subjectList = subjects;
@@ -113,7 +131,8 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
 
   void _checkActiveFilter() {
     setState(() {
-      _hasActiveFilter = _selectedDateFilter != null ||
+      _hasActiveFilter =
+          _selectedDateFilter != null ||
           _selectedSubjectIds.isNotEmpty ||
           _selectedClassIds.isNotEmpty;
     });
@@ -135,10 +154,19 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
 
     if (_selectedDateFilter != null) {
       final label = _selectedDateFilter == 'today'
-          ? languageProvider.getTranslatedText({'en': 'Today', 'id': 'Hari Ini'})
+          ? languageProvider.getTranslatedText({
+              'en': 'Today',
+              'id': 'Hari Ini',
+            })
           : _selectedDateFilter == 'week'
-              ? languageProvider.getTranslatedText({'en': 'This Week', 'id': 'Minggu Ini'})
-              : languageProvider.getTranslatedText({'en': 'This Month', 'id': 'Bulan Ini'});
+          ? languageProvider.getTranslatedText({
+              'en': 'This Week',
+              'id': 'Minggu Ini',
+            })
+          : languageProvider.getTranslatedText({
+              'en': 'This Month',
+              'id': 'Bulan Ini',
+            });
       filterChips.add({
         'label':
             '${languageProvider.getTranslatedText({'en': 'Date', 'id': 'Tanggal'})}: $label',
@@ -184,142 +212,122 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
   void dispose() {
     _searchController.dispose();
     _animationController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadAttendanceSummary() async {
+  Future<void> _loadData() async {
     if (!mounted) return;
 
     setState(() {
       _isLoadingSummary = true;
+      _currentPage = 1;
+      _hasMoreData = true;
+      _absensiSummaryList.clear();
     });
 
+    await _fetchData();
+  }
+
+  Future<void> _loadMoreData() async {
+    if (!mounted || _isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    await _fetchData();
+  }
+
+  Future<void> _fetchData() async {
     try {
-      final absensiData = await ApiService.getAbsensi();
+      // Prepare filter parameters
+      String? tanggal;
+      String? tanggalStart;
+      String? tanggalEnd;
 
-      final Map<String, AttendanceSummary> summaryMap = {};
-
-      // Load data mata pelajaran dan kelas
-      final [mataPelajaranList, kelasList] = await Future.wait([
-        ApiSubjectService().getSubject(),
-        ApiClassService().getClass(),
-      ]);
-
-      for (var absen in absensiData) {
-        final kelasId = absen['kelas_id']?.toString(); // Handle null
-        final mataPelajaranId = absen['mata_pelajaran_id']
-            ?.toString(); // Handle null
-        final tanggal = absen['tanggal']?.toString(); // Handle null
-
-        // Skip jika data essential tidak lengkap
-        if (mataPelajaranId == null || tanggal == null) {
-          continue;
-        }
-
-        final key = '$mataPelajaranId-${kelasId ?? 'no-class'}-$tanggal';
-
-        final mataPelajaranNama = _getMataPelajaranName(
-          mataPelajaranId,
-          mataPelajaranList,
-        );
-
-        final kelasNama = _getKelasName(kelasId, kelasList);
-
-        if (!summaryMap.containsKey(key)) {
-          summaryMap[key] = AttendanceSummary(
-            subjectId: mataPelajaranId,
-            subjectName: mataPelajaranNama,
-            date: _parseLocalDate(tanggal),
-            totalStudents: 0,
-            present: 0,
-            absent: 0,
-            classId: kelasId ?? '', // Handle null
-            className: kelasNama,
-          );
-        }
-
-        final summary = summaryMap[key]!;
-        final status =
-            absen['status']?.toString() ?? 'alpha'; // Default jika status null
-
-        summaryMap[key] = AttendanceSummary(
-          subjectId: summary.subjectId,
-          subjectName: summary.subjectName,
-          date: summary.date,
-          totalStudents: summary.totalStudents + 1,
-          present: summary.present + (status == 'hadir' ? 1 : 0),
-          absent: summary.absent + (status != 'hadir' ? 1 : 0),
-          classId: summary.classId,
-          className: summary.className,
-        );
+      if (_selectedDateFilter == 'today') {
+        tanggal = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      } else if (_selectedDateFilter == 'week') {
+        final now = DateTime.now();
+        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+        final endOfWeek = startOfWeek.add(Duration(days: 6));
+        tanggalStart = DateFormat('yyyy-MM-dd').format(startOfWeek);
+        tanggalEnd = DateFormat('yyyy-MM-dd').format(endOfWeek);
+      } else if (_selectedDateFilter == 'month') {
+        final now = DateTime.now();
+        final startOfMonth = DateTime(now.year, now.month, 1);
+        final endOfMonth = DateTime(now.year, now.month + 1, 0);
+        tanggalStart = DateFormat('yyyy-MM-dd').format(startOfMonth);
+        tanggalEnd = DateFormat('yyyy-MM-dd').format(endOfMonth);
       }
+
+      // Call paginated API
+      final result = await ApiService.getAbsensiSummaryPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        mataPelajaranId: _selectedSubjectIds.isNotEmpty
+            ? _selectedSubjectIds
+                  .first // Currently API supports single subject filter, or we can update backend to support array
+            : null,
+        kelasId: _selectedClassIds.isNotEmpty
+            ? _selectedClassIds
+                  .first // Currently API supports single class filter
+            : null,
+        tanggal: tanggal,
+        tanggalStart: tanggalStart,
+        tanggalEnd: tanggalEnd,
+      );
 
       if (!mounted) return;
 
+      final List<dynamic> data = result['data'] ?? [];
+      final Map<String, dynamic> pagination = result['pagination'] ?? {};
+
+      final List<AttendanceSummary> newItems = data.map((item) {
+        return AttendanceSummary(
+          subjectId: item['mata_pelajaran_id']?.toString() ?? '',
+          subjectName: item['mata_pelajaran_nama'] ?? 'Unknown',
+          date: AppDateUtils.parseApiDate(item['tanggal']) ?? DateTime.now(),
+          totalStudents:
+              int.tryParse(item['total_students']?.toString() ?? '0') ?? 0,
+          present: int.tryParse(item['present']?.toString() ?? '0') ?? 0,
+          absent: int.tryParse(item['absent']?.toString() ?? '0') ?? 0,
+          classId: item['kelas_id']?.toString() ?? '',
+          className: item['kelas_nama'] ?? 'Unknown',
+        );
+      }).toList();
+
       setState(() {
-        _absensiSummaryList = summaryMap.values.toList()
-          ..sort((a, b) => b.date.compareTo(a.date));
+        if (_currentPage == 1) {
+          _absensiSummaryList = newItems;
+        } else {
+          _absensiSummaryList.addAll(newItems);
+        }
+
+        _hasMoreData = pagination['has_next_page'] ?? false;
+        if (_hasMoreData) {
+          _currentPage++;
+        }
+
         _isLoadingSummary = false;
+        _isLoadingMore = false;
       });
 
-      _animationController.forward();
-
-      if (kDebugMode) {
-        print(
-          'Loaded ${_absensiSummaryList.length} absensi summaries for admin',
-        );
+      if (_currentPage == 1 && newItems.isNotEmpty) {
+        _animationController.forward(from: 0.0);
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error loading absensi summary for admin: $e');
+        print('Error loading absensi summary: $e');
       }
       if (mounted) {
         setState(() {
           _isLoadingSummary = false;
+          _isLoadingMore = false;
         });
       }
     }
-  }
-
-  // Method untuk mendapatkan nama kelas
-  String _getKelasName(String? kelasId, List<dynamic> kelasList) {
-    // Handle null kelasId
-    if (kelasId == null || kelasId.isEmpty) {
-      return 'Kelas Tidak Diketahui';
-    }
-
-    try {
-      final kelas = kelasList.firstWhere(
-        (k) => k['id']?.toString() == kelasId.toString(),
-        orElse: () => {'nama': 'Kelas Tidak Diketahui'},
-      );
-      return kelas['nama'] ?? 'Kelas Tidak Diketahui';
-    } catch (e) {
-      return 'Kelas Tidak Diketahui';
-    }
-  }
-
-  // Method untuk export detail absensi
-
-  String _getMataPelajaranName(
-    String mataPelajaranId,
-    List<dynamic> mataPelajaranList,
-  ) {
-    try {
-      final mataPelajaran = mataPelajaranList.firstWhere(
-        (mp) => mp['id'] == mataPelajaranId,
-        orElse: () => {'nama': 'Unknown'},
-      );
-      return mataPelajaran['nama'];
-    } catch (e) {
-      return 'Unknown';
-    }
-  }
-
-  // Helper function to parse date string as local date (not UTC)
-  DateTime _parseLocalDate(String dateString) {
-    // Gunakan AppDateUtils untuk parsing yang konsisten dan benar
-    return AppDateUtils.parseApiDate(dateString) ?? DateTime.now();
   }
 
   Color _getPrimaryColor() {
@@ -427,14 +435,14 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                   'id': 'Hari Ini',
                                 })
                               : period == 'week'
-                                  ? languageProvider.getTranslatedText({
-                                      'en': 'This Week',
-                                      'id': 'Minggu Ini',
-                                    })
-                                  : languageProvider.getTranslatedText({
-                                      'en': 'This Month',
-                                      'id': 'Bulan Ini',
-                                    });
+                              ? languageProvider.getTranslatedText({
+                                  'en': 'This Week',
+                                  'id': 'Minggu Ini',
+                                })
+                              : languageProvider.getTranslatedText({
+                                  'en': 'This Month',
+                                  'id': 'Bulan Ini',
+                                });
                           return FilterChip(
                             label: Text(label),
                             selected: isSelected,
@@ -477,8 +485,9 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                         children: _subjectList.map<Widget>((subject) {
                           final subjectId = subject['id'].toString();
                           final subjectName = subject['nama'] ?? 'Subject';
-                          final isSelected =
-                              tempSelectedSubjects.contains(subjectId);
+                          final isSelected = tempSelectedSubjects.contains(
+                            subjectId,
+                          );
                           return FilterChip(
                             label: Text(subjectName),
                             selected: isSelected,
@@ -525,8 +534,9 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                         children: _classList.map<Widget>((classItem) {
                           final classId = classItem['id'].toString();
                           final className = classItem['nama'] ?? 'Class';
-                          final isSelected =
-                              tempSelectedClasses.contains(classId);
+                          final isSelected = tempSelectedClasses.contains(
+                            classId,
+                          );
                           return FilterChip(
                             label: Text(className),
                             selected: isSelected,
@@ -589,6 +599,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                             _selectedClassIds = tempSelectedClasses;
                             _checkActiveFilter();
                           });
+                          _loadData(); // Reload data with new filters
                         },
                         style: ElevatedButton.styleFrom(
                           padding: EdgeInsets.symmetric(vertical: 16),
@@ -612,7 +623,6 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
       ),
     );
   }
-
 
   Widget _buildSummaryCard(
     AttendanceSummary summary,
@@ -828,7 +838,8 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                   width:
                                       constraints.maxWidth *
                                       (summary.totalStudents > 0
-                                          ? summary.present / summary.totalStudents
+                                          ? summary.present /
+                                                summary.totalStudents
                                           : 0),
                                   decoration: BoxDecoration(
                                     color: presentaseHadir >= 80
@@ -919,7 +930,8 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
 
     return _absensiSummaryList.where((summary) {
       // Search filter
-      final matchesSearch = searchTerm.isEmpty ||
+      final matchesSearch =
+          searchTerm.isEmpty ||
           summary.subjectName.toLowerCase().contains(searchTerm) ||
           summary.className.toLowerCase().contains(searchTerm);
 
@@ -929,24 +941,24 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         if (_selectedDateFilter == 'today') {
           matchesDateFilter = _isSameDay(summary.date, now);
         } else if (_selectedDateFilter == 'week') {
-          matchesDateFilter = summary.date.isAfter(
-                startOfWeek.subtract(Duration(days: 1)),
-              ) &&
+          matchesDateFilter =
+              summary.date.isAfter(startOfWeek.subtract(Duration(days: 1))) &&
               summary.date.isBefore(endOfWeek.add(Duration(days: 1)));
         } else if (_selectedDateFilter == 'month') {
-          matchesDateFilter = summary.date.isAfter(
-                startOfMonth.subtract(Duration(days: 1)),
-              ) &&
+          matchesDateFilter =
+              summary.date.isAfter(startOfMonth.subtract(Duration(days: 1))) &&
               summary.date.isBefore(endOfMonth.add(Duration(days: 1)));
         }
       }
 
       // Subject filter
-      final matchesSubject = _selectedSubjectIds.isEmpty ||
+      final matchesSubject =
+          _selectedSubjectIds.isEmpty ||
           _selectedSubjectIds.contains(summary.subjectId);
 
       // Class filter
-      final matchesClass = _selectedClassIds.isEmpty ||
+      final matchesClass =
+          _selectedClassIds.isEmpty ||
           _selectedClassIds.contains(summary.classId);
 
       return matchesSearch &&
@@ -1070,7 +1082,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                           onSelected: (value) {
                             switch (value) {
                               case 'refresh':
-                                _loadAttendanceSummary();
+                                _loadData();
                                 break;
                             }
                           },
@@ -1239,7 +1251,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -1286,8 +1298,8 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                           'en': 'No attendance records',
                           'id': 'Belum ada data absensi',
                         }),
-                        subtitle: _searchController.text.isEmpty &&
-                                !_hasActiveFilter
+                        subtitle:
+                            _searchController.text.isEmpty && !_hasActiveFilter
                             ? languageProvider.getTranslatedText({
                                 'en': 'No attendance data available',
                                 'id': 'Tidak ada data absensi tersedia',

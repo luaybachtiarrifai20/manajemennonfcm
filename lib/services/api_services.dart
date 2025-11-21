@@ -604,12 +604,14 @@ class ApiService {
     String? tanggal,
     String? mataPelajaranId,
     String? siswaId,
+    String? kelasId,
   }) async {
     String url = '$baseUrl/absensi?';
     if (guruId != null) url += 'guru_id=$guruId&';
     if (tanggal != null) url += 'tanggal=$tanggal&';
     if (mataPelajaranId != null) url += 'mata_pelajaran_id=$mataPelajaranId&';
     if (siswaId != null) url += 'siswa_id=$siswaId&';
+    if (kelasId != null) url += 'kelas_id=$kelasId&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -618,6 +620,59 @@ class ApiService {
 
     final result = _handleResponse(response);
     return result is List ? result : [];
+  }
+
+  // Paginated absensi (returns map with data + pagination)
+  static Future<Map<String, dynamic>> getAbsensiPaginated({
+    int page = 1,
+    int limit = 20,
+    String? guruId,
+    String? tanggal,
+    String? mataPelajaranId,
+    String? siswaId,
+    String? kelasId,
+  }) async {
+    try {
+      final params = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+      if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
+      if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
+      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
+        params['mata_pelajaran_id'] = mataPelajaranId;
+      if (siswaId != null && siswaId.isNotEmpty) params['siswa_id'] = siswaId;
+      if (kelasId != null && kelasId.isNotEmpty) params['kelas_id'] = kelasId;
+
+      final uri = Uri.parse(
+        '$baseUrl/absensi',
+      ).replace(queryParameters: params);
+      final response = await http.get(uri, headers: await _getHeaders());
+      final result = _handleResponse(response);
+
+      if (result is Map<String, dynamic>) return result;
+
+      // Fallback: wrap list in pagination-like object
+      if (result is List) {
+        return {
+          'success': true,
+          'data': result,
+          'pagination': {
+            'total_items': result.length,
+            'total_pages': 1,
+            'current_page': 1,
+            'per_page': limit,
+            'has_next_page': false,
+            'has_prev_page': false,
+          },
+        };
+      }
+
+      return {'success': false};
+    } catch (e) {
+      if (kDebugMode) print('Error getAbsensiPaginated: $e');
+      rethrow;
+    }
   }
 
   static Future<List<dynamic>> getAbsensiSummary({String? guruId}) async {
@@ -631,6 +686,64 @@ class ApiService {
 
     final result = _handleResponse(response);
     return result is List ? result : [];
+  }
+
+  // New method for paginated summary
+  static Future<Map<String, dynamic>> getAbsensiSummaryPaginated({
+    int page = 1,
+    int limit = 10,
+    String? guruId,
+    String? mataPelajaranId,
+    String? kelasId,
+    String? tanggal,
+    String? tanggalStart,
+    String? tanggalEnd,
+  }) async {
+    try {
+      final params = <String, String>{
+        'page': page.toString(),
+        'limit': limit.toString(),
+      };
+
+      if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
+      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
+        params['mata_pelajaran_id'] = mataPelajaranId;
+      }
+      if (kelasId != null && kelasId.isNotEmpty) params['kelas_id'] = kelasId;
+      if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
+      if (tanggalStart != null && tanggalStart.isNotEmpty) {
+        params['tanggal_start'] = tanggalStart;
+      }
+      if (tanggalEnd != null && tanggalEnd.isNotEmpty) {
+        params['tanggal_end'] = tanggalEnd;
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/absensi/summary',
+      ).replace(queryParameters: params);
+
+      final response = await http.get(uri, headers: await _getHeaders());
+      final result = _handleResponse(response);
+
+      if (result is Map<String, dynamic>) return result;
+
+      // Fallback if server returns list (should not happen with new endpoint)
+      return {
+        'success': true,
+        'data': result is List ? result : [],
+        'pagination': {
+          'total_items': result is List ? (result as List).length : 0,
+          'total_pages': 1,
+          'current_page': 1,
+          'per_page': limit,
+          'has_next_page': false,
+          'has_prev_page': false,
+        },
+      };
+    } catch (e) {
+      if (kDebugMode) print('Error getAbsensiSummaryPaginated: $e');
+      rethrow;
+    }
   }
 
   static Future<dynamic> tambahAbsensi(Map<String, dynamic> data) async {
