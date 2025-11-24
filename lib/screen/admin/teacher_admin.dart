@@ -568,12 +568,72 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       );
 
       if (result != null && result.files.single.path != null) {
-        await ApiTeacherService.importTeachersFromExcel(
-          File(result.files.single.path!),
-        );
+        final pickedFile = File(result.files.single.path!);
+        if (kDebugMode) {
+          print(
+            'Import teachers - picked file: ${pickedFile.path}, size: ${await pickedFile.length()} bytes',
+          );
+        }
 
-        // Refresh data setelah import
-        await _loadData();
+        try {
+          final response = await ApiTeacherService.importTeachersFromExcel(
+            pickedFile,
+          );
+          if (kDebugMode) print('Import response: $response');
+
+          // If backend returned structured errors, show them to user
+          // show errors array if present
+          if (response['errors'] != null &&
+              response['errors'] is List &&
+              (response['errors'] as List).isNotEmpty) {
+            final errors = (response['errors'] as List).take(10).join('\n');
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Import finished with errors:\n$errors'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          } else if (response['error'] != null) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Import failed: ${response['error']}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          } else {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'Import completed',
+                    'id': 'Import selesai',
+                  }),
+                ),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+
+          // Refresh data setelah import
+          await _loadData();
+        } catch (apiError) {
+          if (kDebugMode) print('Error calling import API: $apiError');
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                languageProvider.getTranslatedText({
+                  'en': 'Failed to import file: $apiError',
+                  'id': 'Gagal mengimpor file: $apiError',
+                }),
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -601,9 +661,14 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     String base64File,
   ) async {
     try {
+      if (kDebugMode)
+        debugPrint(
+          'Calling /guru/import (API) with base64 size=${base64File.length}',
+        );
       final response = await ApiService().post('/guru/import', {
         'file_data': base64File,
       });
+      if (kDebugMode) debugPrint('Response from /guru/import: $response');
       return response;
     } catch (e) {
       debugPrint('Error importing teachers from Excel: $e');
@@ -627,9 +692,15 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     String base64File,
   ) async {
     try {
+      if (kDebugMode)
+        debugPrint(
+          'Calling /guru/import (helper) with base64 size=${base64File.length}',
+        );
       final response = await ApiService().post('/guru/import', {
         'file_data': base64File,
       });
+      if (kDebugMode)
+        debugPrint('Response from /guru/import (helper): $response');
       return response;
     } catch (e) {
       debugPrint('Error importing teachers from Excel: $e');
