@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -86,9 +87,9 @@ class ApiClassService {
         final directory = await getExternalStorageDirectory();
         final filePath = '${directory?.path}/template_import_kelas.xlsx';
         final file = File(filePath);
-        
+
         await file.writeAsBytes(response.bodyBytes);
-        
+
         print('Template downloaded to: $filePath');
         return filePath;
       } else {
@@ -121,18 +122,15 @@ class ApiClassService {
       );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback
       return {
         'success': false,
-        'data': {
-          'grade_levels': [],
-          'wali_kelas': [],
-        }
+        'data': {'grade_levels': [], 'wali_kelas': []},
       };
     } catch (e) {
       print('Error getting filter options: $e');
@@ -145,7 +143,7 @@ class ApiClassService {
     int page = 1,
     int limit = 10,
     String? gradeLevel,
-    String? waliKelasId,
+    String? waliclassId,
     String? search,
   }) async {
     // Build query parameters
@@ -157,8 +155,8 @@ class ApiClassService {
     if (gradeLevel != null && gradeLevel.isNotEmpty) {
       queryParams['grade_level'] = gradeLevel;
     }
-    if (waliKelasId != null && waliKelasId.isNotEmpty) {
-      queryParams['wali_kelas_id'] = waliKelasId;
+    if (waliclassId != null && waliclassId.isNotEmpty) {
+      queryParams['wali_kelas_id'] = waliclassId;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -166,7 +164,7 @@ class ApiClassService {
 
     // Build query string
     String queryString = Uri(queryParameters: queryParams).query;
-    
+
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/kelas?$queryString'),
@@ -176,11 +174,11 @@ class ApiClassService {
       print('GET /kelas?$queryString - Status: ${response.statusCode}');
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback untuk backward compatibility
       return {
         'success': true,
@@ -192,7 +190,7 @@ class ApiClassService {
           'per_page': limit,
           'has_next_page': false,
           'has_prev_page': false,
-        }
+        },
       };
     } catch (e) {
       print('Error getting paginated classes: $e');
@@ -204,12 +202,12 @@ class ApiClassService {
   Future<List<dynamic>> getClass() async {
     try {
       final result = await ApiService().get('/kelas');
-      
+
       // Handle new pagination format
       if (result is Map<String, dynamic>) {
         return result['data'] ?? [];
       }
-      
+
       // Handle old format (List)
       return result is List ? result : [];
     } catch (e) {
@@ -236,7 +234,7 @@ class ApiClassService {
       if (data['nama'] == null || data['nama'].toString().isEmpty) {
         throw Exception('Nama kelas harus diisi');
       }
-      
+
       if (data['grade_level'] == null) {
         throw Exception('Grade level harus dipilih');
       }
@@ -258,7 +256,7 @@ class ApiClassService {
       if (data['nama'] == null || data['nama'].toString().isEmpty) {
         throw Exception('Nama kelas harus diisi');
       }
-      
+
       if (data['grade_level'] == null) {
         throw Exception('Grade level harus dipilih');
       }
@@ -287,7 +285,7 @@ class ApiClassService {
   Future<List<dynamic>> getStudentsByClassId(String classId) async {
     try {
       final result = await ApiService().get('/siswa/kelas/$classId');
-      
+
       // Handle Map format (pagination or error response)
       if (result is Map<String, dynamic>) {
         if (result.containsKey('data')) {
@@ -295,7 +293,7 @@ class ApiClassService {
         }
         return [];
       }
-      
+
       // Handle List format (direct response)
       return result is List ? result : [];
     } catch (e) {

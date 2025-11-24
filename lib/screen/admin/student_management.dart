@@ -56,7 +56,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
   Map<String, dynamic>? _filterOptions;
   List<String> _availableGradeLevels = [];
-  List<dynamic> _availableKelas = [];
+  List<dynamic> _availableClass = [];
   List<Map<String, String>> _availableGenderOptions = [];
 
   Timer? _searchDebounce;
@@ -107,7 +107,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
           _availableGradeLevels = List<String>.from(
             response['data']['grade_levels'] ?? [],
           );
-          _availableKelas = response['data']['kelas'] ?? [];
+          _availableClass = response['data']['kelas'] ?? [];
           _availableGenderOptions = List<Map<String, String>>.from(
             (response['data']['gender_options'] ?? []).map(
               (item) => {
@@ -119,7 +119,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
         });
         if (kDebugMode) {
           print(
-            '✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableKelas.length} kelas',
+            '✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableClass.length} kelas',
           );
         }
       }
@@ -212,9 +212,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       final response = await ApiStudentService.getStudentPaginated(
         page: _currentPage,
         limit: _perPage,
-        kelasId: _selectedClassIds.isNotEmpty ? _selectedClassIds.first : null,
+        classId: _selectedClassIds.isNotEmpty ? _selectedClassIds.first : null,
         gradeLevel: _selectedGradeLevel,
-        jenisKelamin: _selectedGenderFilter,
+        gender: _selectedGenderFilter,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
@@ -268,9 +268,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
       final response = await ApiStudentService.getStudentPaginated(
         page: _currentPage,
         limit: _perPage,
-        kelasId: _selectedClassIds.isNotEmpty ? _selectedClassIds.first : null,
+        classId: _selectedClassIds.isNotEmpty ? _selectedClassIds.first : null,
         gradeLevel: _selectedGradeLevel,
-        jenisKelamin: _selectedGenderFilter,
+        gender: _selectedGenderFilter,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
@@ -304,17 +304,13 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     }
   }
 
-  void _applyFilter({
-    String? kelasId,
-    String? gradeLevel,
-    String? jenisKelamin,
-  }) {
+  void _applyFilter({String? classId, String? gradeLevel, String? gender}) {
     setState(() {
-      if (kelasId != null) {
-        _selectedClassIds = [kelasId];
+      if (classId != null) {
+        _selectedClassIds = [classId];
       }
       _selectedGradeLevel = gradeLevel;
-      _selectedGenderFilter = jenisKelamin;
+      _selectedGenderFilter = gender;
       _currentPage = 1;
     });
     _loadData();
@@ -371,17 +367,17 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     }
 
     if (_selectedClassIds.isNotEmpty) {
-      for (var kelasId in _selectedClassIds) {
+      for (var classId in _selectedClassIds) {
         final kelas = _classList.firstWhere(
-          (k) => k['id'].toString() == kelasId,
-          orElse: () => {'nama': kelasId},
+          (k) => k['id'].toString() == classId,
+          orElse: () => {'nama': classId},
         );
         filterChips.add({
           'label':
               '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['nama']}',
           'onRemove': () {
             setState(() {
-              _selectedClassIds.remove(kelasId);
+              _selectedClassIds.remove(classId);
             });
             _checkActiveFilter();
             _loadData();
@@ -564,9 +560,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           spacing: 8,
                           runSpacing: 8,
                           children: _classList.map((kelas) {
-                            final kelasId = kelas['id'].toString();
+                            final classId = kelas['id'].toString();
                             final isSelected = tempSelectedClass.contains(
-                              kelasId,
+                              classId,
                             );
 
                             return FilterChip(
@@ -575,9 +571,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                               onSelected: (selected) {
                                 setModalState(() {
                                   if (selected) {
-                                    tempSelectedClass.add(kelasId);
+                                    tempSelectedClass.add(classId);
                                   } else {
-                                    tempSelectedClass.remove(kelasId);
+                                    tempSelectedClass.remove(classId);
                                   }
                                 });
                               },
@@ -1034,8 +1030,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                               final name = nameController.text.trim();
                               final nis = nisController.text.trim();
                               final address = addressController.text.trim();
-                              final birthDate = birthDateController.text
-                                  .trim();
+                              final birthDate = birthDateController.text.trim();
                               final nameParent = parentNameController.text
                                   .trim();
                               final noPhone = phoneController.text.trim();
@@ -1699,10 +1694,14 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withValues(alpha: 0.1),
+                                  color: _getPrimaryColor().withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: _getPrimaryColor().withValues(alpha: 0.3),
+                                    color: _getPrimaryColor().withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: Text(
@@ -1725,7 +1724,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withValues(alpha: 0.1),
+                                  color: _getPrimaryColor().withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -1778,7 +1779,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withValues(alpha: 0.1),
+                                  color: _getPrimaryColor().withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -2220,7 +2223,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                         backgroundColor: Colors.white
                                             .withValues(alpha: 0.2),
                                         side: BorderSide(
-                                          color: Colors.white.withValues(alpha: 0.3),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.3,
+                                          ),
                                           width: 1,
                                         ),
                                         shape: RoundedRectangleBorder(

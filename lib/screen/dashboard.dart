@@ -2,24 +2,22 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:manajemensekolah/screen/admin/admin_announcement.dart';
 import 'package:manajemensekolah/screen/admin/admin_class_activity.dart';
+import 'package:manajemensekolah/screen/admin/admin_class_management.dart';
 import 'package:manajemensekolah/screen/admin/admin_presence_report.dart';
 import 'package:manajemensekolah/screen/admin/admin_rpp_screen.dart';
-import 'package:manajemensekolah/screen/admin/admin_teachers_screen.dart';
-import 'package:manajemensekolah/screen/admin/admin_class_management.dart';
 import 'package:manajemensekolah/screen/admin/keuangan.dart';
-import 'package:manajemensekolah/screen/admin/laporan.dart';
-import 'package:manajemensekolah/screen/admin/admin_announcement.dart';
 import 'package:manajemensekolah/screen/admin/student_management.dart';
 import 'package:manajemensekolah/screen/admin/subject_management.dart';
 import 'package:manajemensekolah/screen/admin/teacher_admin.dart';
 import 'package:manajemensekolah/screen/admin/teaching_schedule_management.dart';
-import 'package:manajemensekolah/screen/guru/input_grade_teacher.dart';
 import 'package:manajemensekolah/screen/guru/class_activity.dart';
+import 'package:manajemensekolah/screen/guru/input_grade_teacher.dart';
 import 'package:manajemensekolah/screen/guru/materi_screen.dart';
 import 'package:manajemensekolah/screen/guru/presence_teacher.dart';
-import 'package:manajemensekolah/screen/guru/teaching_schedule.dart';
 import 'package:manajemensekolah/screen/guru/rpp_screen.dart';
+import 'package:manajemensekolah/screen/guru/teaching_schedule.dart';
 import 'package:manajemensekolah/screen/walimurid/parent_class_activity.dart';
 import 'package:manajemensekolah/screen/walimurid/pengumuman_screen.dart';
 import 'package:manajemensekolah/screen/walimurid/presence_parent.dart';
@@ -396,32 +394,32 @@ class _DashboardState extends State<Dashboard>
         return [];
       }
 
-      final kelasIds = schedule
+      final classIds = schedule
           .map((s) => s['kelas_id']?.toString())
           .where((id) => id != null)
           .toSet()
           .toList();
       if (kDebugMode) {
-        print('🎯 Kelas IDs unik: $kelasIds');
+        print('🎯 Kelas IDs unik: $classIds');
       }
 
       List<dynamic> kelas = [];
-      for (var kelasId in kelasIds) {
+      for (var classId in classIds) {
         try {
-          final kelasData = await ApiClassService().getClassById(kelasId!);
+          final kelasData = await ApiClassService().getClassById(classId!);
           if (kelasData != null) {
             kelas.add(kelasData);
             if (kDebugMode) {
-              print('✅ Kelas $kelasId ditemukan');
+              print('✅ Kelas $classId ditemukan');
             }
           } else {
             if (kDebugMode) {
-              print('❌ Kelas $kelasId tidak ditemukan');
+              print('❌ Kelas $classId tidak ditemukan');
             }
           }
         } catch (e) {
           if (kDebugMode) {
-            print('❌ Error getting class $kelasId: $e');
+            print('❌ Error getting class $classId: $e');
           }
         }
       }
@@ -554,19 +552,23 @@ class _DashboardState extends State<Dashboard>
       if (kDebugMode) {
         print('🔄 Memuat data pengumuman untuk role: ${widget.role}');
       }
-      
+
       final pengumumanData = await ApiService().get('/pengumuman');
 
       if (kDebugMode) {
         print('✅ Response dari API:');
         print('Type: ${pengumumanData.runtimeType}');
-        print('Length: ${pengumumanData is List ? pengumumanData.length : 'N/A'}');
+        print(
+          'Length: ${pengumumanData is List ? pengumumanData.length : 'N/A'}',
+        );
       }
 
       // Backend sudah filter berdasarkan role, jadi langsung return aja
       if (pengumumanData is List) {
         if (kDebugMode) {
-          print('📊 Data pengumuman berhasil dimuat: ${pengumumanData.length} pengumuman');
+          print(
+            '📊 Data pengumuman berhasil dimuat: ${pengumumanData.length} pengumuman',
+          );
         }
         return pengumumanData;
       }
@@ -1864,7 +1866,9 @@ class _DashboardState extends State<Dashboard>
         'icon': "📢",
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => AnnouncementManagementScreen()),
+          MaterialPageRoute(
+            builder: (context) => AnnouncementManagementScreen(),
+          ),
         ),
         'roles': ['admin'],
       },

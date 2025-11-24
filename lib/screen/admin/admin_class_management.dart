@@ -49,7 +49,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   String? _selectedGradeFilter; // '1' to '12', or null for all
   String? _selectedHomeroomFilter; // 'has', 'no_homeroom', or null for all
   String? _selectedStudentFilter; // 'has_students', 'empty', or null for all
-  String? _selectedWaliKelasId; // Filter by wali kelas
+  String? _selectedWaliclassId; // Filter by wali kelas
   bool _hasActiveFilter = false;
 
   // Filter Options (from backend)
@@ -160,7 +160,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       _selectedGradeFilter = null;
       _selectedHomeroomFilter = null;
       _selectedStudentFilter = null;
-      _selectedWaliKelasId = null;
+      _selectedWaliclassId = null;
       _searchController.clear();
       _currentPage = 1;
       _hasActiveFilter = false;
@@ -597,7 +597,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         page: _currentPage,
         limit: _perPage,
         gradeLevel: _selectedGradeFilter,
-        waliKelasId: _selectedWaliKelasId,
+        waliclassId: _selectedWaliclassId,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
@@ -650,7 +650,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         page: _currentPage,
         limit: _perPage,
         gradeLevel: _selectedGradeFilter,
-        waliKelasId: _selectedWaliKelasId,
+        waliclassId: _selectedWaliclassId,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),

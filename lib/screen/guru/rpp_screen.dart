@@ -75,17 +75,19 @@ class RppScreenState extends State<RppScreen>
 
   String _buildFilterSummary(LanguageProvider languageProvider) {
     List<String> filters = [];
-    
+
     if (_selectedStatusFilter != null) {
-      filters.add('${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $_selectedStatusFilter');
+      filters.add(
+        '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $_selectedStatusFilter',
+      );
     }
-    
+
     return filters.join(' • ');
   }
 
   void _showFilterSheet() {
     final languageProvider = context.read<LanguageProvider>();
-    
+
     // Temporary state for bottom sheet
     String? tempSelectedStatus = _selectedStatusFilter;
 
@@ -296,7 +298,7 @@ class RppScreenState extends State<RppScreen>
     required VoidCallback onSelected,
   }) {
     final isSelected = selectedValue == value;
-    
+
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
@@ -346,11 +348,8 @@ class RppScreenState extends State<RppScreen>
   void _editRpp(Map<String, dynamic> rpp) {
     showDialog(
       context: context,
-      builder: (context) => RppFormDialog(
-        guruId: widget.guruId,
-        onSaved: _loadRpp,
-        rppData: rpp,
-      ),
+      builder: (context) =>
+          RppFormDialog(guruId: widget.guruId, onSaved: _loadRpp, rppData: rpp),
     );
   }
 
@@ -373,9 +372,7 @@ class RppScreenState extends State<RppScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-            ),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text(
               AppLocalizations.delete.tr,
               style: TextStyle(color: Colors.white),
@@ -477,7 +474,7 @@ class RppScreenState extends State<RppScreen>
             parent: _animationController,
             curve: Interval(delay, 1.0, curve: Curves.easeOut),
           );
-      
+
           return FadeTransition(
             opacity: animation,
             child: Transform.translate(
@@ -751,7 +748,7 @@ class RppScreenState extends State<RppScreen>
           Text('${AppLocalizations.error.tr}: $_errorMessage'),
           SizedBox(height: 16),
           ElevatedButton(
-            onPressed: _loadRpp, 
+            onPressed: _loadRpp,
             child: Text(AppLocalizations.retry.tr),
             style: ElevatedButton.styleFrom(
               backgroundColor: _getPrimaryColor(),
@@ -780,9 +777,11 @@ class RppScreenState extends State<RppScreen>
 
         final filteredRpp = _rppList.where((rpp) {
           final searchTerm = _searchController.text.toLowerCase();
-          final matchesSearch = searchTerm.isEmpty ||
+          final matchesSearch =
+              searchTerm.isEmpty ||
               (rpp['judul']?.toLowerCase().contains(searchTerm) ?? false) ||
-              (rpp['mata_pelajaran_nama']?.toLowerCase().contains(searchTerm) ?? false) ||
+              (rpp['mata_pelajaran_nama']?.toLowerCase().contains(searchTerm) ??
+                  false) ||
               (rpp['kelas_nama']?.toLowerCase().contains(searchTerm) ?? false);
 
           // Status filter
@@ -1010,25 +1009,32 @@ class RppScreenState extends State<RppScreen>
                 child: _errorMessage != null
                     ? _buildErrorState()
                     : filteredRpp.isEmpty
-                        ? _buildEmptyState(languageProvider)
-                        : RefreshIndicator(
-                            onRefresh: _loadRpp,
-                            child: ListView.builder(
-                              padding: EdgeInsets.only(top: 16, bottom: 16, left: 5, right: 5),
-                              itemCount: filteredRpp.length,
-                              itemBuilder: (context, index) {
-                                final rpp = filteredRpp[index];
-                                return _buildRppCard(rpp, index);
-                              },
-                            ),
+                    ? _buildEmptyState(languageProvider)
+                    : RefreshIndicator(
+                        onRefresh: _loadRpp,
+                        child: ListView.builder(
+                          padding: EdgeInsets.only(
+                            top: 16,
+                            bottom: 16,
+                            left: 5,
+                            right: 5,
                           ),
+                          itemCount: filteredRpp.length,
+                          itemBuilder: (context, index) {
+                            final rpp = filteredRpp[index];
+                            return _buildRppCard(rpp, index);
+                          },
+                        ),
+                      ),
               ),
             ],
           ),
           floatingActionButton: FloatingActionButton(
             onPressed: _tambahRpp,
             backgroundColor: _getPrimaryColor(),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Icon(Icons.add, color: Colors.white),
           ),
         );
@@ -1060,7 +1066,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
   final _tahunAjaranController = TextEditingController();
 
   String? _selectedMataPelajaranId;
-  String? _selectedKelasId;
+  String? _selectedClassId;
   String? _selectedSemester = 'Ganjil';
   String? _selectedFileName;
   File? _selectedFile;
@@ -1073,13 +1079,13 @@ class _RppFormDialogState extends State<RppFormDialog> {
   void initState() {
     super.initState();
     _loadMataPelajaranByGuru();
-    
+
     // Jika mode edit, isi field dengan data RPP
     if (widget.rppData != null) {
       _judulController.text = widget.rppData!['judul'] ?? '';
       _tahunAjaranController.text = widget.rppData!['tahun_ajaran'] ?? '';
       _selectedMataPelajaranId = widget.rppData!['mata_pelajaran_id'];
-      _selectedKelasId = widget.rppData!['kelas_id'];
+      _selectedClassId = widget.rppData!['kelas_id'];
       _selectedSemester = widget.rppData!['semester'] ?? 'Ganjil';
       _selectedFileName = widget.rppData!['file_path'];
     } else {
@@ -1229,13 +1235,13 @@ class _RppFormDialogState extends State<RppFormDialog> {
       print('Submitting RPP data:');
       print('- Guru ID: ${widget.guruId}');
       print('- Mata Pelajaran ID: $_selectedMataPelajaranId');
-      print('- Kelas ID: $_selectedKelasId');
+      print('- Kelas ID: $_selectedClassId');
       print('- Judul: ${_judulController.text}');
       print('- File Path: $filePath');
 
       final rppData = {
         'mata_pelajaran_id': _selectedMataPelajaranId,
-        'kelas_id': _selectedKelasId,
+        'kelas_id': _selectedClassId,
         'judul': _judulController.text,
         'semester': _selectedSemester,
         'tahun_ajaran': _tahunAjaranController.text,
@@ -1328,7 +1334,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
                 onChanged: (value) {
                   setState(() {
                     _selectedMataPelajaranId = value.toString();
-                    _selectedKelasId = null;
+                    _selectedClassId = null;
                   });
                   _loadKelasByMataPelajaran(value.toString());
                 },
@@ -1350,10 +1356,10 @@ class _RppFormDialogState extends State<RppFormDialog> {
                     child: Text(kelas['nama']),
                   );
                 }).toList(),
-                value: _selectedKelasId,
+                value: _selectedClassId,
                 onChanged: (value) {
                   setState(() {
-                    _selectedKelasId = value.toString();
+                    _selectedClassId = value.toString();
                   });
                 },
                 validator: (value) {
@@ -1457,9 +1463,7 @@ class RppDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final languageProvider = context.watch<LanguageProvider>();
     return Scaffold(
-      appBar: AppBar(
-        title: Text(AppLocalizations.rppDetails.tr),
-      ),
+      appBar: AppBar(title: Text(AppLocalizations.rppDetails.tr)),
       body: Padding(
         padding: EdgeInsets.all(16),
         child: Column(
@@ -1481,10 +1485,12 @@ class RppDetailPage extends StatelessWidget {
                 onPressed: () {
                   // TODO: Implement file download
                 },
-                child: Text(languageProvider.getTranslatedText({
-                  'en': 'Download File',
-                  'id': 'Unduh File',
-                })),
+                child: Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'Download File',
+                    'id': 'Unduh File',
+                  }),
+                ),
               ),
             ],
           ],

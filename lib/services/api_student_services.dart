@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
@@ -151,11 +152,11 @@ class ApiStudentService {
     );
 
     final result = _handleResponse(response);
-    
+
     if (result is Map<String, dynamic>) {
       return (result['data'] as List?) ?? [];
     }
-    
+
     return result is List ? result : [];
   }
 
@@ -167,11 +168,11 @@ class ApiStudentService {
       );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       return {
         'success': false,
         'data': {
@@ -179,13 +180,13 @@ class ApiStudentService {
           'kelas': [],
           'gender_options': [
             {'value': 'L', 'label': 'Laki-laki'},
-            {'value': 'P', 'label': 'Perempuan'}
+            {'value': 'P', 'label': 'Perempuan'},
           ],
           'status_options': [
             {'value': 'active', 'label': 'Aktif'},
-            {'value': 'inactive', 'label': 'Tidak Aktif'}
-          ]
-        }
+            {'value': 'inactive', 'label': 'Tidak Aktif'},
+          ],
+        },
       };
     } catch (e) {
       if (kDebugMode) {
@@ -198,9 +199,9 @@ class ApiStudentService {
   static Future<Map<String, dynamic>> getStudentPaginated({
     int page = 1,
     int limit = 10,
-    String? kelasId,
+    String? classId,
     String? gradeLevel,
-    String? jenisKelamin,
+    String? gender,
     String? search,
   }) async {
     Map<String, dynamic> queryParams = {
@@ -208,21 +209,21 @@ class ApiStudentService {
       'limit': limit.toString(),
     };
 
-    if (kelasId != null && kelasId.isNotEmpty) {
-      queryParams['kelas_id'] = kelasId;
+    if (classId != null && classId.isNotEmpty) {
+      queryParams['kelas_id'] = classId;
     }
     if (gradeLevel != null && gradeLevel.isNotEmpty) {
       queryParams['grade_level'] = gradeLevel;
     }
-    if (jenisKelamin != null && jenisKelamin.isNotEmpty) {
-      queryParams['jenis_kelamin'] = jenisKelamin;
+    if (gender != null && gender.isNotEmpty) {
+      queryParams['jenis_kelamin'] = gender;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
     }
 
     String queryString = Uri(queryParameters: queryParams).query;
-    
+
     final response = await http.get(
       Uri.parse('$baseUrl/siswa?$queryString'),
       headers: await _getHeaders(),
@@ -244,7 +245,7 @@ class ApiStudentService {
         'per_page': limit,
         'has_next_page': false,
         'has_prev_page': false,
-      }
+      },
     };
   }
 
@@ -277,11 +278,11 @@ class ApiStudentService {
     _handleResponse(response);
   }
 
-  static Future<List<dynamic>> getStudentByClass(String kelasId) async {
+  static Future<List<dynamic>> getStudentByClass(String classId) async {
     try {
       final semuaSiswa = await getStudent();
       return semuaSiswa.where((siswa) {
-        return siswa['kelas_id'] == kelasId;
+        return siswa['kelas_id'] == classId;
       }).toList();
     } catch (e) {
       if (kDebugMode) {

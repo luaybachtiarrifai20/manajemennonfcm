@@ -2,20 +2,21 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:manajemensekolah/services/api_services.dart';
-import 'package:manajemensekolah/services/excel_teacher_service.dart';
-import 'package:provider/provider.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/screen/admin/teacher_detail_screen.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
+import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/services/api_subject_services.dart';
 import 'package:manajemensekolah/services/api_teacher_services.dart';
+import 'package:manajemensekolah/services/excel_teacher_service.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:provider/provider.dart';
 
 class TeacherAdminScreen extends StatefulWidget {
   const TeacherAdminScreen({super.key});
@@ -39,27 +40,22 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
 
-  // Scroll Controller for Infinite Scroll
   final ScrollController _scrollController = ScrollController();
 
   final TextEditingController _searchController = TextEditingController();
 
-  // Pagination States (Infinite Scroll)
   int _currentPage = 1;
-  int _perPage = 10; // Fixed 10 items per load
+  final int _perPage = 10;
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _paginationMeta;
 
-  // Filter States (Backend filtering)
-  String? _selectedKelasId; // Filter by class
-  String? _selectedHomeroomFilter; // 'wali_kelas', 'guru_biasa', atau null untuk semua
-  List<String> _selectedSubjectIds = [];
-  String? _selectedGenderFilter; // 'L', 'P', atau null untuk semua
+  String? _selectedClassId;
+  String? _selectedHomeroomFilter;
   bool _hasActiveFilter = false;
 
   // Filter Options (from backend)
-  List<dynamic> _availableKelas = [];
+  List<dynamic> _availableClass = [];
 
   // Search debounce
   Timer? _searchDebounce;
@@ -104,7 +100,8 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
 
   void _onScroll() {
     // Detect when user scrolls near bottom
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoadingMore && _hasMoreData && !_isLoading) {
         _loadMoreData();
       }
@@ -114,7 +111,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
   void _onSearchChanged() {
     // Cancel previous timer
     _searchDebounce?.cancel();
-    
+
     // Set new timer (500ms debounce)
     _searchDebounce = Timer(Duration(milliseconds: 500), () {
       setState(() {
@@ -127,35 +124,35 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
   Future<void> _loadFilterOptions() async {
     try {
       final response = await ApiTeacherService.getTeacherFilterOptions();
-      
+
       if (!mounted) return;
 
       if (response['success'] == true && response['data'] != null) {
         setState(() {
-          _availableKelas = response['data']['kelas'] ?? [];
+          _availableClass = response['data']['kelas'] ?? [];
         });
-        print('✅ Filter options loaded: ${_availableKelas.length} kelas');
+        if (kDebugMode) {
+          print('✅ Filter options loaded: ${_availableClass.length} kelas');
+        }
       }
     } catch (e) {
-      print('Error loading filter options: $e');
+      if (kDebugMode) {
+        print('Error loading filter options: $e');
+      }
       // Continue with empty options - not critical error
     }
   }
 
   void _checkActiveFilter() {
     setState(() {
-      _hasActiveFilter = _selectedHomeroomFilter != null || 
-                         _selectedSubjectIds.isNotEmpty || 
-                         _selectedGenderFilter != null;
+      _hasActiveFilter = _selectedHomeroomFilter != null;
     });
   }
 
   void _clearAllFilters() {
     setState(() {
-      _selectedKelasId = null;
+      _selectedClassId = null;
       _selectedHomeroomFilter = null;
-      _selectedSubjectIds.clear();
-      _selectedGenderFilter = null;
       _searchController.clear();
       _currentPage = 1;
       _hasActiveFilter = false;
@@ -163,15 +160,24 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     _loadData(); // Reload data setelah clear filters
   }
 
-  List<Map<String, dynamic>> _buildFilterChips(LanguageProvider languageProvider) {
+  List<Map<String, dynamic>> _buildFilterChips(
+    LanguageProvider languageProvider,
+  ) {
     List<Map<String, dynamic>> filterChips = [];
-    
+
     if (_selectedHomeroomFilter != null) {
       final statusText = _selectedHomeroomFilter == 'wali_kelas'
-          ? languageProvider.getTranslatedText({'en': 'Homeroom Teacher', 'id': 'Wali Kelas'})
-          : languageProvider.getTranslatedText({'en': 'Regular Teacher', 'id': 'Guru Biasa'});
+          ? languageProvider.getTranslatedText({
+              'en': 'Homeroom Teacher',
+              'id': 'Wali Kelas',
+            })
+          : languageProvider.getTranslatedText({
+              'en': 'Regular Teacher',
+              'id': 'Guru Biasa',
+            });
       filterChips.add({
-        'label': '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $statusText',
+        'label':
+            '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $statusText',
         'onRemove': () {
           setState(() {
             _selectedHomeroomFilter = null;
@@ -181,52 +187,17 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
         },
       });
     }
-    
-    if (_selectedSubjectIds.isNotEmpty) {
-      for (var subjectId in _selectedSubjectIds) {
-        final subject = _subjects.firstWhere(
-          (s) => s['id'].toString() == subjectId,
-          orElse: () => {'nama': subjectId},
-        );
-        filterChips.add({
-          'label': '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${subject['nama']}',
-          'onRemove': () {
-            setState(() {
-              _selectedSubjectIds.remove(subjectId);
-            });
-            _checkActiveFilter();
-            _loadData(); // Reload data setelah remove filter
-          },
-        });
-      }
-    }
-    
-    if (_selectedGenderFilter != null) {
-      final genderText = _selectedGenderFilter == 'L' 
-          ? languageProvider.getTranslatedText({'en': 'Male', 'id': 'Laki-laki'})
-          : languageProvider.getTranslatedText({'en': 'Female', 'id': 'Perempuan'});
-      filterChips.add({
-        'label': '${languageProvider.getTranslatedText({'en': 'Gender', 'id': 'Jenis Kelamin'})}: $genderText',
-        'onRemove': () {
-          setState(() {
-            _selectedGenderFilter = null;
-          });
-          _checkActiveFilter();
-          _loadData(); // Reload data setelah remove filter
-        },
-      });
-    }
-    
+
+    // Subject/gender filters removed — only homeroom (status) retained
+
     return filterChips;
   }
 
   void _showFilterSheet() {
     final languageProvider = context.read<LanguageProvider>();
-    
-    // Temporary state for bottom sheet
+
+    // Temporary state for bottom sheet (only homeroom filter retained)
     String? tempSelectedHomeroom = _selectedHomeroomFilter;
-    List<String> tempSelectedSubjects = List.from(_selectedSubjectIds);
-    String? tempSelectedGender = _selectedGenderFilter;
 
     showModalBottomSheet(
       context: context,
@@ -235,7 +206,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
           return Container(
-            height: MediaQuery.of(context).size.height * 0.75,
+            height: MediaQuery.of(context).size.height * 0.45,
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.only(
@@ -270,8 +241,6 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                         onPressed: () {
                           setModalState(() {
                             tempSelectedHomeroom = null;
-                            tempSelectedSubjects.clear();
-                            tempSelectedGender = null;
                           });
                         },
                         child: Text(
@@ -286,14 +255,13 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                   ),
                 ),
 
-                // Scrollable Content
+                // Scrollable Content (only homeroom filter)
                 Expanded(
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(20),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Status Wali Kelas Filter
                         Text(
                           languageProvider.getTranslatedText({
                             'en': 'Status',
@@ -350,112 +318,6 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                             ),
                           ],
                         ),
-
-                        SizedBox(height: 24),
-
-                        // Mata Pelajaran Filter
-                        Text(
-                          languageProvider.getTranslatedText({
-                            'en': 'Subject',
-                            'id': 'Mata Pelajaran',
-                          }),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _subjects.map((subject) {
-                            final subjectId = subject['id'].toString();
-                            final isSelected = tempSelectedSubjects.contains(subjectId);
-                            
-                            return FilterChip(
-                              label: Text(subject['nama'] ?? 'Unknown'),
-                              selected: isSelected,
-                              onSelected: (selected) {
-                                setModalState(() {
-                                  if (selected) {
-                                    tempSelectedSubjects.add(subjectId);
-                                  } else {
-                                    tempSelectedSubjects.remove(subjectId);
-                                  }
-                                });
-                              },
-                              selectedColor: _getPrimaryColor().withOpacity(0.2),
-                              checkmarkColor: _getPrimaryColor(),
-                              labelStyle: TextStyle(
-                                color: isSelected ? _getPrimaryColor() : Colors.grey.shade700,
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                              side: BorderSide(
-                                color: isSelected ? _getPrimaryColor() : Colors.grey.shade300,
-                              ),
-                            );
-                          }).toList(),
-                        ),
-
-                        SizedBox(height: 24),
-
-                        // Jenis Kelamin Filter
-                        Text(
-                          languageProvider.getTranslatedText({
-                            'en': 'Gender',
-                            'id': 'Jenis Kelamin',
-                          }),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _buildGenderChip(
-                              label: languageProvider.getTranslatedText({
-                                'en': 'All',
-                                'id': 'Semua',
-                              }),
-                              value: null,
-                              selectedValue: tempSelectedGender,
-                              onSelected: () {
-                                setModalState(() {
-                                  tempSelectedGender = null;
-                                });
-                              },
-                            ),
-                            _buildGenderChip(
-                              label: languageProvider.getTranslatedText({
-                                'en': 'Male',
-                                'id': 'Laki-laki',
-                              }),
-                              value: 'L',
-                              selectedValue: tempSelectedGender,
-                              onSelected: () {
-                                setModalState(() {
-                                  tempSelectedGender = 'L';
-                                });
-                              },
-                            ),
-                            _buildGenderChip(
-                              label: languageProvider.getTranslatedText({
-                                'en': 'Female',
-                                'id': 'Perempuan',
-                              }),
-                              value: 'P',
-                              selectedValue: tempSelectedGender,
-                              onSelected: () {
-                                setModalState(() {
-                                  tempSelectedGender = 'P';
-                                });
-                              },
-                            ),
-                          ],
-                        ),
                       ],
                     ),
                   ),
@@ -501,8 +363,6 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                           onPressed: () {
                             setState(() {
                               _selectedHomeroomFilter = tempSelectedHomeroom;
-                              _selectedSubjectIds = tempSelectedSubjects;
-                              _selectedGenderFilter = tempSelectedGender;
                             });
                             _checkActiveFilter();
                             Navigator.pop(context);
@@ -535,14 +395,14 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     );
   }
 
-  Widget _buildStatusChip({
+  Widget _buildGenderChip({
     required String label,
     required String? value,
     required String? selectedValue,
     required VoidCallback onSelected,
   }) {
     final isSelected = selectedValue == value;
-    
+
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
@@ -558,14 +418,14 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     );
   }
 
-  Widget _buildGenderChip({
+  Widget _buildStatusChip({
     required String label,
     required String? value,
     required String? selectedValue,
     required VoidCallback onSelected,
   }) {
     final isSelected = selectedValue == value;
-    
+
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
@@ -601,9 +461,11 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       final response = await ApiTeacherService.getTeachersPaginated(
         page: _currentPage,
         limit: _perPage,
-        kelasId: _selectedKelasId,
-        jenisKelamin: _selectedGenderFilter,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        classId: _selectedClassId,
+        gender: null,
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
@@ -654,9 +516,11 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       final response = await ApiTeacherService.getTeachersPaginated(
         page: _currentPage,
         limit: _perPage,
-        kelasId: _selectedKelasId,
-        jenisKelamin: _selectedGenderFilter,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        classId: _selectedClassId,
+        gender: null,
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
@@ -669,7 +533,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
         _isLoadingMore = false;
       });
 
-      print('✅ Loaded more data: Page $_currentPage, Total items: ${_teachers.length}');
+      print(
+        '✅ Loaded more data: Page $_currentPage, Total items: ${_teachers.length}',
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -703,7 +569,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
 
       if (result != null && result.files.single.path != null) {
         await ApiTeacherService.importTeachersFromExcel(
-          File(result.files.single.path!)
+          File(result.files.single.path!),
         );
 
         // Refresh data setelah import
@@ -1142,8 +1008,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                         'email': email,
                                         'kelas_id': selectedClassId,
                                         'nip': nip,
-                                        'is_wali_kelas':
-                                            isHomeroomTeacher,
+                                        'is_wali_kelas': isHomeroomTeacher,
                                       };
 
                                       String teacherId;
@@ -1311,7 +1176,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: _getPrimaryColor(), size: 20),
@@ -1387,16 +1252,17 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => TeacherDetailScreen(guru: teacher),
+        builder: (context) => TeacherDetailScreen(teacher: teacher),
       ),
     );
   }
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher, int index) {
     final languageProvider = context.read<LanguageProvider>();
-    final isHomeroomTeacher = teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true;
+    final isHomeroomTeacher =
+        teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true;
     final className = teacher['class_name'] ?? '-';
-    
+
     return GestureDetector(
       onTap: () => _navigateToDetail(teacher),
       child: Container(
@@ -1626,7 +1492,8 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                               color: _getPrimaryColor(),
                               backgroundColor: Colors.white,
                               borderColor: _getPrimaryColor(),
-                              onPressed: () => _showAddEditDialog(teacher: teacher),
+                              onPressed: () =>
+                                  _showAddEditDialog(teacher: teacher),
                             ),
                             SizedBox(width: 8),
                             _buildActionButton(
@@ -1669,10 +1536,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
         decoration: BoxDecoration(
           color: backgroundColor ?? color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: borderColor ?? color,
-            width: 1,
-          ),
+          border: Border.all(color: borderColor ?? color, width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -1733,24 +1597,15 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
               nip.contains(searchTerm);
 
           // Homeroom filter
-          final isHomeroom = teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true;
+          final isHomeroom =
+              teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true;
           final matchesHomeroomFilter =
               _selectedHomeroomFilter == null ||
               (_selectedHomeroomFilter == 'wali_kelas' && isHomeroom) ||
               (_selectedHomeroomFilter == 'guru_biasa' && !isHomeroom);
 
-          // Subject filter
-          final teacherSubjectId = teacher['mata_pelajaran_id']?.toString();
-          final matchesSubjectFilter =
-              _selectedSubjectIds.isEmpty ||
-              (teacherSubjectId != null && _selectedSubjectIds.contains(teacherSubjectId));
-
-          // Gender filter
-          final matchesGenderFilter =
-              _selectedGenderFilter == null ||
-              teacher['jenis_kelamin'] == _selectedGenderFilter;
-
-          return matchesSearch && matchesHomeroomFilter && matchesSubjectFilter && matchesGenderFilter;
+          // Only homeroom (status) filter retained
+          return matchesSearch && matchesHomeroomFilter;
         }).toList();
 
         return Scaffold(
@@ -1929,7 +1784,10 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                   'id': 'Cari guru...',
                                 }),
                                 hintStyle: TextStyle(color: Colors.grey),
-                                prefixIcon: Icon(Icons.search, color: Colors.grey),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: Colors.grey,
+                                ),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -1987,11 +1845,11 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                         ),
                       ],
                     ),
-                    
+
                     // Show active filters as chips
                     if (_hasActiveFilter) ...[
                       SizedBox(height: 12),
-                      Container(
+                      SizedBox(
                         height: 42,
                         child: Row(
                           children: [
@@ -2012,37 +1870,47 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
-                                  ..._buildFilterChips(languageProvider).map((filter) {
+                                  ..._buildFilterChips(languageProvider).map((
+                                    filter,
+                                  ) {
                                     return Container(
                                       margin: EdgeInsets.only(right: 6),
-                                child: Chip(
-                                  label: Text(
-                                    filter['label'],
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: _getPrimaryColor(),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  deleteIcon: Icon(
-                                    Icons.close,
-                                    size: 16,
-                                    color: _getPrimaryColor(),
-                                  ),
-                                  onDeleted: filter['onRemove'],
-                                  backgroundColor: _getPrimaryColor().withOpacity(0.1),
-                                  side: BorderSide(
-                                    color: _getPrimaryColor().withOpacity(0.3),
-                                    width: 1,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      child: Chip(
+                                        label: Text(
+                                          filter['label'],
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: _getPrimaryColor(),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        deleteIcon: Icon(
+                                          Icons.close,
+                                          size: 16,
+                                          color: _getPrimaryColor(),
+                                        ),
+                                        onDeleted: filter['onRemove'],
+                                        backgroundColor: _getPrimaryColor()
+                                            .withOpacity(0.1),
+                                        side: BorderSide(
+                                          color: _getPrimaryColor().withOpacity(
+                                            0.3,
+                                          ),
+                                          width: 1,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -2071,19 +1939,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                 ),
               ),
 
-              if (filteredTeachers.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${filteredTeachers.length} ${languageProvider.getTranslatedText({'en': 'teachers found', 'id': 'guru ditemukan'})}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              SizedBox(height: 4),
+              SizedBox(height: 8),
               Expanded(
                 child: filteredTeachers.isEmpty
                     ? EmptyState(
@@ -2092,8 +1948,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                           'id': 'Tidak ada guru',
                         }),
                         subtitle:
-                            _searchController.text.isEmpty &&
-                                !_hasActiveFilter
+                            _searchController.text.isEmpty && !_hasActiveFilter
                             ? languageProvider.getTranslatedText({
                                 'en': 'Tap + to add a teacher',
                                 'id': 'Tap + untuk menambah guru',
@@ -2109,7 +1964,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                         child: ListView.builder(
                           controller: _scrollController,
                           padding: EdgeInsets.only(top: 8, bottom: 16),
-                          itemCount: filteredTeachers.length + (_isLoadingMore ? 1 : 0),
+                          itemCount:
+                              filteredTeachers.length +
+                              (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
                             // Show loading indicator at bottom
                             if (index == filteredTeachers.length) {
@@ -2121,7 +1978,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                 ),
                               );
                             }
-                            
+
                             final teacher = filteredTeachers[index];
                             return AnimatedBuilder(
                               animation: _animationController,
@@ -2139,7 +1996,10 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                 return FadeTransition(
                                   opacity: animation,
                                   child: Transform.translate(
-                                    offset: Offset(0, 50 * (1 - animation.value)),
+                                    offset: Offset(
+                                      0,
+                                      50 * (1 - animation.value),
+                                    ),
                                     child: child,
                                   ),
                                 );

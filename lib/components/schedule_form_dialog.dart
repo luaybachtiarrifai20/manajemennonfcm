@@ -93,7 +93,8 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
           '';
       _selectedClass =
           widget.schedule['kelas_id'] ?? widget.schedule['class_id'] ?? '';
-      _selectedHari = widget.schedule['hari_id'] ?? widget.schedule['day'] ?? '';
+      _selectedHari =
+          widget.schedule['hari_id'] ?? widget.schedule['day'] ?? '';
       _selectedSemester =
           widget.schedule['semester_id'] ??
           widget.schedule['semester'] ??
@@ -167,10 +168,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
       try {
         final availableJamPelajaran =
             await ApiScheduleService.getJamPelajaranByFilter(
-          hariId: _selectedHari,
-          semesterId: _selectedSemester,
-          kelasId: _selectedClass,
-        );
+              hariId: _selectedHari,
+              semesterId: _selectedSemester,
+              classId: _selectedClass,
+            );
 
         setState(() {
           _availableJamPelajaranList = availableJamPelajaran;
@@ -211,7 +212,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
           content: Text(
             context.read<LanguageProvider>().getTranslatedText({
               'en': message,
-              'id': message.replaceAll('Failed to load teacher subjects', 'Gagal memuat mata pelajaran guru'),
+              'id': message.replaceAll(
+                'Failed to load teacher subjects',
+                'Gagal memuat mata pelajaran guru',
+              ),
             }),
           ),
           backgroundColor: Colors.red,
@@ -327,7 +331,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     ],
                   ),
                 ),
-                
+
                 Padding(
                   padding: EdgeInsets.all(20),
                   child: Form(
@@ -335,22 +339,34 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildTeacherDropdown(uniqueTeacherList, languageProvider),
+                        _buildTeacherDropdown(
+                          uniqueTeacherList,
+                          languageProvider,
+                        ),
                         SizedBox(height: 12),
-                        _buildSubjectDropdown(uniqueSubjectList, languageProvider),
+                        _buildSubjectDropdown(
+                          uniqueSubjectList,
+                          languageProvider,
+                        ),
                         SizedBox(height: 12),
                         _buildClassDropdown(uniqueClassList, languageProvider),
                         SizedBox(height: 12),
                         _buildDayDropdown(uniqueHariList, languageProvider),
                         SizedBox(height: 12),
-                        _buildSemesterDropdown(uniqueSemesterList, languageProvider),
+                        _buildSemesterDropdown(
+                          uniqueSemesterList,
+                          languageProvider,
+                        ),
                         SizedBox(height: 12),
-                        _buildTeachingHourDropdown(uniqueJamPelajaranList, languageProvider),
+                        _buildTeachingHourDropdown(
+                          uniqueJamPelajaranList,
+                          languageProvider,
+                        ),
                       ],
                     ),
                   ),
                 ),
-                
+
                 // Actions
                 Container(
                   padding: EdgeInsets.all(16),
@@ -403,15 +419,15 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  Widget _buildTeacherDropdown(List<dynamic> teachers, LanguageProvider languageProvider) {
+  Widget _buildTeacherDropdown(
+    List<dynamic> teachers,
+    LanguageProvider languageProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          languageProvider.getTranslatedText({
-            'en': 'Teacher',
-            'id': 'Guru',
-          }),
+          languageProvider.getTranslatedText({'en': 'Teacher', 'id': 'Guru'}),
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
@@ -459,9 +475,16 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
               }
             },
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.person, color: _getPrimaryColor(), size: 20),
+              prefixIcon: Icon(
+                Icons.person,
+                color: _getPrimaryColor(),
+                size: 20,
+              ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -478,7 +501,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  Widget _buildSubjectDropdown(List<dynamic> subjects, LanguageProvider languageProvider) {
+  Widget _buildSubjectDropdown(
+    List<dynamic> subjects,
+    LanguageProvider languageProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -529,7 +555,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             decoration: InputDecoration(
               prefixIcon: Icon(Icons.book, color: _getPrimaryColor(), size: 20),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
               suffixIcon: _isLoadingSubjects
                   ? Padding(
                       padding: EdgeInsets.all(12),
@@ -556,15 +585,15 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  Widget _buildClassDropdown(List<dynamic> classes, LanguageProvider languageProvider) {
+  Widget _buildClassDropdown(
+    List<dynamic> classes,
+    LanguageProvider languageProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          languageProvider.getTranslatedText({
-            'en': 'Class',
-            'id': 'Kelas',
-          }),
+          languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'}),
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
@@ -608,9 +637,16 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
               }
             },
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.school, color: _getPrimaryColor(), size: 20),
+              prefixIcon: Icon(
+                Icons.school,
+                color: _getPrimaryColor(),
+                size: 20,
+              ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -627,15 +663,15 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  Widget _buildDayDropdown(List<dynamic> days, LanguageProvider languageProvider) {
+  Widget _buildDayDropdown(
+    List<dynamic> days,
+    LanguageProvider languageProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          languageProvider.getTranslatedText({
-            'en': 'Day',
-            'id': 'Hari',
-          }),
+          languageProvider.getTranslatedText({'en': 'Day', 'id': 'Hari'}),
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         SizedBox(height: 8),
@@ -679,9 +715,16 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
               }
             },
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.calendar_today, color: _getPrimaryColor(), size: 20),
+              prefixIcon: Icon(
+                Icons.calendar_today,
+                color: _getPrimaryColor(),
+                size: 20,
+              ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -698,7 +741,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  Widget _buildSemesterDropdown(List<dynamic> semesters, LanguageProvider languageProvider) {
+  Widget _buildSemesterDropdown(
+    List<dynamic> semesters,
+    LanguageProvider languageProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -750,9 +796,16 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
               }
             },
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.grade, color: _getPrimaryColor(), size: 20),
+              prefixIcon: Icon(
+                Icons.grade,
+                color: _getPrimaryColor(),
+                size: 20,
+              ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
             ),
             validator: (value) {
               if (value == null || value.isEmpty) {
@@ -769,7 +822,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     );
   }
 
-  Widget _buildTeachingHourDropdown(List<dynamic> teachingHours, LanguageProvider languageProvider) {
+  Widget _buildTeachingHourDropdown(
+    List<dynamic> teachingHours,
+    LanguageProvider languageProvider,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -788,7 +844,9 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedJamPelajaran.isNotEmpty ? _selectedJamPelajaran : null,
+            value: _selectedJamPelajaran.isNotEmpty
+                ? _selectedJamPelajaran
+                : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -801,10 +859,15 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 ),
               ),
               ...teachingHours.map<DropdownMenuItem<String>>((jam) {
-                final isAvailable = jam['is_terpakai'] != 1 && jam['is_terpakai'] != true;
+                final isAvailable =
+                    jam['is_terpakai'] != 1 && jam['is_terpakai'] != true;
                 final jamKe = jam['jam_ke'] ?? '';
-                final jamMulai = _formatTimeForDropdown(jam['jam_mulai']?.toString());
-                final jamSelesai = _formatTimeForDropdown(jam['jam_selesai']?.toString());
+                final jamMulai = _formatTimeForDropdown(
+                  jam['jam_mulai']?.toString(),
+                );
+                final jamSelesai = _formatTimeForDropdown(
+                  jam['jam_selesai']?.toString(),
+                );
 
                 return DropdownMenuItem<String>(
                   value: jam['id']?.toString() ?? '',
@@ -831,9 +894,16 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     });
                   },
             decoration: InputDecoration(
-              prefixIcon: Icon(Icons.access_time, color: _getPrimaryColor(), size: 20),
+              prefixIcon: Icon(
+                Icons.access_time,
+                color: _getPrimaryColor(),
+                size: 20,
+              ),
               border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 14,
+              ),
               suffixIcon: _isLoadingJamPelajaran
                   ? Padding(
                       padding: EdgeInsets.all(12),

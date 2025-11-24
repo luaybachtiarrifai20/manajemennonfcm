@@ -12,7 +12,7 @@ class ApiClassActivityService {
     int page = 1,
     int limit = 10,
     String? guruId,
-    String? kelasId,
+    String? classId,
     String? mataPelajaranId,
     String? target,
     String? tanggal,
@@ -27,8 +27,8 @@ class ApiClassActivityService {
     if (guruId != null && guruId.isNotEmpty) {
       queryParams['guru_id'] = guruId;
     }
-    if (kelasId != null && kelasId.isNotEmpty) {
-      queryParams['kelas_id'] = kelasId;
+    if (classId != null && classId.isNotEmpty) {
+      queryParams['kelas_id'] = classId;
     }
     if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
       queryParams['mata_pelajaran_id'] = mataPelajaranId;
@@ -162,7 +162,7 @@ class ApiClassActivityService {
 
   // Get kegiatan by kelas (untuk siswa) - DIPERBAIKI
   static Future<List<dynamic>> getKegiatanByKelas(
-    String kelasId, {
+    String classId, {
     String? siswaId,
   }) async {
     try {
@@ -171,7 +171,7 @@ class ApiClassActivityService {
       final params = {if (siswaId != null) 'siswa_id': siswaId};
 
       final uri = Uri.parse(
-        '$baseUrl/kegiatan/kelas/$kelasId',
+        '$baseUrl/kegiatan/kelas/$classId',
       ).replace(queryParameters: params.isNotEmpty ? params : null);
 
       final response = await http.get(uri, headers: headers);
@@ -291,12 +291,12 @@ class ApiClassActivityService {
   }
 
   // Get siswa by kelas - DIPERBAIKI
-  static Future<List<dynamic>> getSiswaByKelas(String kelasId) async {
+  static Future<List<dynamic>> getSiswaByKelas(String classId) async {
     try {
       final headers = await _getHeaders();
 
       final response = await http.get(
-        Uri.parse('$baseUrl/siswa/kelas/$kelasId'),
+        Uri.parse('$baseUrl/siswa/kelas/$classId'),
         headers: headers,
       );
 
@@ -339,7 +339,7 @@ class ApiClassActivityService {
   // Get filter options for kegiatan (guru, kelas, tanggal, bulan, tahun)
   static Future<Map<String, dynamic>> getKegiatanFilterOptions({
     String? guruId,
-    String? kelasId,
+    String? classId,
     String? tanggal,
     String? bulan,
     String? tahun,
@@ -348,7 +348,7 @@ class ApiClassActivityService {
     try {
       final params = <String, String>{};
       if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
-      if (kelasId != null && kelasId.isNotEmpty) params['kelas_id'] = kelasId;
+      if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
       if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
       if (bulan != null && bulan.isNotEmpty) params['bulan'] = bulan;
       if (tahun != null && tahun.isNotEmpty) params['tahun'] = tahun;

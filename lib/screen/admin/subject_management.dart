@@ -2381,8 +2381,8 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
     );
   }
 
-  bool _isClassAssigned(String kelasId) {
-    return _assignedClasses.any((kelas) => kelas['id'] == kelasId);
+  bool _isClassAssigned(String classId) {
+    return _assignedClasses.any((kelas) => kelas['id'] == classId);
   }
 
   List<dynamic> _getFilteredClasses() {

@@ -270,7 +270,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
             ? _selectedSubjectIds
                   .first // Currently API supports single subject filter, or we can update backend to support array
             : null,
-        kelasId: _selectedClassIds.isNotEmpty
+        classId: _selectedClassIds.isNotEmpty
             ? _selectedClassIds
                   .first // Currently API supports single class filter
             : null,
@@ -982,7 +982,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
           mataPelajaranId: summary.subjectId,
           mataPelajaranNama: summary.subjectName,
           tanggal: summary.date,
-          kelasId: summary.classId, // Kirim kelasId ke detail page
+          classId: summary.classId, // Kirim classId ke detail page
           kelasNama: summary.className, // Kirim kelasNama ke detail page
         ),
       ),
@@ -1336,7 +1336,7 @@ class AdminAbsensiDetailPage extends StatefulWidget {
   final String mataPelajaranId;
   final String mataPelajaranNama;
   final DateTime tanggal;
-  final String kelasId; // Tambahkan
+  final String classId; // Tambahkan
   final String kelasNama; // Tambahkan
 
   const AdminAbsensiDetailPage({
@@ -1344,7 +1344,7 @@ class AdminAbsensiDetailPage extends StatefulWidget {
     required this.mataPelajaranId,
     required this.mataPelajaranNama,
     required this.tanggal,
-    required this.kelasId, // Tambahkan
+    required this.classId, // Tambahkan
     required this.kelasNama, // Tambahkan
   });
 
@@ -1357,7 +1357,7 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
   List<dynamic> _absensiData = [];
   List<Siswa> _siswaList = [];
   bool _isLoading = true;
-  String? _kelasId;
+  String? _classId;
 
   // Animations
   late AnimationController _animationController;
@@ -1400,23 +1400,23 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
 
       if (absensiData.isNotEmpty) {
         // Ambil kelas_id dari record absensi pertama (asumsi semua record di kelas yang sama)
-        _kelasId = absensiData.first['kelas_id']?.toString();
+        _classId = absensiData.first['kelas_id']?.toString();
 
         if (kDebugMode) {
-          print('Kelas ID from attendance: $_kelasId');
+          print('Kelas ID from attendance: $_classId');
         }
       }
 
       // 2. Load siswa berdasarkan kelas_id jika tersedia, jika tidak load semua siswa
       List<dynamic> siswaData;
-      if (_kelasId != null && _kelasId!.isNotEmpty) {
-        siswaData = await ApiStudentService.getStudentByClass(_kelasId!);
+      if (_classId != null && _classId!.isNotEmpty) {
+        siswaData = await ApiStudentService.getStudentByClass(_classId!);
       } else {
         siswaData = await ApiStudentService.getStudent();
       }
 
       if (kDebugMode) {
-        print('Loaded ${siswaData.length} students for class: $_kelasId');
+        print('Loaded ${siswaData.length} students for class: $_classId');
         print('Loaded ${absensiData.length} attendance records');
       }
 

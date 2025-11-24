@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
@@ -85,20 +86,15 @@ class ApiScheduleService {
       );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback
       return {
         'success': false,
-        'data': {
-          'teachers': [],
-          'classes': [],
-          'days': [],
-          'semesters': [],
-        }
+        'data': {'teachers': [], 'classes': [], 'days': [], 'semesters': []},
       };
     } catch (e) {
       if (kDebugMode) {
@@ -113,7 +109,7 @@ class ApiScheduleService {
     int page = 1,
     int limit = 10,
     String? guruId,
-    String? kelasId,
+    String? classId,
     String? hariId,
     String? semesterId,
     String? tahunAjaran,
@@ -128,8 +124,8 @@ class ApiScheduleService {
     if (guruId != null && guruId.isNotEmpty) {
       queryParams['guru_id'] = guruId;
     }
-    if (kelasId != null && kelasId.isNotEmpty) {
-      queryParams['kelas_id'] = kelasId;
+    if (classId != null && classId.isNotEmpty) {
+      queryParams['kelas_id'] = classId;
     }
     if (hariId != null && hariId.isNotEmpty) {
       queryParams['hari_id'] = hariId;
@@ -146,7 +142,7 @@ class ApiScheduleService {
 
     // Build query string
     String queryString = Uri(queryParameters: queryParams).query;
-    
+
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/jadwal-mengajar?$queryString'),
@@ -154,15 +150,17 @@ class ApiScheduleService {
       );
 
       if (kDebugMode) {
-        print('GET /jadwal-mengajar?$queryString - Status: ${response.statusCode}');
+        print(
+          'GET /jadwal-mengajar?$queryString - Status: ${response.statusCode}',
+        );
       }
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback untuk backward compatibility
       return {
         'success': true,
@@ -174,7 +172,7 @@ class ApiScheduleService {
           'per_page': limit,
           'has_next_page': false,
           'has_prev_page': false,
-        }
+        },
       };
     } catch (e) {
       if (kDebugMode) {
@@ -187,14 +185,14 @@ class ApiScheduleService {
   // Jadwal Mengajar dengan struktur baru (Legacy - use getSchedulesPaginated instead)
   static Future<List<dynamic>> getSchedule({
     String? guruId,
-    String? kelasId,
+    String? classId,
     String? hariId,
     String? semesterId,
     String? tahunAjaran,
   }) async {
     String url = '$baseUrl/jadwal-mengajar?';
     if (guruId != null) url += 'guru_id=$guruId&';
-    if (kelasId != null) url += 'kelas_id=$kelasId&';
+    if (classId != null) url += 'kelas_id=$classId&';
     if (hariId != null) url += 'hari_id=$hariId&';
     if (semesterId != null) url += 'semester_id=$semesterId&';
     if (tahunAjaran != null) url += 'tahun_ajaran=$tahunAjaran&';
@@ -244,12 +242,12 @@ class ApiScheduleService {
   static Future<List<dynamic>> getJamPelajaranByFilter({
     String? hariId,
     String? semesterId,
-    String? kelasId,
+    String? classId,
   }) async {
     String url = '$baseUrl/jam-pelajaran-filter?';
     if (hariId != null) url += 'hari_id=$hariId&';
     if (semesterId != null) url += 'semester_id=$semesterId&';
-    if (kelasId != null) url += 'kelas_id=$kelasId&';
+    if (classId != null) url += 'kelas_id=$classId&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -263,7 +261,7 @@ class ApiScheduleService {
   // Tambahkan method ini di class ApiScheduleService
   static Future<List<dynamic>> getConflictingSchedules({
     required String hariId,
-    required String kelasId,
+    required String classId,
     required String semesterId,
     required String tahunAjaran,
     required String jamPelajaranId,
@@ -272,7 +270,7 @@ class ApiScheduleService {
     try {
       String url = '$baseUrl/jadwal-mengajar/conflicts?';
       url += 'hari_id=$hariId&';
-      url += 'kelas_id=$kelasId&';
+      url += 'kelas_id=$classId&';
       url += 'semester_id=$semesterId&';
       url += 'tahun_ajaran=$tahunAjaran&';
       url += 'jam_pelajaran_id=$jamPelajaranId&';
@@ -501,7 +499,7 @@ class ApiScheduleService {
   // Export jadwal mengajar ke Excel
   static Future<String> exportSchedules({
     String? guruId,
-    String? kelasId,
+    String? classId,
     String? hariId,
     String? semesterId,
     String? tahunAjaran,
@@ -509,7 +507,7 @@ class ApiScheduleService {
     try {
       String url = '$baseUrl/jadwal-mengajar/export?';
       if (guruId != null) url += 'guru_id=$guruId&';
-      if (kelasId != null) url += 'kelas_id=$kelasId&';
+      if (classId != null) url += 'kelas_id=$classId&';
       if (hariId != null) url += 'hari_id=$hariId&';
       if (semesterId != null) url += 'semester_id=$semesterId&';
       if (tahunAjaran != null) url += 'tahun_ajaran=$tahunAjaran&';

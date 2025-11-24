@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:manajemensekolah/services/api_teacher_services.dart';
 
 class TeacherDetailScreen extends StatefulWidget {
-  final Map<String, dynamic> guru;
+  final Map<String, dynamic> teacher;
 
-  const TeacherDetailScreen({super.key, required this.guru});
+  const TeacherDetailScreen({super.key, required this.teacher});
 
   @override
   TeacherDetailScreenState createState() => TeacherDetailScreenState();
@@ -12,7 +12,7 @@ class TeacherDetailScreen extends StatefulWidget {
 
 class TeacherDetailScreenState extends State<TeacherDetailScreen> {
   final ApiTeacherService apiTeacherService = ApiTeacherService();
-  Map<String, dynamic>? _guruDetail;
+  Map<String, dynamic>? _teacherDetail;
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -29,20 +29,20 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
         _errorMessage = null;
       });
 
-      final guruDetail = await apiTeacherService.getTeacherById(widget.guru['id']);
-      final mataPelajaranGuru = await apiTeacherService.getSubjectByTeacher(
-        widget.guru['id'],
+      final teacherDetail = await apiTeacherService.getTeacherById(widget.teacher['id']);
+      final teacherSubjects = await apiTeacherService.getSubjectByTeacher(
+        widget.teacher['id'],
       );
 
-      final combinedData = Map<String, dynamic>.from(guruDetail);
-      combinedData['mata_pelajaran_list'] = mataPelajaranGuru;
-      combinedData['mata_pelajaran_names'] = mataPelajaranGuru
+      final combinedData = Map<String, dynamic>.from(teacherDetail);
+      combinedData['mata_pelajaran_list'] = teacherSubjects;
+      combinedData['mata_pelajaran_names'] = teacherSubjects
           .map((mp) => mp['nama']?.toString() ?? '')
           .where((name) => name.isNotEmpty)
           .join(', ');
 
       setState(() {
-        _guruDetail = combinedData;
+        _teacherDetail = combinedData;
         _isLoading = false;
       });
     } catch (e) {
@@ -140,7 +140,7 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final guru = _guruDetail ?? widget.guru;
+    final teacher = _teacherDetail ?? widget.teacher;
 
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),
@@ -299,7 +299,7 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                         ),
                         SizedBox(height: 16),
                         Text(
-                          guru['nama'],
+                          teacher['nama'],
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -309,7 +309,7 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          guru['nip'] ?? 'Tidak ada NIP',
+                          teacher['nip'] ?? 'Tidak ada NIP',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white.withOpacity(0.9),
@@ -346,9 +346,9 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                           ),
                         ),
                         SizedBox(height: 12),
-                        _buildInfoRow('Nama', guru['nama']),
-                        _buildInfoRow('NIP', guru['nip'] ?? 'Tidak ada'),
-                        _buildInfoRow('Email', guru['email']),
+                        _buildInfoRow('Nama', teacher['nama']),
+                        _buildInfoRow('NIP', teacher['nip'] ?? 'Tidak ada'),
+                        _buildInfoRow('Email', teacher['email']),
                       ],
                     ),
                   ),
@@ -382,19 +382,19 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                         SizedBox(height: 12),
                         _buildInfoRow(
                           'Kelas',
-                          guru['kelas_nama'] ?? 'Tidak ditugaskan',
+                          teacher['kelas_nama'] ?? 'Tidak ditugaskan',
                         ),
                         _buildInfoRow(
                           'Mata Pelajaran',
-                          guru['mata_pelajaran_names']?.isNotEmpty == true
-                              ? guru['mata_pelajaran_names']
+                          teacher['mata_pelajaran_names']?.isNotEmpty == true
+                              ? teacher['mata_pelajaran_names']
                               : 'Tidak ditugaskan',
                           isMultiline: true,
                         ),
-                        _buildInfoRow('Role', guru['role']?.toUpperCase() ?? 'GURU'),
+                        _buildInfoRow('Role', teacher['role']?.toUpperCase() ?? 'GURU'),
                         _buildInfoRow(
                           'Status Wali Kelas',
-                          guru['is_wali_kelas'] == 1 || guru['is_wali_kelas'] == true
+                          teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true
                               ? 'Ya'
                               : 'Tidak',
                         ),
@@ -429,17 +429,17 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                           ),
                         ),
                         SizedBox(height: 12),
-                        _buildInfoRow('ID', guru['id'] ?? 'Tidak ada'),
+                        _buildInfoRow('ID', teacher['id'] ?? 'Tidak ada'),
                         _buildInfoRow(
                           'Tanggal Dibuat',
-                          guru['created_at'] != null
-                              ? DateTime.parse(guru['created_at']).toString()
+                          teacher['created_at'] != null
+                              ? DateTime.parse(teacher['created_at']).toString()
                               : 'Tidak diketahui',
                         ),
                         _buildInfoRow(
                           'Terakhir Diupdate',
-                          guru['updated_at'] != null
-                              ? DateTime.parse(guru['updated_at']).toString()
+                          teacher['updated_at'] != null
+                              ? DateTime.parse(teacher['updated_at']).toString()
                               : 'Tidak diketahui',
                         ),
                       ],

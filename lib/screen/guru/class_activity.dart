@@ -1,20 +1,21 @@
 // class_activity.dart
 import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
+import 'package:manajemensekolah/components/filter_sheet.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/components/new_enhanced_search_bar.dart';
 import 'package:manajemensekolah/components/tab_switcher.dart';
-import 'package:manajemensekolah/components/filter_sheet.dart';
-import 'package:manajemensekolah/services/api_subject_services.dart';
 import 'package:manajemensekolah/services/api_class_activity_services.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:manajemensekolah/services/api_subject_services.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
-import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ClassActifityScreen extends StatefulWidget {
   final DateTime? initialDate;
@@ -25,7 +26,7 @@ class ClassActifityScreen extends StatefulWidget {
   final String? initialBabId;
   final String? initialSubBabId;
   final bool autoShowActivityDialog;
-  
+
   const ClassActifityScreen({
     super.key,
     this.initialDate,
@@ -125,12 +126,12 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
       final now = DateTime.now();
       final currentYear = now.year;
       final currentMonth = now.month;
-      
+
       // Academic year runs from July to June
-      final tahunAjaran = currentMonth >= 7 
+      final tahunAjaran = currentMonth >= 7
           ? '$currentYear/${currentYear + 1}'
           : '${currentYear - 1}/$currentYear';
-      
+
       if (kDebugMode) {
         print('===== LOADING SCHEDULE =====');
         print('Teacher ID: $_teacherId');
@@ -150,14 +151,18 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
       List<dynamic> finalSchedule = schedule;
       if (schedule.isEmpty) {
         if (kDebugMode) {
-          print('No schedule found for $tahunAjaran, trying to load all schedules...');
+          print(
+            'No schedule found for $tahunAjaran, trying to load all schedules...',
+          );
         }
         try {
           finalSchedule = await ApiScheduleService.getScheduleByGuru(
             guruId: _teacherId,
           );
           if (kDebugMode) {
-            print('Total schedules loaded (all years): ${finalSchedule.length}');
+            print(
+              'Total schedules loaded (all years): ${finalSchedule.length}',
+            );
           }
         } catch (e) {
           if (kDebugMode) {
@@ -174,9 +179,11 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         final subjectName = scheduleItem['mata_pelajaran_nama']?.toString();
         final classId = scheduleItem['kelas_id']?.toString();
         final className = scheduleItem['kelas_nama']?.toString();
-        
+
         if (kDebugMode) {
-          print('Schedule item: $subjectName (ID: $subjectId), Class: $className (ID: $classId), Day: ${scheduleItem['hari_nama']}, Time: ${scheduleItem['jam_mulai']} - ${scheduleItem['jam_selesai']}');
+          print(
+            'Schedule item: $subjectName (ID: $subjectId), Class: $className (ID: $classId), Day: ${scheduleItem['hari_nama']}, Time: ${scheduleItem['jam_mulai']} - ${scheduleItem['jam_selesai']}',
+          );
         }
 
         if (subjectId != null && !uniqueSubjects.containsKey(subjectId)) {
@@ -190,7 +197,9 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
 
       if (kDebugMode) {
         print('Unique subjects: ${uniqueSubjects.length}');
-        print('Subject list: ${uniqueSubjects.values.map((s) => s['nama']).toList()}');
+        print(
+          'Subject list: ${uniqueSubjects.values.map((s) => s['nama']).toList()}',
+        );
         print('===========================');
       }
 
@@ -207,8 +216,11 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   }
 
   void _showActivityTypeDialog() {
-    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-    
+    final languageProvider = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    );
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -234,17 +246,14 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
               ),
             ),
             SizedBox(height: 20),
-            
+
             // Title
             Text(
               languageProvider.getTranslatedText({
                 'en': 'Select Activity Type',
                 'id': 'Pilih Jenis Kegiatan',
               }),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 8),
             Text(
@@ -252,13 +261,10 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                 'en': 'Choose what you want to create',
                 'id': 'Pilih apa yang ingin Anda buat',
               }),
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             SizedBox(height: 24),
-            
+
             // Tugas Option
             _buildActivityTypeOption(
               icon: Icons.assignment,
@@ -277,7 +283,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
               },
             ),
             SizedBox(height: 12),
-            
+
             // Materi Option
             _buildActivityTypeOption(
               icon: Icons.book,
@@ -327,11 +333,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                 color: color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: color,
-                size: 24,
-              ),
+              child: Icon(icon, color: color, size: 24),
             ),
             SizedBox(width: 16),
             Expanded(
@@ -340,27 +342,17 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 4),
                   Text(
                     description,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey[400]),
           ],
         ),
       ),
@@ -408,8 +400,8 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         activityType: activity['jenis'] ?? 'tugas',
         isEditMode: true,
         activityData: activity,
-        initialDate: activity['tanggal'] != null 
-            ? DateTime.tryParse(activity['tanggal'].toString()) 
+        initialDate: activity['tanggal'] != null
+            ? DateTime.tryParse(activity['tanggal'].toString())
             : null,
         initialSubjectId: activity['mata_pelajaran_id']?.toString(),
         initialClassId: activity['kelas_id']?.toString(),
@@ -419,7 +411,10 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
     );
   }
 
-  Future<void> _deleteActivity(dynamic activity, LanguageProvider languageProvider) async {
+  Future<void> _deleteActivity(
+    dynamic activity,
+    LanguageProvider languageProvider,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -431,8 +426,10 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         ),
         content: Text(
           languageProvider.getTranslatedText({
-            'en': 'Are you sure you want to delete "${activity['judul']}"? This action cannot be undone.',
-            'id': 'Apakah Anda yakin ingin menghapus "${activity['judul']}"? Tindakan ini tidak dapat dibatalkan.',
+            'en':
+                'Are you sure you want to delete "${activity['judul']}"? This action cannot be undone.',
+            'id':
+                'Apakah Anda yakin ingin menghapus "${activity['judul']}"? Tindakan ini tidak dapat dibatalkan.',
           }),
         ),
         actions: [
@@ -465,9 +462,9 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
     if (confirmed == true) {
       try {
         await ApiClassActivityService.deleteKegiatan(activity['id'].toString());
-        
+
         if (!mounted) return;
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -479,12 +476,12 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Refresh list
         _loadActivities();
       } catch (e) {
         if (!mounted) return;
-        
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -568,20 +565,25 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         } else if (_selectedDateFilter == 'week') {
           matchesDateFilter =
               activityDate.isAfter(startOfWeek.subtract(Duration(days: 1))) &&
-                  activityDate.isBefore(endOfWeek.add(Duration(days: 1)));
+              activityDate.isBefore(endOfWeek.add(Duration(days: 1)));
         } else if (_selectedDateFilter == 'month') {
           matchesDateFilter =
               activityDate.isAfter(startOfMonth.subtract(Duration(days: 1))) &&
-                  activityDate.isBefore(endOfMonth.add(Duration(days: 1)));
+              activityDate.isBefore(endOfMonth.add(Duration(days: 1)));
         }
       }
 
       // Filter mata pelajaran
       final matchesSubject =
           _selectedSubjectIds.isEmpty ||
-          _selectedSubjectIds.contains(activity['mata_pelajaran_id']?.toString());
+          _selectedSubjectIds.contains(
+            activity['mata_pelajaran_id']?.toString(),
+          );
 
-      return matchesTarget && matchesSearch && matchesDateFilter && matchesSubject;
+      return matchesTarget &&
+          matchesSearch &&
+          matchesDateFilter &&
+          matchesSubject;
     }).toList();
   }
 
@@ -940,7 +942,9 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                   color: Colors.white,
                                 ),
                                 onDeleted: filter['onRemove'],
-                                backgroundColor: _getPrimaryColor().withValues(alpha: 0.7),
+                                backgroundColor: _getPrimaryColor().withValues(
+                                  alpha: 0.7,
+                                ),
                                 side: BorderSide.none,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
@@ -1134,7 +1138,9 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                           children: [
                             Expanded(
                               child: Padding(
-                                padding: EdgeInsets.only(right: 80), // Add padding to avoid badge overlap
+                                padding: EdgeInsets.only(
+                                  right: 80,
+                                ), // Add padding to avoid badge overlap
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1145,7 +1151,8 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black,
                                       ),
-                                      maxLines: 3,  // Increase to 3 lines for long titles
+                                      maxLines:
+                                          3, // Increase to 3 lines for long titles
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     SizedBox(height: 2),
@@ -1418,9 +1425,9 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                               ),
                           ],
                         ),
-                        
+
                         SizedBox(height: 12),
-                        
+
                         // Action Buttons
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
@@ -1432,7 +1439,8 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                 'id': 'Edit',
                               }),
                               color: cardColor,
-                              onPressed: () => _showEditActivityDialog(activity),
+                              onPressed: () =>
+                                  _showEditActivityDialog(activity),
                             ),
                             SizedBox(width: 8),
                             _buildActionButton(
@@ -1442,7 +1450,8 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                 'id': 'Hapus',
                               }),
                               color: Colors.red,
-                              onPressed: () => _deleteActivity(activity, languageProvider),
+                              onPressed: () =>
+                                  _deleteActivity(activity, languageProvider),
                             ),
                           ],
                         ),
@@ -1470,9 +1479,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
               _buildHeader(languageProvider),
 
               // Content Area
-              Expanded(
-                child: _buildActivityList(),
-              ),
+              Expanded(child: _buildActivityList()),
             ],
           ),
 
@@ -1500,10 +1507,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [
-        _getPrimaryColor(),
-        _getPrimaryColor().withValues(alpha: 0.8),
-      ],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha: 0.8)],
     );
   }
 
@@ -1515,8 +1519,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   // ========== API METHODS ==========
   Future<void> _loadMaterials(String subjectId) async {
     try {
-      final materials = await ApiSubjectService.getMateri(
-      );
+      final materials = await ApiSubjectService.getMateri();
       setState(() {
         _chapterList = materials;
         _subChapterList = [];
@@ -1552,7 +1555,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         _activityList = activities;
         _isLoading = false;
       });
-      
+
       // Auto show activity dialog if specified
       if (widget.autoShowActivityDialog) {
         Future.delayed(Duration(milliseconds: 300), () {
@@ -1622,7 +1625,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   final _judulController = TextEditingController();
   final _deskripsiController = TextEditingController();
   final List<String> _selectedStudents = [];
-  
+
   String? _selectedSubjectId;
   String? _selectedClassId;
   String? _selectedChapterId;
@@ -1632,7 +1635,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   String? _selectedDay;
   bool _isSubmitting = false;
   List<dynamic> _studentList = [];
-  
+
   // Bab & Sub Bab Materi
   List<dynamic> _babMateriList = [];
   List<dynamic> _subBabMateriList = [];
@@ -1641,13 +1644,19 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   bool _useMateriTitle = false; // Toggle: use bab/sub bab or manual input
 
   final List<String> _days = [
-    'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    'Senin',
+    'Selasa',
+    'Rabu',
+    'Kamis',
+    'Jumat',
+    'Sabtu',
+    'Minggu',
   ];
 
   @override
   void initState() {
     super.initState();
-    
+
     // Set initial values from widget parameters or use defaults
     _selectedDate = widget.initialDate ?? DateTime.now();
     _selectedDay = _days[_selectedDate!.weekday - 1];
@@ -1655,31 +1664,35 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
     _selectedClassId = widget.initialClassId;
     _selectedBabId = widget.initialBabId;
     _selectedSubBabId = widget.initialSubBabId;
-    
+
     // If in edit mode, populate form with existing data
     if (widget.isEditMode && widget.activityData != null) {
       _judulController.text = widget.activityData['judul']?.toString() ?? '';
-      _deskripsiController.text = widget.activityData['deskripsi']?.toString() ?? '';
-      
+      _deskripsiController.text =
+          widget.activityData['deskripsi']?.toString() ?? '';
+
       // Parse deadline if exists
       if (widget.activityData['batas_waktu'] != null) {
-        _deadline = DateTime.tryParse(widget.activityData['batas_waktu'].toString());
+        _deadline = DateTime.tryParse(
+          widget.activityData['batas_waktu'].toString(),
+        );
       }
-      
+
       // Load selected students if target is khusus
-      if (widget.initialTarget == 'khusus' && widget.activityData['siswa_target'] != null) {
+      if (widget.initialTarget == 'khusus' &&
+          widget.activityData['siswa_target'] != null) {
         final siswaTarget = widget.activityData['siswa_target'];
         if (siswaTarget is List) {
           _selectedStudents.addAll(siswaTarget.map((s) => s.toString()));
         }
       }
     }
-    
+
     // If initial bab is provided, enable material title mode
     if (_selectedBabId != null || _selectedSubBabId != null) {
       _useMateriTitle = true;
     }
-    
+
     // Debug logging
     if (kDebugMode) {
       print('===== AddActivityDialog INIT =====');
@@ -1694,14 +1707,14 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
       print('Use materi title: $_useMateriTitle');
       print('Initial date: $_selectedDate');
     }
-    
+
     // If initial subject is provided, load its data
     if (_selectedSubjectId != null) {
       Future.delayed(Duration.zero, () {
         if (kDebugMode) {
           print('Loading initial data for subject: $_selectedSubjectId');
         }
-        
+
         widget.onSubjectSelected(_selectedSubjectId!);
         // Load bab materi for the initial subject
         _loadBabMateri(_selectedSubjectId!).then((_) {
@@ -1719,7 +1732,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
             _updateTitleFromMateri();
           }
         });
-        
+
         // If initial class is provided and target is 'khusus', load students
         if (_selectedClassId != null && widget.initialTarget == 'khusus') {
           if (kDebugMode) {
@@ -1733,7 +1746,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
         print('No initial subject ID - waiting for user selection');
       }
     }
-    
+
     if (kDebugMode) {
       print('=====================================');
     }
@@ -1748,9 +1761,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
 
   Future<void> _loadStudents() async {
     if (_selectedClassId == null) return;
-    
+
     try {
-      final students = await ApiClassActivityService.getSiswaByKelas(_selectedClassId!);
+      final students = await ApiClassActivityService.getSiswaByKelas(
+        _selectedClassId!,
+      );
       setState(() {
         _studentList = students;
       });
@@ -1767,11 +1782,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
         print('===== LOADING BAB MATERI =====');
         print('Mata Pelajaran ID: $mataPelajaranId');
       }
-      
+
       final babList = await ApiSubjectService.getBabMateri(
         mataPelajaranId: mataPelajaranId,
       );
-      
+
       if (kDebugMode) {
         print('API Response - Bab count: ${babList.length}');
         if (babList.isNotEmpty) {
@@ -1780,7 +1795,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
           print('Judul Bab: ${babList[0]['judul_bab']}');
         }
       }
-      
+
       setState(() {
         _babMateriList = babList;
         // Only reset if no initial values were provided
@@ -1795,9 +1810,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
           _subBabMateriList = [];
         }
       });
-      
+
       if (kDebugMode) {
-        print('State updated - _babMateriList.length: ${_babMateriList.length}');
+        print(
+          'State updated - _babMateriList.length: ${_babMateriList.length}',
+        );
         print('Current _selectedBabId: $_selectedBabId');
         print('Current _selectedSubBabId: $_selectedSubBabId');
         print('=============================');
@@ -1816,9 +1833,9 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
         print('===== LOADING SUB BAB MATERI =====');
         print('Bab ID: $babId');
       }
-      
+
       final subBabList = await ApiSubjectService.getSubBabMateri(babId: babId);
-      
+
       if (kDebugMode) {
         print('API Response - Sub Bab count: ${subBabList.length}');
         if (subBabList.isNotEmpty) {
@@ -1827,7 +1844,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
           print('Judul Sub Bab: ${subBabList[0]['judul_sub_bab']}');
         }
       }
-      
+
       setState(() {
         _subBabMateriList = subBabList;
         // Only reset if no initial value was provided
@@ -1835,9 +1852,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
           _selectedSubBabId = null;
         }
       });
-      
+
       if (kDebugMode) {
-        print('State updated - _subBabMateriList.length: ${_subBabMateriList.length}');
+        print(
+          'State updated - _subBabMateriList.length: ${_subBabMateriList.length}',
+        );
         print('Current _selectedSubBabId: $_selectedSubBabId');
         print('==================================');
       }
@@ -1851,28 +1870,28 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
 
   String _getBabName(dynamic bab) {
     // Try multiple possible field names (backend returns 'judul_bab')
-    return bab['judul_bab']?.toString() ?? 
-           bab['nama']?.toString() ?? 
-           bab['judul']?.toString() ?? 
-           bab['title']?.toString() ??
-           bab['name']?.toString() ??
-           'Unknown';
+    return bab['judul_bab']?.toString() ??
+        bab['nama']?.toString() ??
+        bab['judul']?.toString() ??
+        bab['title']?.toString() ??
+        bab['name']?.toString() ??
+        'Unknown';
   }
 
   String _getSubBabName(dynamic subBab) {
     // Try multiple possible field names (backend returns 'judul_sub_bab')
-    return subBab['judul_sub_bab']?.toString() ?? 
-           subBab['nama']?.toString() ?? 
-           subBab['judul']?.toString() ?? 
-           subBab['title']?.toString() ??
-           subBab['name']?.toString() ??
-           'Unknown';
+    return subBab['judul_sub_bab']?.toString() ??
+        subBab['nama']?.toString() ??
+        subBab['judul']?.toString() ??
+        subBab['title']?.toString() ??
+        subBab['name']?.toString() ??
+        'Unknown';
   }
 
   void _updateTitleFromMateri() {
     String babName = '';
     String subBabName = '';
-    
+
     // Get bab name if selected
     if (_selectedBabId != null && _babMateriList.isNotEmpty) {
       final bab = _babMateriList.firstWhere(
@@ -1883,7 +1902,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
         babName = _getBabName(bab);
       }
     }
-    
+
     // Get sub bab name if selected
     if (_selectedSubBabId != null && _subBabMateriList.isNotEmpty) {
       final subBab = _subBabMateriList.firstWhere(
@@ -1894,7 +1913,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
         subBabName = _getSubBabName(subBab);
       }
     }
-    
+
     // Build title based on what's selected
     String title = '';
     if (babName.isNotEmpty && subBabName.isNotEmpty) {
@@ -1907,7 +1926,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
       // Only sub bab selected (edge case)
       title = subBabName;
     }
-    
+
     if (title.isNotEmpty && title != 'Unknown') {
       _judulController.text = title;
     }
@@ -1916,40 +1935,53 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   List<DropdownMenuItem<String>> _getUniqueClassItems() {
     final Map<String, Map<String, dynamic>> uniqueClasses = {};
     final now = DateTime.now();
-    final currentDay = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'][now.weekday - 1];
-    
+    final currentDay = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ][now.weekday - 1];
+
     if (kDebugMode) {
       print('Getting unique classes for subject: $_selectedSubjectId');
-      print('Current day: $currentDay, Current time: ${now.hour}:${now.minute}');
+      print(
+        'Current day: $currentDay, Current time: ${now.hour}:${now.minute}',
+      );
       print('Target: ${widget.initialTarget}');
       print('Initial class ID from widget: ${widget.initialClassId}');
     }
-    
+
     // Filter schedules by selected subject and deduplicate by class_id
     for (var schedule in widget.scheduleList) {
       if (schedule['mata_pelajaran_id'].toString() == _selectedSubjectId) {
-        final kelasId = schedule['kelas_id'].toString();
-        
+        final classId = schedule['kelas_id'].toString();
+
         // Untuk target KHUSUS: tidak ada filter waktu, semua jadwal bisa dipilih
         if (widget.initialTarget == 'khusus') {
-          if (!uniqueClasses.containsKey(kelasId)) {
-            uniqueClasses[kelasId] = {
-              'id': kelasId,
+          if (!uniqueClasses.containsKey(classId)) {
+            uniqueClasses[classId] = {
+              'id': classId,
               'nama': schedule['kelas_nama'] ?? 'Unknown',
             };
           }
-        } 
+        }
         // Untuk target UMUM
         else {
           // Jika ada initialClassId (dari teaching schedule), selalu include kelas tersebut
-          if (widget.initialClassId != null && kelasId == widget.initialClassId) {
-            if (!uniqueClasses.containsKey(kelasId)) {
-              uniqueClasses[kelasId] = {
-                'id': kelasId,
+          if (widget.initialClassId != null &&
+              classId == widget.initialClassId) {
+            if (!uniqueClasses.containsKey(classId)) {
+              uniqueClasses[classId] = {
+                'id': classId,
                 'nama': schedule['kelas_nama'] ?? 'Unknown',
               };
               if (kDebugMode) {
-                print('Added class from initialClassId: ${schedule['kelas_nama']}');
+                print(
+                  'Added class from initialClassId: ${schedule['kelas_nama']}',
+                );
               }
             }
           }
@@ -1957,11 +1989,13 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
           else {
             final scheduleDay = schedule['hari_nama']?.toString() ?? '';
             final jamMulai = schedule['jam_mulai']?.toString() ?? '';
-            
+
             if (kDebugMode) {
-              print('Schedule: ${schedule['kelas_nama']}, Day: $scheduleDay, Start: $jamMulai');
+              print(
+                'Schedule: ${schedule['kelas_nama']}, Day: $scheduleDay, Start: $jamMulai',
+              );
             }
-            
+
             // Check if schedule is today
             if (scheduleDay == currentDay && jamMulai.isNotEmpty) {
               try {
@@ -1969,21 +2003,27 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                 final startTimeParts = jamMulai.split(':');
                 final startHour = int.parse(startTimeParts[0]);
                 final startMinute = int.parse(startTimeParts[1]);
-                
+
                 // Buat DateTime untuk jam mulai hari ini
                 final scheduleStartTime = DateTime(
-                  now.year, now.month, now.day, 
-                  startHour, startMinute
+                  now.year,
+                  now.month,
+                  now.day,
+                  startHour,
+                  startMinute,
                 );
-                
+
                 // Batas waktu: jam mulai + 23 jam
-                final scheduleEndLimit = scheduleStartTime.add(Duration(hours: 23));
-                
+                final scheduleEndLimit = scheduleStartTime.add(
+                  Duration(hours: 23),
+                );
+
                 // Cek apakah waktu sekarang ada di antara jam mulai dan jam mulai + 23 jam
-                if (!now.isBefore(scheduleStartTime) && now.isBefore(scheduleEndLimit)) {
-                  if (!uniqueClasses.containsKey(kelasId)) {
-                    uniqueClasses[kelasId] = {
-                      'id': kelasId,
+                if (!now.isBefore(scheduleStartTime) &&
+                    now.isBefore(scheduleEndLimit)) {
+                  if (!uniqueClasses.containsKey(classId)) {
+                    uniqueClasses[classId] = {
+                      'id': classId,
                       'nama': schedule['kelas_nama'] ?? 'Unknown',
                     };
                   }
@@ -1998,11 +2038,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
         }
       }
     }
-    
+
     if (kDebugMode) {
       print('Unique classes found: ${uniqueClasses.length}');
     }
-    
+
     // Convert to dropdown items
     return uniqueClasses.values.map((kelas) {
       return DropdownMenuItem<String>(
@@ -2023,8 +2063,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
     setState(() => _isSubmitting = true);
 
     try {
-      final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
-      
+      final languageProvider = Provider.of<LanguageProvider>(
+        context,
+        listen: false,
+      );
+
       final data = {
         'guru_id': widget.teacherId,
         'mata_pelajaran_id': _selectedSubjectId,
@@ -2104,10 +2147,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   void _showError(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
@@ -2116,7 +2156,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
     final languageProvider = Provider.of<LanguageProvider>(context);
     final isAssignment = widget.activityType == 'tugas';
     final primaryColor = isAssignment ? Colors.orange : Colors.blue;
-    
+
     return AlertDialog(
       title: Row(
         children: [
@@ -2138,23 +2178,23 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
             child: Text(
               widget.isEditMode
                   ? (isAssignment
-                      ? languageProvider.getTranslatedText({
-                          'en': 'Edit Assignment',
-                          'id': 'Edit Tugas',
-                        })
-                      : languageProvider.getTranslatedText({
-                          'en': 'Edit Material',
-                          'id': 'Edit Materi',
-                        }))
+                        ? languageProvider.getTranslatedText({
+                            'en': 'Edit Assignment',
+                            'id': 'Edit Tugas',
+                          })
+                        : languageProvider.getTranslatedText({
+                            'en': 'Edit Material',
+                            'id': 'Edit Materi',
+                          }))
                   : (isAssignment
-                      ? languageProvider.getTranslatedText({
-                          'en': 'Add Assignment',
-                          'id': 'Tambah Tugas',
-                        })
-                      : languageProvider.getTranslatedText({
-                          'en': 'Add Material',
-                          'id': 'Tambah Materi',
-                        })),
+                        ? languageProvider.getTranslatedText({
+                            'en': 'Add Assignment',
+                            'id': 'Tambah Tugas',
+                          })
+                        : languageProvider.getTranslatedText({
+                            'en': 'Add Material',
+                            'id': 'Tambah Materi',
+                          })),
               style: TextStyle(fontSize: 18),
             ),
           ),
@@ -2174,13 +2214,15 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                 decoration: BoxDecoration(
                   color: primaryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: primaryColor.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Icon(
-                      widget.initialTarget == 'khusus' 
-                          ? Icons.people 
+                      widget.initialTarget == 'khusus'
+                          ? Icons.people
                           : Icons.schedule,
                       color: primaryColor,
                       size: 20,
@@ -2190,12 +2232,16 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                       child: Text(
                         widget.initialTarget == 'khusus'
                             ? languageProvider.getTranslatedText({
-                                'en': 'SPECIFIC: You can select any class anytime.',
-                                'id': 'KHUSUS: Anda dapat memilih kelas kapan saja.',
+                                'en':
+                                    'SPECIFIC: You can select any class anytime.',
+                                'id':
+                                    'KHUSUS: Anda dapat memilih kelas kapan saja.',
                               })
                             : languageProvider.getTranslatedText({
-                                'en': 'GENERAL: Only classes from start time to +23 hours are available.',
-                                'id': 'UMUM: Hanya kelas dari jam mulai sampai +23 jam yang tersedia.',
+                                'en':
+                                    'GENERAL: Only classes from start time to +23 hours are available.',
+                                'id':
+                                    'UMUM: Hanya kelas dari jam mulai sampai +23 jam yang tersedia.',
                               }),
                         style: TextStyle(
                           fontSize: 12,
@@ -2211,7 +2257,8 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               // Mata Pelajaran
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
-                  labelText: '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})} *',
+                  labelText:
+                      '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})} *',
                   prefixIcon: Icon(Icons.book),
                   border: OutlineInputBorder(),
                 ),
@@ -2234,29 +2281,38 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                         });
                         if (value != null) {
                           widget.onSubjectSelected(value);
-                          _loadBabMateri(value); // Load bab materi for selected subject
+                          _loadBabMateri(
+                            value,
+                          ); // Load bab materi for selected subject
                         }
                       },
                 validator: (value) => value == null
-                    ? languageProvider.getTranslatedText({'en': 'Required', 'id': 'Wajib diisi'})
-                    : null,
-                hint: Text(widget.subjectList.isEmpty
                     ? languageProvider.getTranslatedText({
-                        'en': 'No subjects available',
-                        'id': 'Tidak ada mata pelajaran',
+                        'en': 'Required',
+                        'id': 'Wajib diisi',
                       })
-                    : languageProvider.getTranslatedText({
-                        'en': 'Select Subject',
-                        'id': 'Pilih Mata Pelajaran',
-                      })),
+                    : null,
+                hint: Text(
+                  widget.subjectList.isEmpty
+                      ? languageProvider.getTranslatedText({
+                          'en': 'No subjects available',
+                          'id': 'Tidak ada mata pelajaran',
+                        })
+                      : languageProvider.getTranslatedText({
+                          'en': 'Select Subject',
+                          'id': 'Pilih Mata Pelajaran',
+                        }),
+                ),
               ),
               if (widget.subjectList.isEmpty)
                 Padding(
                   padding: EdgeInsets.only(top: 4, left: 12),
                   child: Text(
                     languageProvider.getTranslatedText({
-                      'en': 'No teaching subjects found. Please check your schedule.',
-                      'id': 'Tidak ada mata pelajaran mengajar. Silakan periksa jadwal Anda.',
+                      'en':
+                          'No teaching subjects found. Please check your schedule.',
+                      'id':
+                          'Tidak ada mata pelajaran mengajar. Silakan periksa jadwal Anda.',
                     }),
                     style: TextStyle(color: Colors.red, fontSize: 12),
                   ),
@@ -2266,7 +2322,8 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               // Kelas
               DropdownButtonFormField<String>(
                 decoration: InputDecoration(
-                  labelText: '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})} *',
+                  labelText:
+                      '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})} *',
                   prefixIcon: Icon(Icons.class_),
                   border: OutlineInputBorder(),
                 ),
@@ -2286,17 +2343,22 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                         }
                       },
                 validator: (value) => value == null
-                    ? languageProvider.getTranslatedText({'en': 'Required', 'id': 'Wajib diisi'})
-                    : null,
-                hint: Text(_selectedSubjectId == null
                     ? languageProvider.getTranslatedText({
-                        'en': 'Select subject first',
-                        'id': 'Pilih mata pelajaran dulu',
+                        'en': 'Required',
+                        'id': 'Wajib diisi',
                       })
-                    : languageProvider.getTranslatedText({
-                        'en': 'Select Class',
-                        'id': 'Pilih Kelas',
-                      })),
+                    : null,
+                hint: Text(
+                  _selectedSubjectId == null
+                      ? languageProvider.getTranslatedText({
+                          'en': 'Select subject first',
+                          'id': 'Pilih mata pelajaran dulu',
+                        })
+                      : languageProvider.getTranslatedText({
+                          'en': 'Select Class',
+                          'id': 'Pilih Kelas',
+                        }),
+                ),
               ),
               if (_selectedSubjectId != null && _getUniqueClassItems().isEmpty)
                 Padding(
@@ -2308,8 +2370,10 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                             'id': 'Tidak ada kelas untuk mata pelajaran ini.',
                           })
                         : languageProvider.getTranslatedText({
-                            'en': 'No active classes now. You can fill from class start time until +23 hours.',
-                            'id': 'Tidak ada kelas aktif saat ini. Anda dapat mengisi dari jam pelajaran mulai sampai +23 jam.',
+                            'en':
+                                'No active classes now. You can fill from class start time until +23 hours.',
+                            'id':
+                                'Tidak ada kelas aktif saat ini. Anda dapat mengisi dari jam pelajaran mulai sampai +23 jam.',
                           }),
                     style: TextStyle(color: Colors.orange, fontSize: 12),
                   ),
@@ -2331,16 +2395,18 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                   Spacer(),
                   Switch(
                     value: _useMateriTitle,
-                    onChanged: _selectedSubjectId == null ? null : (value) {
-                      setState(() {
-                        _useMateriTitle = value;
-                        if (!value) {
-                          // Reset when switching to manual
-                          _selectedBabId = null;
-                          _selectedSubBabId = null;
-                        }
-                      });
-                    },
+                    onChanged: _selectedSubjectId == null
+                        ? null
+                        : (value) {
+                            setState(() {
+                              _useMateriTitle = value;
+                              if (!value) {
+                                // Reset when switching to manual
+                                _selectedBabId = null;
+                                _selectedSubBabId = null;
+                              }
+                            });
+                          },
                     activeThumbColor: primaryColor,
                   ),
                 ],
@@ -2358,11 +2424,13 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                     prefixIcon: Icon(Icons.menu_book),
                     border: OutlineInputBorder(),
                   ),
-                  value: _babMateriList.isEmpty 
-                      ? null 
-                      : (_babMateriList.any((bab) => bab['id'].toString() == _selectedBabId) 
-                          ? _selectedBabId 
-                          : null),
+                  value: _babMateriList.isEmpty
+                      ? null
+                      : (_babMateriList.any(
+                              (bab) => bab['id'].toString() == _selectedBabId,
+                            )
+                            ? _selectedBabId
+                            : null),
                   isExpanded: true,
                   items: _babMateriList.isEmpty
                       ? null
@@ -2384,10 +2452,16 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                             _updateTitleFromMateri();
                           }
                         },
-                  hint: Text(languageProvider.getTranslatedText({
-                    'en': _babMateriList.isEmpty ? 'Loading chapters...' : 'Select Chapter',
-                    'id': _babMateriList.isEmpty ? 'Memuat bab...' : 'Pilih Bab',
-                  })),
+                  hint: Text(
+                    languageProvider.getTranslatedText({
+                      'en': _babMateriList.isEmpty
+                          ? 'Loading chapters...'
+                          : 'Select Chapter',
+                      'id': _babMateriList.isEmpty
+                          ? 'Memuat bab...'
+                          : 'Pilih Bab',
+                    }),
+                  ),
                 ),
                 SizedBox(height: 12),
               ],
@@ -2405,9 +2479,12 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                   ),
                   value: _subBabMateriList.isEmpty
                       ? null
-                      : (_subBabMateriList.any((subBab) => subBab['id'].toString() == _selectedSubBabId) 
-                          ? _selectedSubBabId 
-                          : null),
+                      : (_subBabMateriList.any(
+                              (subBab) =>
+                                  subBab['id'].toString() == _selectedSubBabId,
+                            )
+                            ? _selectedSubBabId
+                            : null),
                   isExpanded: true,
                   items: _subBabMateriList.isEmpty
                       ? null
@@ -2423,10 +2500,16 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                     });
                     _updateTitleFromMateri();
                   },
-                  hint: Text(languageProvider.getTranslatedText({
-                    'en': _subBabMateriList.isEmpty ? 'Loading sub chapters...' : 'Select Sub Chapter (optional)',
-                    'id': _subBabMateriList.isEmpty ? 'Memuat sub bab...' : 'Pilih Sub Bab (opsional)',
-                  })),
+                  hint: Text(
+                    languageProvider.getTranslatedText({
+                      'en': _subBabMateriList.isEmpty
+                          ? 'Loading sub chapters...'
+                          : 'Select Sub Chapter (optional)',
+                      'id': _subBabMateriList.isEmpty
+                          ? 'Memuat sub bab...'
+                          : 'Pilih Sub Bab (opsional)',
+                    }),
+                  ),
                 ),
                 SizedBox(height: 12),
               ],
@@ -2435,10 +2518,11 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               TextFormField(
                 controller: _judulController,
                 decoration: InputDecoration(
-                  labelText: '${languageProvider.getTranslatedText({'en': 'Title', 'id': 'Judul'})} *',
+                  labelText:
+                      '${languageProvider.getTranslatedText({'en': 'Title', 'id': 'Judul'})} *',
                   prefixIcon: Icon(Icons.title),
                   border: OutlineInputBorder(),
-                  helperText: _useMateriTitle 
+                  helperText: _useMateriTitle
                       ? languageProvider.getTranslatedText({
                           'en': 'Auto-filled from chapter/sub-chapter',
                           'id': 'Otomatis dari bab/sub bab',
@@ -2448,9 +2532,14 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                           'id': 'Tulis judul manual',
                         }),
                 ),
-                readOnly: _useMateriTitle && (_selectedBabId != null || _selectedSubBabId != null),
+                readOnly:
+                    _useMateriTitle &&
+                    (_selectedBabId != null || _selectedSubBabId != null),
                 validator: (value) => value == null || value.isEmpty
-                    ? languageProvider.getTranslatedText({'en': 'Required', 'id': 'Wajib diisi'})
+                    ? languageProvider.getTranslatedText({
+                        'en': 'Required',
+                        'id': 'Wajib diisi',
+                      })
                     : null,
               ),
               SizedBox(height: 12),
@@ -2459,7 +2548,10 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               TextFormField(
                 controller: _deskripsiController,
                 decoration: InputDecoration(
-                  labelText: languageProvider.getTranslatedText({'en': 'Description', 'id': 'Deskripsi'}),
+                  labelText: languageProvider.getTranslatedText({
+                    'en': 'Description',
+                    'id': 'Deskripsi',
+                  }),
                   prefixIcon: Icon(Icons.description),
                 ),
                 maxLines: 3,
@@ -2470,10 +2562,17 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               ListTile(
                 contentPadding: EdgeInsets.zero,
                 leading: Icon(Icons.calendar_today),
-                title: Text(languageProvider.getTranslatedText({'en': 'Date', 'id': 'Tanggal'})),
-                subtitle: Text(_selectedDate != null
-                    ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
-                    : 'Pilih tanggal'),
+                title: Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'Date',
+                    'id': 'Tanggal',
+                  }),
+                ),
+                subtitle: Text(
+                  _selectedDate != null
+                      ? '${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}'
+                      : 'Pilih tanggal',
+                ),
                 trailing: Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () async {
                   final date = await showDatePicker(
@@ -2496,10 +2595,17 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.alarm),
-                  title: Text(languageProvider.getTranslatedText({'en': 'Deadline', 'id': 'Batas Waktu'})),
-                  subtitle: Text(_deadline != null
-                      ? '${_deadline!.day}/${_deadline!.month}/${_deadline!.year} ${_deadline!.hour}:${_deadline!.minute.toString().padLeft(2, '0')}'
-                      : 'Pilih batas waktu (opsional)'),
+                  title: Text(
+                    languageProvider.getTranslatedText({
+                      'en': 'Deadline',
+                      'id': 'Batas Waktu',
+                    }),
+                  ),
+                  subtitle: Text(
+                    _deadline != null
+                        ? '${_deadline!.day}/${_deadline!.month}/${_deadline!.year} ${_deadline!.hour}:${_deadline!.minute.toString().padLeft(2, '0')}'
+                        : 'Pilih batas waktu (opsional)',
+                  ),
                   trailing: Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () async {
                     final date = await showDatePicker(
@@ -2530,10 +2636,14 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               ],
 
               // Pilih Siswa (hanya untuk target khusus)
-              if (widget.initialTarget == 'khusus' && _selectedClassId != null) ...[
+              if (widget.initialTarget == 'khusus' &&
+                  _selectedClassId != null) ...[
                 SizedBox(height: 12),
                 Text(
-                  languageProvider.getTranslatedText({'en': 'Select Students', 'id': 'Pilih Siswa'}),
+                  languageProvider.getTranslatedText({
+                    'en': 'Select Students',
+                    'id': 'Pilih Siswa',
+                  }),
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
@@ -2575,16 +2685,13 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
       actions: [
         TextButton(
           onPressed: _isSubmitting ? null : () => Navigator.pop(context),
-          child: Text(languageProvider.getTranslatedText({
-            'en': 'Cancel',
-            'id': 'Batal',
-          })),
+          child: Text(
+            languageProvider.getTranslatedText({'en': 'Cancel', 'id': 'Batal'}),
+          ),
         ),
         ElevatedButton(
           onPressed: _isSubmitting ? null : _submitForm,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: primaryColor,
-          ),
+          style: ElevatedButton.styleFrom(backgroundColor: primaryColor),
           child: _isSubmitting
               ? SizedBox(
                   width: 16,

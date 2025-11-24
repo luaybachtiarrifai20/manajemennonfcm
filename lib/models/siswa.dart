@@ -6,7 +6,7 @@ class Siswa {
   final String alamat;
   final String nameParent;
   final String noTelepon;
-  final String? kelasId;
+  final String? classId;
 
   Siswa({
     required this.id,
@@ -16,7 +16,7 @@ class Siswa {
     required this.alamat,
     required this.nameParent,
     required this.noTelepon,
-    this.kelasId,
+    this.classId,
   });
 
   factory Siswa.fromJson(Map<String, dynamic> json) {
@@ -28,7 +28,7 @@ class Siswa {
       alamat: json['alamat'] ?? '',
       nameParent: json['nameParent'] ?? '',
       noTelepon: json['noTelepon'] ?? '',
-      kelasId: json['kelas_id'],
+      classId: json['kelas_id'],
     );
   }
 }

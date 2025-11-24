@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +9,6 @@ import 'package:manajemensekolah/components/conflict_resolution_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/components/schedule_form_dialog.dart';
-import 'package:manajemensekolah/components/schedule_list.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
@@ -18,10 +19,6 @@ import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_datagrid/datagrid.dart';
-import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
-import 'package:path_provider/path_provider.dart';
-import 'dart:io';
-import 'package:open_file/open_file.dart';
 
 class TeachingScheduleManagementScreen extends StatefulWidget {
   const TeachingScheduleManagementScreen({super.key});
@@ -69,7 +66,7 @@ class TeachingScheduleManagementScreenState
 
   // Filter state (Backend filtering)
   String? _selectedGuruId; // Filter by teacher
-  String? _selectedKelasId; // Filter by class
+  String? _selectedClassId; // Filter by class
   String? _selectedHariId; // Filter by day
   String? _selectedFilterConflict;
   String? _selectedFilterSemester;
@@ -225,7 +222,8 @@ class TeachingScheduleManagementScreenState
 
   void _onScroll() {
     // Detect when user scrolls near bottom
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
       if (!_isLoadingMore && _hasMoreData && !_isLoading) {
         _loadMoreData();
       }
@@ -235,7 +233,7 @@ class TeachingScheduleManagementScreenState
   void _onSearchChanged() {
     // Cancel previous timer
     _searchDebounce?.cancel();
-    
+
     // Set new timer (500ms debounce)
     _searchDebounce = Timer(Duration(milliseconds: 500), () {
       setState(() {
@@ -248,7 +246,7 @@ class TeachingScheduleManagementScreenState
   Future<void> _loadFilterOptions() async {
     try {
       final response = await ApiScheduleService.getScheduleFilterOptions();
-      
+
       if (!mounted) return;
 
       if (response['success'] == true && response['data'] != null) {
@@ -299,11 +297,13 @@ class TeachingScheduleManagementScreenState
           page: _currentPage,
           limit: _perPage,
           guruId: _selectedGuruId,
-          kelasId: _selectedKelasId,
+          classId: _selectedClassId,
           hariId: _selectedHariId,
           semesterId: semesterToUse,
           tahunAjaran: academicYearToUse,
-          search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+          search: _searchController.text.trim().isEmpty
+              ? null
+              : _searchController.text.trim(),
         ),
         apiTeacherService.getTeacher(),
         _apiSubjectService.getSubject(),
@@ -332,7 +332,8 @@ class TeachingScheduleManagementScreenState
         _semesterList = semester;
         _jamPelajaranList = jamPelajaran;
         _paginationMeta = scheduleResponse['pagination'];
-        _hasMoreData = scheduleResponse['pagination']?['has_next_page'] ?? false;
+        _hasMoreData =
+            scheduleResponse['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
       });
 
@@ -378,11 +379,13 @@ class TeachingScheduleManagementScreenState
         page: _currentPage,
         limit: _perPage,
         guruId: _selectedGuruId,
-        kelasId: _selectedKelasId,
+        classId: _selectedClassId,
         hariId: _selectedHariId,
         semesterId: semesterToUse,
         tahunAjaran: academicYearToUse,
-        search: _searchController.text.trim().isEmpty ? null : _searchController.text.trim(),
+        search: _searchController.text.trim().isEmpty
+            ? null
+            : _searchController.text.trim(),
       );
 
       if (!mounted) return;
@@ -398,7 +401,9 @@ class TeachingScheduleManagementScreenState
       // Update grid data
       _updateGridData();
 
-      print('✅ Loaded more schedules: Page $_currentPage, Total items: ${_scheduleList.length}');
+      print(
+        '✅ Loaded more schedules: Page $_currentPage, Total items: ${_scheduleList.length}',
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -553,10 +558,10 @@ class TeachingScheduleManagementScreenState
     return timetableData;
   }
 
-  String _getGradeLevel(String kelasId) {
+  String _getGradeLevel(String classId) {
     try {
       final kelas = _classList.firstWhere(
-        (k) => k['id'] == kelasId,
+        (k) => k['id'] == classId,
         orElse: () => {},
       );
       return kelas['grade_level']?.toString() ?? '-';
@@ -690,7 +695,7 @@ class TeachingScheduleManagementScreenState
     try {
       final conflicts = await ApiScheduleService.getConflictingSchedules(
         hariId: newScheduleData['hari_id'],
-        kelasId: newScheduleData['kelas_id'],
+        classId: newScheduleData['kelas_id'],
         semesterId: newScheduleData['semester_id'],
         tahunAjaran: newScheduleData['tahun_ajaran'],
         jamPelajaranId: newScheduleData['jam_pelajaran_id'],
@@ -1848,8 +1853,15 @@ class TeachingScheduleManagementScreenState
                         onRefresh: _loadData,
                         child: ListView.builder(
                           controller: _scrollController,
-                          padding: EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 16),
-                          itemCount: filteredSchedules.length + (_isLoadingMore ? 1 : 0),
+                          padding: EdgeInsets.only(
+                            top: 16,
+                            left: 16,
+                            right: 16,
+                            bottom: 16,
+                          ),
+                          itemCount:
+                              filteredSchedules.length +
+                              (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
                             // Show loading indicator at bottom
                             if (index == filteredSchedules.length) {
@@ -1861,7 +1873,7 @@ class TeachingScheduleManagementScreenState
                                 ),
                               );
                             }
-                            
+
                             final schedule = filteredSchedules[index];
                             return _buildScheduleCard(schedule, index);
                           },

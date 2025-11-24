@@ -3,12 +3,12 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
-import 'package:manajemensekolah/components/separated_search_filter.dart';
 import 'package:manajemensekolah/components/filter_sheet.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
-import 'package:manajemensekolah/screen/guru/presence_teacher.dart';
-import 'package:manajemensekolah/screen/guru/materi_screen.dart';
+import 'package:manajemensekolah/components/separated_search_filter.dart';
 import 'package:manajemensekolah/screen/guru/class_activity.dart';
+import 'package:manajemensekolah/screen/guru/materi_screen.dart';
+import 'package:manajemensekolah/screen/guru/presence_teacher.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
@@ -29,7 +29,8 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
   String _guruId = '';
   String _guruNama = '';
   String _selectedSemester = '1'; // Will be set by _setDefaultAcademicPeriod()
-  String _selectedAcademicYear = '2024/2025'; // Will be set by _setDefaultAcademicPeriod()
+  String _selectedAcademicYear =
+      '2024/2025'; // Will be set by _setDefaultAcademicPeriod()
   final TextEditingController _searchController = TextEditingController();
 
   // Filter state
@@ -145,7 +146,7 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
   Future<void> _loadSemesterData() async {
     try {
       final semesterData = await ApiScheduleService.getSemester();
-      
+
       setState(() {
         _semesterList = semesterData;
       });
@@ -167,7 +168,8 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
 
       // Use filter semester/year if set, otherwise use selected
       final semesterToUse = _selectedFilterSemester ?? _selectedSemester;
-      final academicYearToUse = _selectedFilterAcademicYear ?? _selectedAcademicYear;
+      final academicYearToUse =
+          _selectedFilterAcademicYear ?? _selectedAcademicYear;
 
       final jadwal = await ApiScheduleService.getFilteredSchedule(
         guruId: _guruId,
@@ -212,12 +214,14 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
     }
   }
 
-
   void _checkActiveFilter() {
     setState(() {
-      _hasActiveFilter = _selectedHariIds.isNotEmpty ||
-          (_selectedFilterSemester != null && _selectedFilterSemester != _selectedSemester) ||
-          (_selectedFilterAcademicYear != null && _selectedFilterAcademicYear != _selectedAcademicYear);
+      _hasActiveFilter =
+          _selectedHariIds.isNotEmpty ||
+          (_selectedFilterSemester != null &&
+              _selectedFilterSemester != _selectedSemester) ||
+          (_selectedFilterAcademicYear != null &&
+              _selectedFilterAcademicYear != _selectedAcademicYear);
     });
   }
 
@@ -234,7 +238,9 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
     _loadJadwal();
   }
 
-  List<Map<String, dynamic>> _buildFilterChips(LanguageProvider languageProvider) {
+  List<Map<String, dynamic>> _buildFilterChips(
+    LanguageProvider languageProvider,
+  ) {
     List<Map<String, dynamic>> filterChips = [];
 
     // Hari chips
@@ -255,7 +261,8 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
     }
 
     // Semester chip
-    if (_selectedFilterSemester != null && _selectedFilterSemester != _selectedSemester) {
+    if (_selectedFilterSemester != null &&
+        _selectedFilterSemester != _selectedSemester) {
       final semester = _semesterList.firstWhere(
         (s) => s['id'].toString() == _selectedFilterSemester,
         orElse: () => {'nama': 'Semester ${_selectedFilterSemester}'},
@@ -273,7 +280,8 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
     }
 
     // Tahun Ajaran chip
-    if (_selectedFilterAcademicYear != null && _selectedFilterAcademicYear != _selectedAcademicYear) {
+    if (_selectedFilterAcademicYear != null &&
+        _selectedFilterAcademicYear != _selectedAcademicYear) {
       filterChips.add({
         'label': _selectedFilterAcademicYear!,
         'onRemove': () {
@@ -290,7 +298,10 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
   }
 
   void _showFilterSheet() {
-    final languageProvider = Provider.of<LanguageProvider>(context, listen: false);
+    final languageProvider = Provider.of<LanguageProvider>(
+      context,
+      listen: false,
+    );
 
     // Temporary values for filter
     String? tempSelectedSemester = _selectedFilterSemester;
@@ -310,13 +321,10 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                 'en': 'Day',
                 'id': 'Hari',
               }),
-              options: _hariOptions
-                  .where((hari) => hari != 'Semua Hari')
-                  .map((hari) {
-                return FilterOption(
-                  label: hari,
-                  value: _hariIdMap[hari] ?? '',
-                );
+              options: _hariOptions.where((hari) => hari != 'Semua Hari').map((
+                hari,
+              ) {
+                return FilterOption(label: hari, value: _hariIdMap[hari] ?? '');
               }).toList(),
               multiSelect: true,
             ),
@@ -358,14 +366,15 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
         onApplyFilters: (filters) {
           // Check if semester or academic year changed - need to reload data
           bool needsReload = false;
-          
+
           final newSemester = filters['semester'];
           final newAcademicYear = filters['tahunAjaran'];
-          
+
           if (newSemester != null && newSemester != _selectedSemester) {
             needsReload = true;
           }
-          if (newAcademicYear != null && newAcademicYear != _selectedAcademicYear) {
+          if (newAcademicYear != null &&
+              newAcademicYear != _selectedAcademicYear) {
             needsReload = true;
           }
 
@@ -373,7 +382,7 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
             _selectedHariIds = List<String>.from(filters['hariIds'] ?? []);
             _selectedFilterSemester = newSemester;
             _selectedFilterAcademicYear = newAcademicYear;
-            
+
             // Update main semester/year if filtered
             if (newSemester != null) {
               _selectedSemester = newSemester;
@@ -381,7 +390,7 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
             if (newAcademicYear != null) {
               _selectedAcademicYear = newAcademicYear;
             }
-            
+
             _checkActiveFilter();
           });
 
@@ -433,12 +442,15 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
           dayName.toLowerCase().contains(searchTerm);
 
       // Filter by hari - match by hari_nama
-      final matchesHari = _selectedHariIds.isEmpty ||
+      final matchesHari =
+          _selectedHariIds.isEmpty ||
           _selectedHariIds.any((selectedId) {
             // Get the hari name from the selected ID
             final selectedHariName = _hariIdMap.entries
-                .firstWhere((entry) => entry.value == selectedId,
-                    orElse: () => MapEntry('', ''))
+                .firstWhere(
+                  (entry) => entry.value == selectedId,
+                  orElse: () => MapEntry('', ''),
+                )
                 .key;
             return dayName == selectedHariName;
           });
@@ -635,12 +647,17 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                       // Custom filter styling
                       filterActiveColor: _getPrimaryColor(),
                       filterInactiveColor: Colors.white.withOpacity(0.9),
-                      filterIconColor: _hasActiveFilter ? Colors.white : _getPrimaryColor(),
+                      filterIconColor: _hasActiveFilter
+                          ? Colors.white
+                          : _getPrimaryColor(),
                       filterBorderRadius: 14,
                       filterWidth: 56,
                       filterHeight: 48,
                       spacing: 12,
-                      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 0),
+                      margin: const EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 0,
+                      ),
                     ),
 
                     // Filter Chips
@@ -654,7 +671,9 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                               child: ListView(
                                 scrollDirection: Axis.horizontal,
                                 children: [
-                                  ..._buildFilterChips(languageProvider).map((filter) {
+                                  ..._buildFilterChips(languageProvider).map((
+                                    filter,
+                                  ) {
                                     return Container(
                                       margin: EdgeInsets.only(right: 6),
                                       child: Chip(
@@ -672,13 +691,16 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                                           color: Colors.white,
                                         ),
                                         onDeleted: filter['onRemove'],
-                                        backgroundColor: Colors.white.withOpacity(0.2),
+                                        backgroundColor: Colors.white
+                                            .withOpacity(0.2),
                                         side: BorderSide(
                                           color: Colors.white.withOpacity(0.3),
                                           width: 1,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                         padding: EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -1291,14 +1313,13 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => PresencePage(
-                  guru: {
-                    'id': _guruId,
-                    'nama': _guruNama,
-                  },
+                  guru: {'id': _guruId, 'nama': _guruNama},
                   initialDate: DateTime.now(),
-                  initialMataPelajaranId: jadwal['mata_pelajaran_id']?.toString(),
-                  initialMataPelajaranNama: jadwal['mata_pelajaran_nama']?.toString(),
-                  initialKelasId: jadwal['kelas_id']?.toString(),
+                  initialMataPelajaranId: jadwal['mata_pelajaran_id']
+                      ?.toString(),
+                  initialMataPelajaranNama: jadwal['mata_pelajaran_nama']
+                      ?.toString(),
+                  initialclassId: jadwal['kelas_id']?.toString(),
                   initialKelasNama: jadwal['kelas_nama']?.toString(),
                 ),
               ),
@@ -1557,7 +1578,7 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                       ),
 
                       SizedBox(height: 16),
-                      
+
                       // Action Buttons
                       Row(
                         children: [
@@ -1568,14 +1589,17 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => MateriPage(
-                                      guru: {
-                                        'id': _guruId,
-                                        'nama': _guruNama,
-                                      },
-                                      initialSubjectId: jadwal['mata_pelajaran_id']?.toString(),
-                                      initialSubjectName: jadwal['mata_pelajaran_nama']?.toString(),
-                                      initialClassId: jadwal['kelas_id']?.toString(),
-                                      initialClassName: jadwal['kelas_nama']?.toString(),
+                                      guru: {'id': _guruId, 'nama': _guruNama},
+                                      initialSubjectId:
+                                          jadwal['mata_pelajaran_id']
+                                              ?.toString(),
+                                      initialSubjectName:
+                                          jadwal['mata_pelajaran_nama']
+                                              ?.toString(),
+                                      initialClassId: jadwal['kelas_id']
+                                          ?.toString(),
+                                      initialClassName: jadwal['kelas_nama']
+                                          ?.toString(),
                                     ),
                                   ),
                                 );
@@ -1606,27 +1630,40 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                                 final now = DateTime.now();
                                 final scheduleDay = _hariIdMap.entries
                                     .firstWhere(
-                                      (entry) => entry.value == jadwal['hari_id']?.toString(),
+                                      (entry) =>
+                                          entry.value ==
+                                          jadwal['hari_id']?.toString(),
                                       orElse: () => MapEntry('Senin', '1'),
                                     )
                                     .key;
-                                final scheduleDayIndex = _hariOptions.indexOf(scheduleDay);
+                                final scheduleDayIndex = _hariOptions.indexOf(
+                                  scheduleDay,
+                                );
                                 final todayIndex = now.weekday;
-                                int daysUntilSchedule = scheduleDayIndex - todayIndex;
+                                int daysUntilSchedule =
+                                    scheduleDayIndex - todayIndex;
                                 if (daysUntilSchedule < 0) {
                                   daysUntilSchedule += 7;
                                 }
-                                final scheduleDate = now.add(Duration(days: daysUntilSchedule));
-                                
+                                final scheduleDate = now.add(
+                                  Duration(days: daysUntilSchedule),
+                                );
+
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => ClassActifityScreen(
                                       initialDate: scheduleDate,
-                                      initialSubjectId: jadwal['mata_pelajaran_id']?.toString(),
-                                      initialSubjectName: jadwal['mata_pelajaran_nama']?.toString(),
-                                      initialClassId: jadwal['kelas_id']?.toString(),
-                                      initialClassName: jadwal['kelas_nama']?.toString(),
+                                      initialSubjectId:
+                                          jadwal['mata_pelajaran_id']
+                                              ?.toString(),
+                                      initialSubjectName:
+                                          jadwal['mata_pelajaran_nama']
+                                              ?.toString(),
+                                      initialClassId: jadwal['kelas_id']
+                                          ?.toString(),
+                                      initialClassName: jadwal['kelas_nama']
+                                          ?.toString(),
                                       autoShowActivityDialog: true,
                                     ),
                                   ),

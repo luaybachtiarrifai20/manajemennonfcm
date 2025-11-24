@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:http/http.dart' as http;
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:path_provider/path_provider.dart';
@@ -30,7 +31,6 @@ class ApiTeacherService {
       );
     }
   }
-
 
   // Download template Excel untuk guru
   static Future<String> downloadTemplate() async {
@@ -80,18 +80,15 @@ class ApiTeacherService {
       );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback
       return {
         'success': false,
-        'data': {
-          'kelas': [],
-          'gender_options': [],
-        }
+        'data': {'kelas': [], 'gender_options': []},
       };
     } catch (e) {
       print('Error getting filter options: $e');
@@ -103,8 +100,8 @@ class ApiTeacherService {
   static Future<Map<String, dynamic>> getTeachersPaginated({
     int page = 1,
     int limit = 10,
-    String? kelasId,
-    String? jenisKelamin,
+    String? classId,
+    String? gender,
     String? search,
   }) async {
     // Build query parameters
@@ -113,11 +110,11 @@ class ApiTeacherService {
       'limit': limit.toString(),
     };
 
-    if (kelasId != null && kelasId.isNotEmpty) {
-      queryParams['kelas_id'] = kelasId;
+    if (classId != null && classId.isNotEmpty) {
+      queryParams['kelas_id'] = classId;
     }
-    if (jenisKelamin != null && jenisKelamin.isNotEmpty) {
-      queryParams['jenis_kelamin'] = jenisKelamin;
+    if (gender != null && gender.isNotEmpty) {
+      queryParams['jenis_kelamin'] = gender;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -125,7 +122,7 @@ class ApiTeacherService {
 
     // Build query string
     String queryString = Uri(queryParameters: queryParams).query;
-    
+
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/guru?$queryString'),
@@ -135,11 +132,11 @@ class ApiTeacherService {
       print('GET /guru?$queryString - Status: ${response.statusCode}');
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback untuk backward compatibility
       return {
         'success': true,
@@ -151,7 +148,7 @@ class ApiTeacherService {
           'per_page': limit,
           'has_next_page': false,
           'has_prev_page': false,
-        }
+        },
       };
     } catch (e) {
       print('Error getting paginated teachers: $e');
@@ -162,12 +159,12 @@ class ApiTeacherService {
   // Existing methods tetap dipertahankan...
   Future<List<dynamic>> getTeacher() async {
     final result = await ApiService().get('/guru');
-    
+
     // Handle new pagination format
     if (result is Map<String, dynamic>) {
       return result['data'] ?? [];
     }
-    
+
     // Handle old format (List)
     return result is List ? result : [];
   }
@@ -190,7 +187,7 @@ class ApiTeacherService {
     await ApiService().delete('/guru/$id');
   }
 
-   Future<List<dynamic>> getSubjectByTeacher(String guruId) async {
+  Future<List<dynamic>> getSubjectByTeacher(String guruId) async {
     try {
       final result = await ApiService().get('/guru/$guruId/mata-pelajaran');
       return result is List ? result : [];
@@ -214,21 +211,23 @@ class ApiTeacherService {
 
     // Build query string
     String queryString = Uri(queryParameters: queryParams).query;
-    
+
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/guru/$guruId/mata-pelajaran?$queryString'),
         headers: await _getHeaders(),
       );
 
-      print('GET /guru/$guruId/mata-pelajaran?$queryString - Status: ${response.statusCode}');
+      print(
+        'GET /guru/$guruId/mata-pelajaran?$queryString - Status: ${response.statusCode}',
+      );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback untuk backward compatibility
       return {
         'success': true,
@@ -240,7 +239,7 @@ class ApiTeacherService {
           'per_page': limit,
           'has_next_page': false,
           'has_prev_page': false,
-        }
+        },
       };
     } catch (e) {
       print('Error getting paginated subjects by teacher: $e');

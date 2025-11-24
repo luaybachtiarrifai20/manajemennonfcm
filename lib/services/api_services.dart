@@ -463,7 +463,7 @@ class ApiService {
     String? status,
     String? search,
     String? mataPelajaranId,
-    String? kelasId,
+    String? classId,
     String? semester,
     String? tahunAjaran,
   }) async {
@@ -477,8 +477,8 @@ class ApiService {
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
     if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
       queryParams['mata_pelajaran_id'] = mataPelajaranId;
-    if (kelasId != null && kelasId.isNotEmpty)
-      queryParams['kelas_id'] = kelasId;
+    if (classId != null && classId.isNotEmpty)
+      queryParams['kelas_id'] = classId;
     if (semester != null && semester.isNotEmpty)
       queryParams['semester'] = semester;
     if (tahunAjaran != null && tahunAjaran.isNotEmpty)
@@ -649,14 +649,14 @@ class ApiService {
     String? tanggal,
     String? mataPelajaranId,
     String? siswaId,
-    String? kelasId,
+    String? classId,
   }) async {
     String url = '$baseUrl/absensi?';
     if (guruId != null) url += 'guru_id=$guruId&';
     if (tanggal != null) url += 'tanggal=$tanggal&';
     if (mataPelajaranId != null) url += 'mata_pelajaran_id=$mataPelajaranId&';
     if (siswaId != null) url += 'siswa_id=$siswaId&';
-    if (kelasId != null) url += 'kelas_id=$kelasId&';
+    if (classId != null) url += 'kelas_id=$classId&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -675,7 +675,7 @@ class ApiService {
     String? tanggal,
     String? mataPelajaranId,
     String? siswaId,
-    String? kelasId,
+    String? classId,
   }) async {
     try {
       final params = <String, String>{
@@ -687,7 +687,7 @@ class ApiService {
       if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
         params['mata_pelajaran_id'] = mataPelajaranId;
       if (siswaId != null && siswaId.isNotEmpty) params['siswa_id'] = siswaId;
-      if (kelasId != null && kelasId.isNotEmpty) params['kelas_id'] = kelasId;
+      if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
 
       final uri = Uri.parse(
         '$baseUrl/absensi',
@@ -739,7 +739,7 @@ class ApiService {
     int limit = 10,
     String? guruId,
     String? mataPelajaranId,
-    String? kelasId,
+    String? classId,
     String? tanggal,
     String? tanggalStart,
     String? tanggalEnd,
@@ -754,7 +754,7 @@ class ApiService {
       if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
         params['mata_pelajaran_id'] = mataPelajaranId;
       }
-      if (kelasId != null && kelasId.isNotEmpty) params['kelas_id'] = kelasId;
+      if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
       if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
       if (tanggalStart != null && tanggalStart.isNotEmpty) {
         params['tanggal_start'] = tanggalStart;

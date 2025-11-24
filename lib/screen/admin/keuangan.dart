@@ -508,12 +508,12 @@ class KeuanganScreenState extends State<KeuanganScreen>
       // Kelompokkan siswa berdasarkan kelas
       Map<String, List<dynamic>> siswaByKelas = {};
       for (var siswa in allSiswa) {
-        final kelasId = siswa['kelas_id']?.toString();
-        if (kelasId != null) {
-          if (!siswaByKelas.containsKey(kelasId)) {
-            siswaByKelas[kelasId] = [];
+        final classId = siswa['kelas_id']?.toString();
+        if (classId != null) {
+          if (!siswaByKelas.containsKey(classId)) {
+            siswaByKelas[classId] = [];
           }
-          siswaByKelas[kelasId]!.add(siswa);
+          siswaByKelas[classId]!.add(siswa);
         }
       }
 
@@ -779,9 +779,9 @@ class KeuanganScreenState extends State<KeuanganScreen>
       // Pilih semua kelas
       _selectedKelas = List.from(_kelasList);
       for (var kelas in _kelasList) {
-        final kelasId = kelas['id'].toString();
-        _selectedSiswaByKelas[kelasId] = List.from(
-          _siswaByKelas[kelasId] ?? [],
+        final classId = kelas['id'].toString();
+        _selectedSiswaByKelas[classId] = List.from(
+          _siswaByKelas[classId] ?? [],
         );
       }
     } else if (tujuan['type'] == 'custom') {
@@ -790,8 +790,8 @@ class KeuanganScreenState extends State<KeuanganScreen>
         return tujuan['kelas']?.contains(kelas['id'].toString()) == true;
       }).toList();
 
-      for (var kelasId in tujuan['kelas'] ?? []) {
-        _selectedSiswaByKelas[kelasId] = (tujuan['siswa']?[kelasId] ?? [])
+      for (var classId in tujuan['kelas'] ?? []) {
+        _selectedSiswaByKelas[classId] = (tujuan['siswa']?[classId] ?? [])
             .map((siswaId) => _findSiswaById(siswaId))
             .where((siswa) => siswa != null)
             .cast<Map<String, dynamic>>()
@@ -818,11 +818,11 @@ class KeuanganScreenState extends State<KeuanganScreen>
       itemCount: _kelasList.length,
       itemBuilder: (context, index) {
         final kelas = _kelasList[index];
-        final kelasId = kelas['id'].toString();
+        final classId = kelas['id'].toString();
         final isKelasSelected = _selectedKelas.any(
-          (k) => k['id'].toString() == kelasId,
+          (k) => k['id'].toString() == classId,
         );
-        final siswaList = _siswaByKelas[kelasId] ?? [];
+        final siswaList = _siswaByKelas[classId] ?? [];
 
         // Filter siswa berdasarkan search
         final filteredSiswa = siswaList.where((siswa) {
@@ -847,12 +847,12 @@ class KeuanganScreenState extends State<KeuanganScreen>
                 setModalState(() {
                   if (value == true) {
                     _selectedKelas.add(kelas);
-                    _selectedSiswaByKelas[kelasId] = List.from(siswaList);
+                    _selectedSiswaByKelas[classId] = List.from(siswaList);
                   } else {
                     _selectedKelas.removeWhere(
-                      (k) => k['id'].toString() == kelasId,
+                      (k) => k['id'].toString() == classId,
                     );
-                    _selectedSiswaByKelas.remove(kelasId);
+                    _selectedSiswaByKelas.remove(classId);
                   }
                 });
               },
@@ -876,7 +876,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '${_selectedSiswaByKelas[kelasId]?.length ?? 0}/${siswaList.length}',
+                      '${_selectedSiswaByKelas[classId]?.length ?? 0}/${siswaList.length}',
                       style: TextStyle(
                         fontSize: 10,
                         color: _getPrimaryColor(),
@@ -902,7 +902,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
                 ...filteredSiswa.map(
                   (siswa) => _buildSiswaCheckbox(
                     siswa: siswa,
-                    kelasId: kelasId,
+                    classId: classId,
                     setModalState: setModalState,
                   ),
                 ),
@@ -915,11 +915,11 @@ class KeuanganScreenState extends State<KeuanganScreen>
 
   Widget _buildSiswaCheckbox({
     required Map<String, dynamic> siswa,
-    required String kelasId,
+    required String classId,
     required StateSetter setModalState,
   }) {
     final isSelected =
-        _selectedSiswaByKelas[kelasId]?.any(
+        _selectedSiswaByKelas[classId]?.any(
           (s) => s['id'].toString() == siswa['id'].toString(),
         ) ==
         true;
@@ -934,7 +934,7 @@ class KeuanganScreenState extends State<KeuanganScreen>
         value: isSelected,
         onChanged: (value) {
           setModalState(() {
-            final siswaList = _selectedSiswaByKelas[kelasId] ?? [];
+            final siswaList = _selectedSiswaByKelas[classId] ?? [];
             if (value == true) {
               siswaList.add(siswa);
             } else {
@@ -942,16 +942,16 @@ class KeuanganScreenState extends State<KeuanganScreen>
                 (s) => s['id'].toString() == siswa['id'].toString(),
               );
             }
-            _selectedSiswaByKelas[kelasId] = siswaList;
+            _selectedSiswaByKelas[classId] = siswaList;
 
             // Update kelas selection
             if (siswaList.isEmpty) {
-              _selectedKelas.removeWhere((k) => k['id'].toString() == kelasId);
+              _selectedKelas.removeWhere((k) => k['id'].toString() == classId);
             } else if (!_selectedKelas.any(
-              (k) => k['id'].toString() == kelasId,
+              (k) => k['id'].toString() == classId,
             )) {
               _selectedKelas.add(
-                _kelasList.firstWhere((k) => k['id'].toString() == kelasId),
+                _kelasList.firstWhere((k) => k['id'].toString() == classId),
               );
             }
           });
@@ -1025,9 +1025,9 @@ class KeuanganScreenState extends State<KeuanganScreen>
     setModalState(() {
       _selectedKelas = List.from(_kelasList);
       for (var kelas in _kelasList) {
-        final kelasId = kelas['id'].toString();
-        _selectedSiswaByKelas[kelasId] = List.from(
-          _siswaByKelas[kelasId] ?? [],
+        final classId = kelas['id'].toString();
+        _selectedSiswaByKelas[classId] = List.from(
+          _siswaByKelas[classId] ?? [],
         );
       }
     });
@@ -1054,16 +1054,16 @@ class KeuanganScreenState extends State<KeuanganScreen>
     }
 
     // Custom selection
-    final kelasIds = _selectedKelas.map((k) => k['id'].toString()).toList();
+    final classIds = _selectedKelas.map((k) => k['id'].toString()).toList();
     final siswaMap = <String, List<String>>{};
 
-    _selectedSiswaByKelas.forEach((kelasId, siswaList) {
-      siswaMap[kelasId] = siswaList.map((s) => s['id'].toString()).toList();
+    _selectedSiswaByKelas.forEach((classId, siswaList) {
+      siswaMap[classId] = siswaList.map((s) => s['id'].toString()).toList();
     });
 
     return {
       'type': 'custom',
-      'kelas': kelasIds,
+      'kelas': classIds,
       'siswa': siswaMap,
       'description': '$selectedSiswaCount siswa di $totalKelas kelas',
     };
@@ -1083,8 +1083,8 @@ class KeuanganScreenState extends State<KeuanganScreen>
       itemCount: _kelasList.length,
       itemBuilder: (context, index) {
         final kelas = _kelasList[index];
-        final kelasId = kelas['id']?.toString();
-        final siswaList = _siswaByKelas[kelasId] ?? [];
+        final classId = kelas['id']?.toString();
+        final siswaList = _siswaByKelas[classId] ?? [];
 
         return _buildKelasCard(kelas, siswaList, index);
       },

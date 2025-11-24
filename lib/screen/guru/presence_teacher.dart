@@ -8,10 +8,10 @@ import 'package:manajemensekolah/components/new_enhanced_search_bar.dart';
 import 'package:manajemensekolah/components/tab_switcher.dart';
 import 'package:manajemensekolah/models/siswa.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
+import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/services/api_student_services.dart';
 import 'package:manajemensekolah/services/api_teacher_services.dart';
-import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
@@ -25,7 +25,7 @@ class AbsensiSummary {
   final int totalSiswa;
   final int hadir;
   final int tidakHadir;
-  final String? kelasId;
+  final String? classId;
 
   AbsensiSummary({
     required this.mataPelajaranId,
@@ -34,7 +34,7 @@ class AbsensiSummary {
     required this.totalSiswa,
     required this.hadir,
     required this.tidakHadir,
-    this.kelasId,
+    this.classId,
   });
 
   String get key =>
@@ -46,16 +46,16 @@ class PresencePage extends StatefulWidget {
   final DateTime? initialDate;
   final String? initialMataPelajaranId;
   final String? initialMataPelajaranNama;
-  final String? initialKelasId;
+  final String? initialclassId;
   final String? initialKelasNama;
 
   const PresencePage({
-    super.key, 
+    super.key,
     required this.guru,
     this.initialDate,
     this.initialMataPelajaranId,
     this.initialMataPelajaranNama,
-    this.initialKelasId,
+    this.initialclassId,
     this.initialKelasNama,
   });
 
@@ -108,7 +108,7 @@ class PresencePageState extends State<PresencePage>
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize with data from teaching_schedule if provided
     if (widget.initialDate != null) {
       _selectedDate = widget.initialDate!;
@@ -117,11 +117,11 @@ class PresencePageState extends State<PresencePage>
       _selectedMataPelajaran = widget.initialMataPelajaranId;
       _selectedMataPelajaranNama = widget.initialMataPelajaranNama;
     }
-    if (widget.initialKelasId != null) {
-      _selectedKelas = widget.initialKelasId;
+    if (widget.initialclassId != null) {
+      _selectedKelas = widget.initialclassId;
       _selectedKelasNama = widget.initialKelasNama;
     }
-    
+
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (!mounted) return;
@@ -243,7 +243,7 @@ class PresencePageState extends State<PresencePage>
       final now = TimeOfDay.now();
       final startParts = jamMulai.split(':');
       final endParts = jamSelesai.split(':');
-      
+
       final start = TimeOfDay(
         hour: int.parse(startParts[0]),
         minute: int.parse(startParts[1].split('.')[0]),
@@ -252,11 +252,11 @@ class PresencePageState extends State<PresencePage>
         hour: int.parse(endParts[0]),
         minute: int.parse(endParts[1].split('.')[0]),
       );
-      
+
       final nowMinutes = now.hour * 60 + now.minute;
       final startMinutes = start.hour * 60 + start.minute;
       final endMinutes = end.hour * 60 + end.minute;
-      
+
       return nowMinutes >= startMinutes && nowMinutes <= endMinutes;
     } catch (e) {
       print('Error parsing time: $e');
@@ -281,17 +281,19 @@ class PresencePageState extends State<PresencePage>
           for (var schedule in schedules) {
             final jamMulai = schedule['jam_mulai']?.toString() ?? '';
             final jamSelesai = schedule['jam_selesai']?.toString() ?? '';
-            
+
             if (_isWithinScheduleTime(jamMulai, jamSelesai)) {
               currentSchedule = schedule;
               break;
             }
           }
-          
+
           if (currentSchedule != null) {
             _currentSchedule = currentSchedule;
-            _selectedMataPelajaran = currentSchedule['mata_pelajaran_id']?.toString();
-            _selectedMataPelajaranNama = currentSchedule['mata_pelajaran_nama']?.toString();
+            _selectedMataPelajaran = currentSchedule['mata_pelajaran_id']
+                ?.toString();
+            _selectedMataPelajaranNama = currentSchedule['mata_pelajaran_nama']
+                ?.toString();
             _selectedKelas = currentSchedule['kelas_id']?.toString();
             _selectedKelasNama = currentSchedule['kelas_nama']?.toString();
             _filterStudentsByClass(_selectedKelas);
@@ -327,9 +329,9 @@ class PresencePageState extends State<PresencePage>
 
       for (var absen in absensiData) {
         // Include kelas_id in the grouping key
-        final kelasId = absen['kelas_id']?.toString() ?? '';
+        final classId = absen['kelas_id']?.toString() ?? '';
         final key =
-            '${absen['mata_pelajaran_id']}-${absen['tanggal']}-$kelasId';
+            '${absen['mata_pelajaran_id']}-${absen['tanggal']}-$classId';
         final mataPelajaranNama = _getMataPelajaranName(
           absen['mata_pelajaran_id'],
         );
@@ -342,7 +344,7 @@ class PresencePageState extends State<PresencePage>
             totalSiswa: 0,
             hadir: 0,
             tidakHadir: 0,
-            kelasId: kelasId.isNotEmpty ? kelasId : null,
+            classId: classId.isNotEmpty ? classId : null,
           );
         }
 
@@ -354,7 +356,7 @@ class PresencePageState extends State<PresencePage>
           totalSiswa: summary.totalSiswa + 1,
           hadir: summary.hadir + (absen['status'] == 'hadir' ? 1 : 0),
           tidakHadir: summary.tidakHadir + (absen['status'] != 'hadir' ? 1 : 0),
-          kelasId: summary.kelasId,
+          classId: summary.classId,
         );
       }
 
@@ -395,10 +397,10 @@ class PresencePageState extends State<PresencePage>
     }
   }
 
-  String _getKelasName(String kelasId) {
+  String _getKelasName(String classId) {
     try {
       final kelas = _kelasList.firstWhere(
-        (k) => k['id'].toString() == kelasId,
+        (k) => k['id'].toString() == classId,
         orElse: () => {'nama': 'Unknown Class'},
       );
       return kelas['nama'] ?? 'Unknown Class';
@@ -420,21 +422,25 @@ class PresencePageState extends State<PresencePage>
     }
   }
 
-  String _getKelasNameWithCount(String kelasId) {
+  String _getKelasNameWithCount(String classId) {
     // Use provided kelas name if available
     if (_selectedKelasNama != null) {
-      final count = _filteredSiswaList.where((s) => s.kelasId == kelasId).length;
+      final count = _filteredSiswaList
+          .where((s) => s.classId == classId)
+          .length;
       return '$_selectedKelasNama - $count siswa';
     }
-    
+
     // Fallback to finding from list
     try {
       final kelas = _kelasList.firstWhere(
-        (k) => k['id'].toString() == kelasId,
+        (k) => k['id'].toString() == classId,
         orElse: () => {'nama': 'Unknown Class'},
       );
       final kelasName = kelas['nama'] ?? 'Unknown Class';
-      final count = _filteredSiswaList.where((s) => s.kelasId == kelasId).length;
+      final count = _filteredSiswaList
+          .where((s) => s.classId == classId)
+          .length;
       return '$kelasName - $count siswa';
     } catch (e) {
       return 'Unknown Class';
@@ -484,10 +490,7 @@ class PresencePageState extends State<PresencePage>
                 'en': 'Set All Students To',
                 'id': 'Atur Semua Siswa Menjadi',
               }),
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 16),
             _buildQuickActionOption('hadir', languageProvider),
@@ -501,7 +504,10 @@ class PresencePageState extends State<PresencePage>
     );
   }
 
-  Widget _buildQuickActionOption(String status, LanguageProvider languageProvider) {
+  Widget _buildQuickActionOption(
+    String status,
+    LanguageProvider languageProvider,
+  ) {
     return ListTile(
       leading: Icon(_getStatusIcon(status), color: _getStatusColor(status)),
       title: Text(_getStatusText(status, languageProvider)),
@@ -518,13 +524,15 @@ class PresencePageState extends State<PresencePage>
         _absensiStatus[siswa.id] = status;
       }
     });
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           languageProvider.getTranslatedText({
-            'en': 'All students set to ${_getStatusText(status, languageProvider).toLowerCase()}',
-            'id': 'Semua siswa diatur menjadi ${_getStatusText(status, languageProvider).toLowerCase()}',
+            'en':
+                'All students set to ${_getStatusText(status, languageProvider).toLowerCase()}',
+            'id':
+                'Semua siswa diatur menjadi ${_getStatusText(status, languageProvider).toLowerCase()}',
           }),
         ),
         backgroundColor: _getStatusColor(status),
@@ -580,7 +588,7 @@ class PresencePageState extends State<PresencePage>
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                  
+
                   // Header
                   Padding(
                     padding: const EdgeInsets.all(16),
@@ -606,9 +614,9 @@ class PresencePageState extends State<PresencePage>
                       ],
                     ),
                   ),
-                  
+
                   Divider(height: 1),
-                  
+
                   // Form Content
                   Expanded(
                     child: SingleChildScrollView(
@@ -645,25 +653,35 @@ class PresencePageState extends State<PresencePage>
                               }
                             },
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 16,
+                              ),
                               decoration: BoxDecoration(
                                 border: Border.all(color: Colors.grey[300]!),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(_selectedDate),
+                                    DateFormat(
+                                      'EEEE, dd MMMM yyyy',
+                                      'id_ID',
+                                    ).format(_selectedDate),
                                     style: TextStyle(fontSize: 16),
                                   ),
-                                  Icon(Icons.calendar_today, color: _getPrimaryColor()),
+                                  Icon(
+                                    Icons.calendar_today,
+                                    color: _getPrimaryColor(),
+                                  ),
                                 ],
                               ),
                             ),
                           ),
                           SizedBox(height: 20),
-                          
+
                           // Class Dropdown
                           Text(
                             languageProvider.getTranslatedText({
@@ -678,7 +696,10 @@ class PresencePageState extends State<PresencePage>
                           ),
                           SizedBox(height: 8),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey[300]!),
                               borderRadius: BorderRadius.circular(8),
@@ -688,7 +709,10 @@ class PresencePageState extends State<PresencePage>
                               isExpanded: true,
                               underline: Container(),
                               icon: Icon(Icons.arrow_drop_down),
-                              style: TextStyle(color: Colors.black87, fontSize: 16),
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
                               items: [
                                 DropdownMenuItem(
                                   value: null,
@@ -716,7 +740,7 @@ class PresencePageState extends State<PresencePage>
                             ),
                           ),
                           SizedBox(height: 20),
-                          
+
                           // Subject Dropdown
                           Text(
                             languageProvider.getTranslatedText({
@@ -731,7 +755,10 @@ class PresencePageState extends State<PresencePage>
                           ),
                           SizedBox(height: 8),
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey[300]!),
                               borderRadius: BorderRadius.circular(8),
@@ -741,7 +768,10 @@ class PresencePageState extends State<PresencePage>
                               isExpanded: true,
                               underline: Container(),
                               icon: Icon(Icons.arrow_drop_down),
-                              style: TextStyle(color: Colors.black87, fontSize: 16),
+                              style: TextStyle(
+                                color: Colors.black87,
+                                fontSize: 16,
+                              ),
                               items: [
                                 DropdownMenuItem(
                                   value: null,
@@ -756,7 +786,9 @@ class PresencePageState extends State<PresencePage>
                                   (mp) => DropdownMenuItem(
                                     value: mp['id'],
                                     child: Text(
-                                      mp['nama'] ?? mp['mata_pelajaran_nama'] ?? 'Unknown',
+                                      mp['nama'] ??
+                                          mp['mata_pelajaran_nama'] ??
+                                          'Unknown',
                                     ),
                                   ),
                                 ),
@@ -765,17 +797,20 @@ class PresencePageState extends State<PresencePage>
                                 setState(() {
                                   _selectedMataPelajaran = value;
                                   // Update nama mata pelajaran
-                                  final selected = _mataPelajaranDiampu.firstWhere(
-                                    (mp) => mp['id'] == value,
-                                    orElse: () => {},
-                                  );
-                                  _selectedMataPelajaranNama = selected['nama'] ?? selected['mata_pelajaran_nama'];
+                                  final selected = _mataPelajaranDiampu
+                                      .firstWhere(
+                                        (mp) => mp['id'] == value,
+                                        orElse: () => {},
+                                      );
+                                  _selectedMataPelajaranNama =
+                                      selected['nama'] ??
+                                      selected['mata_pelajaran_nama'];
                                 });
                                 setModalState(() {});
                               },
                             ),
                           ),
-                          
+
                           if (_mataPelajaranDiampu.isEmpty)
                             Container(
                               margin: EdgeInsets.only(top: 12),
@@ -787,13 +822,19 @@ class PresencePageState extends State<PresencePage>
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.warning, color: Colors.orange[800], size: 20),
+                                  Icon(
+                                    Icons.warning,
+                                    color: Colors.orange[800],
+                                    size: 20,
+                                  ),
                                   SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
                                       languageProvider.getTranslatedText({
-                                        'en': 'You are not assigned to any subjects.',
-                                        'id': 'Anda tidak mengampu mata pelajaran apapun.',
+                                        'en':
+                                            'You are not assigned to any subjects.',
+                                        'id':
+                                            'Anda tidak mengampu mata pelajaran apapun.',
                                       }),
                                       style: TextStyle(
                                         color: Colors.orange[800],
@@ -808,7 +849,7 @@ class PresencePageState extends State<PresencePage>
                       ),
                     ),
                   ),
-                  
+
                   // Bottom Buttons
                   Container(
                     padding: EdgeInsets.all(16),
@@ -864,7 +905,8 @@ class PresencePageState extends State<PresencePage>
                                     content: Text(
                                       languageProvider.getTranslatedText({
                                         'en': 'Please select a subject first',
-                                        'id': 'Pilih mata pelajaran terlebih dahulu',
+                                        'id':
+                                            'Pilih mata pelajaran terlebih dahulu',
                                       }),
                                     ),
                                     backgroundColor: Colors.red.shade400,
@@ -907,22 +949,24 @@ class PresencePageState extends State<PresencePage>
   // ========== FILTER UNTUK INPUT MODE ==========
   void _filterStudents() {
     final searchTerm = _searchControllerInput.text.toLowerCase();
-    
+
     setState(() {
       _filteredSiswaList = _siswaList.where((siswa) {
         // Search filter
-        final matchesSearch = searchTerm.isEmpty ||
+        final matchesSearch =
+            searchTerm.isEmpty ||
             siswa.nama.toLowerCase().contains(searchTerm) ||
             siswa.nis.toLowerCase().contains(searchTerm);
-        
+
         // Status filter
-        final matchesStatus = _selectedStatusFilter == null ||
+        final matchesStatus =
+            _selectedStatusFilter == null ||
             (_absensiStatus[siswa.id] ?? 'hadir') == _selectedStatusFilter;
-        
+
         // Class filter
-        final matchesClass = _selectedKelas == null || 
-            siswa.kelasId == _selectedKelas;
-        
+        final matchesClass =
+            _selectedKelas == null || siswa.classId == _selectedKelas;
+
         return matchesSearch && matchesStatus && matchesClass;
       }).toList();
     });
@@ -996,9 +1040,7 @@ class PresencePageState extends State<PresencePage>
             ),
           ],
         ),
-        initialFilters: {
-          'statusFilter': _selectedStatusFilter,
-        },
+        initialFilters: {'statusFilter': _selectedStatusFilter},
         onApplyFilters: (filters) {
           setState(() {
             _selectedStatusFilter = filters['statusFilter'];
@@ -1031,7 +1073,10 @@ class PresencePageState extends State<PresencePage>
     List<Map<String, dynamic>> filterChips = [];
 
     if (_selectedStatusFilter != null) {
-      final statusText = _getStatusText(_selectedStatusFilter!, languageProvider);
+      final statusText = _getStatusText(
+        _selectedStatusFilter!,
+        languageProvider,
+      );
       filterChips.add({
         'label':
             '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $statusText',
@@ -1660,9 +1705,9 @@ class PresencePageState extends State<PresencePage>
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                   SizedBox(height: 2),
-                                  if (summary.kelasId != null)
+                                  if (summary.classId != null)
                                     Text(
-                                      _getKelasName(summary.kelasId!),
+                                      _getKelasName(summary.classId!),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: _getPrimaryColor(),
@@ -1884,7 +1929,7 @@ class PresencePageState extends State<PresencePage>
           mataPelajaranId: summary.mataPelajaranId,
           mataPelajaranNama: summary.mataPelajaranNama,
           tanggal: summary.tanggal,
-          kelasId: summary.kelasId,
+          classId: summary.classId,
         ),
       ),
     );
@@ -1906,220 +1951,236 @@ class PresencePageState extends State<PresencePage>
         return Column(
           children: [
             // Header Info - Always show (whether schedule detected or not)
-              Container(
-                margin: const EdgeInsets.all(16),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Subject and Class Info or No Schedule Message
-                              if (_selectedMataPelajaran != null) ...[
-                                Row(
-                                  children: [
-                                    Flexible(
-                                      child: Text(
-                                        _selectedMataPelajaranNama ?? _getMataPelajaranSelectedName(),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
+            Container(
+              margin: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Subject and Class Info or No Schedule Message
+                            if (_selectedMataPelajaran != null) ...[
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      _selectedMataPelajaranNama ??
+                                          _getMataPelajaranSelectedName(),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
                                       ),
-                                    ),
-                                    if (_currentSchedule != null) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.withOpacity(0.1),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: Colors.green.withOpacity(0.3)),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.schedule, size: 12, color: Colors.green),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              languageProvider.getTranslatedText({
-                                                'en': 'Auto',
-                                                'id': 'Auto',
-                                              }),
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.green[700],
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                if (_selectedKelas != null)
-                                  Text(
-                                    _getKelasNameWithCount(_selectedKelas!),
-                                    style: TextStyle(
-                                      color: _getPrimaryColor(),
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                              ] else ...[
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.schedule_outlined,
-                                      color: Colors.orange,
-                                      size: 20,
-                                    ),
+                                  if (_currentSchedule != null) ...[
                                     const SizedBox(width: 8),
-                                    Flexible(
-                                      child: Text(
-                                        languageProvider.getTranslatedText({
-                                          'en': 'No Schedule Now',
-                                          'id': 'Tidak Ada Jadwal Sekarang',
-                                        }),
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: Colors.green.withOpacity(0.3),
                                         ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.schedule,
+                                            size: 12,
+                                            color: Colors.green,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            languageProvider.getTranslatedText({
+                                              'en': 'Auto',
+                                              'id': 'Auto',
+                                            }),
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.green[700],
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
                                   ],
-                                ),
-                              ],
+                                ],
+                              ),
                               const SizedBox(height: 4),
-                              Text(
-                                DateFormat('EEEE, dd MMMM yyyy', 'id_ID')
-                                    .format(_selectedDate),
-                                style: const TextStyle(
-                                  color: Colors.grey,
-                                  fontSize: 12,
+                              if (_selectedKelas != null)
+                                Text(
+                                  _getKelasNameWithCount(_selectedKelas!),
+                                  style: TextStyle(
+                                    color: _getPrimaryColor(),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
+                            ] else ...[
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.schedule_outlined,
+                                    color: Colors.orange,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Flexible(
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'No Schedule Now',
+                                        'id': 'Tidak Ada Jadwal Sekarang',
+                                      }),
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
-                          ),
-                        ),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Icon Search
-                            Container(
-                              decoration: BoxDecoration(
-                                color: _getPrimaryColor().withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _showSearch = !_showSearch;
-                                    if (!_showSearch) {
-                                      _searchControllerInput.clear();
-                                      _filterStudents();
-                                    }
-                                  });
-                                },
-                                icon: Icon(
-                                  _showSearch ? Icons.search_off : Icons.search,
-                                  color: _getPrimaryColor(),
-                                  size: 20,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.all(8),
-                                constraints: BoxConstraints(
-                                  minWidth: 36,
-                                  minHeight: 36,
-                                ),
-                                tooltip: languageProvider.getTranslatedText({
-                                  'en': _showSearch ? 'Hide search' : 'Search students',
-                                  'id': _showSearch ? 'Sembunyikan pencarian' : 'Cari siswa',
-                                }),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            // Icon untuk Quick Actions
-                            Container(
-                              decoration: BoxDecoration(
-                                color: _getPrimaryColor().withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  _showQuickActionsSheet(languageProvider);
-                                },
-                                icon: Icon(
-                                  Icons.checklist_rtl,
-                                  color: _getPrimaryColor(),
-                                  size: 20,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.all(8),
-                                constraints: BoxConstraints(
-                                  minWidth: 36,
-                                  minHeight: 36,
-                                ),
-                                tooltip: languageProvider.getTranslatedText({
-                                  'en': 'Quick attendance',
-                                  'id': 'Presensi cepat',
-                                }),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            // Icon Edit
-                            Container(
-                              decoration: BoxDecoration(
-                                color: _getPrimaryColor().withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: IconButton(
-                                onPressed: () {
-                                  _showEditBottomSheet(languageProvider);
-                                },
-                                icon: Icon(
-                                  Icons.edit,
-                                  color: _getPrimaryColor(),
-                                  size: 20,
-                                ),
-                                iconSize: 20,
-                                padding: EdgeInsets.all(8),
-                                constraints: BoxConstraints(
-                                  minWidth: 36,
-                                  minHeight: 36,
-                                ),
-                                tooltip: languageProvider.getTranslatedText({
-                                  'en': 'Edit selection',
-                                  'id': 'Edit pilihan',
-                                }),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat(
+                                'EEEE, dd MMMM yyyy',
+                                'id_ID',
+                              ).format(_selectedDate),
+                              style: const TextStyle(
+                                color: Colors.grey,
+                                fontSize: 12,
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Icon Search
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _getPrimaryColor().withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                setState(() {
+                                  _showSearch = !_showSearch;
+                                  if (!_showSearch) {
+                                    _searchControllerInput.clear();
+                                    _filterStudents();
+                                  }
+                                });
+                              },
+                              icon: Icon(
+                                _showSearch ? Icons.search_off : Icons.search,
+                                color: _getPrimaryColor(),
+                                size: 20,
+                              ),
+                              iconSize: 20,
+                              padding: EdgeInsets.all(8),
+                              constraints: BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              tooltip: languageProvider.getTranslatedText({
+                                'en': _showSearch
+                                    ? 'Hide search'
+                                    : 'Search students',
+                                'id': _showSearch
+                                    ? 'Sembunyikan pencarian'
+                                    : 'Cari siswa',
+                              }),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          // Icon untuk Quick Actions
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _getPrimaryColor().withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                _showQuickActionsSheet(languageProvider);
+                              },
+                              icon: Icon(
+                                Icons.checklist_rtl,
+                                color: _getPrimaryColor(),
+                                size: 20,
+                              ),
+                              iconSize: 20,
+                              padding: EdgeInsets.all(8),
+                              constraints: BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              tooltip: languageProvider.getTranslatedText({
+                                'en': 'Quick attendance',
+                                'id': 'Presensi cepat',
+                              }),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          // Icon Edit
+                          Container(
+                            decoration: BoxDecoration(
+                              color: _getPrimaryColor().withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                _showEditBottomSheet(languageProvider);
+                              },
+                              icon: Icon(
+                                Icons.edit,
+                                color: _getPrimaryColor(),
+                                size: 20,
+                              ),
+                              iconSize: 20,
+                              padding: EdgeInsets.all(8),
+                              constraints: BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              tooltip: languageProvider.getTranslatedText({
+                                'en': 'Edit selection',
+                                'id': 'Edit pilihan',
+                              }),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
               ),
+            ),
 
             // Search Bar untuk Input Mode - hanya muncul jika _showSearch = true dan ada schedule
             if (_showSearch && _selectedMataPelajaran != null) ...[
@@ -2161,7 +2222,10 @@ class PresencePageState extends State<PresencePage>
                       ),
                       filled: true,
                       fillColor: Colors.grey[50],
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
                   ),
                 ),
@@ -2169,119 +2233,121 @@ class PresencePageState extends State<PresencePage>
               SizedBox(height: 12),
             ],
 
-              // Student List or Empty State
-              Expanded(
-                  child: _selectedMataPelajaran == null
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(40),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.edit_calendar_outlined,
-                                  size: 80,
-                                  color: Colors.grey[300],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  languageProvider.getTranslatedText({
-                                    'en': 'No schedule at this time',
-                                    'id': 'Tidak ada jadwal pada jam ini',
-                                  }),
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey[600],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  languageProvider.getTranslatedText({
-                                    'en': 'Click edit icon to input attendance manually',
-                                    'id': 'Klik ikon edit untuk input absensi secara manual',
-                                  }),
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[500],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
+            // Student List or Empty State
+            Expanded(
+              child: _selectedMataPelajaran == null
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(40),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.edit_calendar_outlined,
+                              size: 80,
+                              color: Colors.grey[300],
                             ),
-                          ),
-                        )
-                      : _filteredSiswaList.isEmpty
-                          ? EmptyState(
-                              title: languageProvider.getTranslatedText({
-                                'en': 'No Students',
-                                'id': 'Tidak ada siswa',
+                            const SizedBox(height: 16),
+                            Text(
+                              languageProvider.getTranslatedText({
+                                'en': 'No schedule at this time',
+                                'id': 'Tidak ada jadwal pada jam ini',
                               }),
-                              subtitle: languageProvider.getTranslatedText({
-                                'en': 'No students found for selected class',
-                                'id': 'Tidak ada siswa untuk kelas yang dipilih',
-                              }),
-                              icon: Icons.people_outline,
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.only(top: 8),
-                              itemCount: _filteredSiswaList.length,
-                              itemBuilder: (context, index) => _buildStudentItem(
-                                _filteredSiswaList[index],
-                                languageProvider,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[600],
                               ),
+                              textAlign: TextAlign.center,
                             ),
-                ),
+                            const SizedBox(height: 8),
+                            Text(
+                              languageProvider.getTranslatedText({
+                                'en':
+                                    'Click edit icon to input attendance manually',
+                                'id':
+                                    'Klik ikon edit untuk input absensi secara manual',
+                              }),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : _filteredSiswaList.isEmpty
+                  ? EmptyState(
+                      title: languageProvider.getTranslatedText({
+                        'en': 'No Students',
+                        'id': 'Tidak ada siswa',
+                      }),
+                      subtitle: languageProvider.getTranslatedText({
+                        'en': 'No students found for selected class',
+                        'id': 'Tidak ada siswa untuk kelas yang dipilih',
+                      }),
+                      icon: Icons.people_outline,
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.only(top: 8),
+                      itemCount: _filteredSiswaList.length,
+                      itemBuilder: (context, index) => _buildStudentItem(
+                        _filteredSiswaList[index],
+                        languageProvider,
+                      ),
+                    ),
+            ),
 
-              // Submit Button
-              if (_selectedMataPelajaran != null)
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSubmitting ? null : _submitAbsensi,
-                      icon: _isSubmitting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
+            // Submit Button
+            if (_selectedMataPelajaran != null)
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSubmitting ? null : _submitAbsensi,
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
                               ),
-                            )
-                          : const Icon(Icons.save, size: 20),
-                      label: Text(
-                        _isSubmitting
-                            ? languageProvider.getTranslatedText({
-                                'en': 'Saving...',
-                                'id': 'Menyimpan...',
-                              })
-                            : languageProvider.getTranslatedText({
-                                'en': 'Save Attendance',
-                                'id': 'Simpan Absensi',
-                              }),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                            ),
+                          )
+                        : const Icon(Icons.save, size: 20),
+                    label: Text(
+                      _isSubmitting
+                          ? languageProvider.getTranslatedText({
+                              'en': 'Saving...',
+                              'id': 'Menyimpan...',
+                            })
+                          : languageProvider.getTranslatedText({
+                              'en': 'Save Attendance',
+                              'id': 'Simpan Absensi',
+                            }),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: 2,
                     ),
                   ),
                 ),
-            ],
+              ),
+          ],
         );
       },
     );
@@ -2334,10 +2400,7 @@ class PresencePageState extends State<PresencePage>
             spreadRadius: 1,
           ),
         ],
-        border: Border.all(
-          color: statusColor.withOpacity(0.3),
-          width: 1,
-        ),
+        border: Border.all(color: statusColor.withOpacity(0.3), width: 1),
       ),
       child: Column(
         children: [
@@ -2389,7 +2452,10 @@ class PresencePageState extends State<PresencePage>
 
               // Status Badge
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: statusColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -2417,7 +2483,12 @@ class PresencePageState extends State<PresencePage>
               children: [
                 _buildStatusOption('hadir', languageProvider, status, siswa.id),
                 const SizedBox(width: 8),
-                _buildStatusOption('terlambat', languageProvider, status, siswa.id),
+                _buildStatusOption(
+                  'terlambat',
+                  languageProvider,
+                  status,
+                  siswa.id,
+                ),
                 const SizedBox(width: 8),
                 _buildStatusOption('izin', languageProvider, status, siswa.id),
                 const SizedBox(width: 8),
@@ -2432,7 +2503,12 @@ class PresencePageState extends State<PresencePage>
     );
   }
 
-  Widget _buildStatusOption(String statusValue, LanguageProvider languageProvider, String currentStatus, String siswaId) {
+  Widget _buildStatusOption(
+    String statusValue,
+    LanguageProvider languageProvider,
+    String currentStatus,
+    String siswaId,
+  ) {
     final bool isSelected = currentStatus == statusValue;
     final Color statusColor = _getStatusColor(statusValue);
 
@@ -2479,9 +2555,9 @@ class PresencePageState extends State<PresencePage>
     }
   }
 
-  void _filterStudentsByClass(String? kelasId) {
+  void _filterStudentsByClass(String? classId) {
     setState(() {
-      _selectedKelas = kelasId;
+      _selectedKelas = classId;
       _filterStudents();
     });
   }
@@ -2558,7 +2634,7 @@ class PresencePageState extends State<PresencePage>
             'siswa_id': siswa.id,
             'guru_id': guruId,
             'mata_pelajaran_id': _selectedMataPelajaran,
-            'kelas_id': siswa.kelasId, // Add kelas_id from student data
+            'kelas_id': siswa.classId, // Add kelas_id from student data
             'tanggal': tanggal,
             'status': status,
             'keterangan': '',
@@ -2689,7 +2765,7 @@ class PresencePageState extends State<PresencePage>
       _hasActiveFilterInput = false;
       _filterStudents();
     });
-    
+
     // Re-detect current schedule after reset
     _detectCurrentSchedule();
   }
@@ -2787,7 +2863,7 @@ class AbsensiDetailPage extends StatefulWidget {
   final String mataPelajaranId;
   final String mataPelajaranNama;
   final DateTime tanggal;
-  final String? kelasId;
+  final String? classId;
 
   const AbsensiDetailPage({
     super.key,
@@ -2795,7 +2871,7 @@ class AbsensiDetailPage extends StatefulWidget {
     required this.mataPelajaranId,
     required this.mataPelajaranNama,
     required this.tanggal,
-    this.kelasId,
+    this.classId,
   });
 
   @override
@@ -2831,11 +2907,11 @@ class _AbsensiDetailPageState extends State<AbsensiDetailPage> {
       ]);
 
       setState(() {
-        // Filter siswa by class if kelasId is provided
+        // Filter siswa by class if classId is provided
         List<Siswa> allSiswa = siswaData.map((s) => Siswa.fromJson(s)).toList();
-        if (widget.kelasId != null && widget.kelasId!.isNotEmpty) {
+        if (widget.classId != null && widget.classId!.isNotEmpty) {
           _siswaList = allSiswa
-              .where((siswa) => siswa.kelasId == widget.kelasId)
+              .where((siswa) => siswa.classId == widget.classId)
               .toList();
         } else {
           _siswaList = allSiswa;
@@ -2861,7 +2937,7 @@ class _AbsensiDetailPageState extends State<AbsensiDetailPage> {
       });
 
       print(
-        'Loaded ${_absensiData.length} absensi records for ${_siswaList.length} students in class ${widget.kelasId ?? "all"}',
+        'Loaded ${_absensiData.length} absensi records for ${_siswaList.length} students in class ${widget.classId ?? "all"}',
       );
     } catch (e) {
       print('Error loading absensi detail: $e');
@@ -3097,10 +3173,10 @@ class _AbsensiDetailPageState extends State<AbsensiDetailPage> {
     return colors[index];
   }
 
-  String _getKelasName(String kelasId) {
+  String _getKelasName(String classId) {
     try {
       final kelas = _kelasList.firstWhere(
-        (k) => k['id'].toString() == kelasId,
+        (k) => k['id'].toString() == classId,
         orElse: () => {'nama': 'Unknown Class'},
       );
       return kelas['nama'] ?? 'Unknown Class';
@@ -3185,10 +3261,10 @@ class _AbsensiDetailPageState extends State<AbsensiDetailPage> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                          if (widget.kelasId != null) ...[
+                          if (widget.classId != null) ...[
                             const SizedBox(height: 4),
                             Text(
-                              _getKelasName(widget.kelasId!),
+                              _getKelasName(widget.classId!),
                               style: TextStyle(
                                 color: ColorUtils.getRoleColor("guru"),
                                 fontSize: 14,
