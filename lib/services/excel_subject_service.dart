@@ -1,12 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
-import 'package:manajemensekolah/services/api_services.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:manajemensekolah/utils/language_utils.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 class ExcelSubjectService {
   // static const String baseUrl = ApiService.baseUrl;
@@ -33,8 +34,9 @@ class ExcelSubjectService {
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
         final Directory directory = await getApplicationDocumentsDirectory();
-        final String filePath = '${directory.path}/Data_Mata_Pelajaran_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-        
+        final String filePath =
+            '${directory.path}/Data_Mata_Pelajaran_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
         // Simpan file yang didownload
         final File file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
@@ -85,8 +87,9 @@ class ExcelSubjectService {
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
         final Directory directory = await getApplicationDocumentsDirectory();
-        final String filePath = '${directory.path}/Template_Import_Mata_Pelajaran.xlsx';
-        
+        final String filePath =
+            '${directory.path}/Template_Import_Mata_Pelajaran.xlsx';
+
         // Simpan file yang didownload
         final File file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
@@ -124,7 +127,6 @@ class ExcelSubjectService {
     }
   }
 
-
   // Validasi data melalui backend
   static Future<List<Map<String, dynamic>>> validateSubjectDataBackend(
     List<dynamic> subjects,
@@ -158,6 +160,11 @@ class ExcelSubjectService {
     for (int i = 0; i < subjects.length; i++) {
       final subject = subjects[i];
       final Map<String, dynamic> validatedSubject = {};
+
+      // Include ID for backend lookup
+      if (subject['id'] != null) {
+        validatedSubject['id'] = subject['id'];
+      }
 
       // Validasi field required
       if (subject['kode'] == null || subject['kode'].toString().isEmpty) {
@@ -193,12 +200,12 @@ class ExcelSubjectService {
     if (subject['kelas_names'] != null) {
       return subject['kelas_names'];
     }
-    
+
     final kelasList = subject['kelas_list'] ?? [];
     if (kelasList is List) {
       return kelasList.map((kelas) => kelas['nama'] ?? '').join(', ');
     }
-    
+
     return '';
   }
 }
