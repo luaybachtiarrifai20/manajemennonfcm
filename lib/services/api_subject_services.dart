@@ -284,12 +284,12 @@ class ApiSubjectService {
 
   // Materi
   static Future<List<dynamic>> getMateri({
-    String? guruId,
-    String? mataPelajaranId,
+    String? teacherId,
+    String? subjectId,
   }) async {
     String url = '$baseUrl/materi?';
-    if (guruId != null) url += 'guru_id=$guruId&';
-    if (mataPelajaranId != null) url += 'mata_pelajaran_id=$mataPelajaranId&';
+    if (teacherId != null) url += 'guru_id=$teacherId&';
+    if (subjectId != null) url += 'mata_pelajaran_id=$subjectId&';
 
     final response = await http.get(
       Uri.parse(url),

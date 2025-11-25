@@ -12,14 +12,14 @@ import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
-class KeuanganScreen extends StatefulWidget {
-  const KeuanganScreen({super.key});
+class FinanceScreen extends StatefulWidget {
+  const FinanceScreen({super.key});
 
   @override
-  KeuanganScreenState createState() => KeuanganScreenState();
+  FinanceScreenState createState() => FinanceScreenState();
 }
 
-class KeuanganScreenState extends State<KeuanganScreen>
+class FinanceScreenState extends State<FinanceScreen>
     with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   List<dynamic> _jenisPembayaranList = [];

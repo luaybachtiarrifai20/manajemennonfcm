@@ -7,7 +7,7 @@ import 'package:manajemensekolah/screen/admin/admin_class_activity.dart';
 import 'package:manajemensekolah/screen/admin/admin_class_management.dart';
 import 'package:manajemensekolah/screen/admin/admin_presence_report.dart';
 import 'package:manajemensekolah/screen/admin/admin_rpp_screen.dart';
-import 'package:manajemensekolah/screen/admin/keuangan.dart';
+import 'package:manajemensekolah/screen/admin/finance.dart';
 import 'package:manajemensekolah/screen/admin/student_management.dart';
 import 'package:manajemensekolah/screen/admin/subject_management.dart';
 import 'package:manajemensekolah/screen/admin/teacher_admin.dart';
@@ -19,9 +19,9 @@ import 'package:manajemensekolah/screen/guru/presence_teacher.dart';
 import 'package:manajemensekolah/screen/guru/rpp_screen.dart';
 import 'package:manajemensekolah/screen/guru/teaching_schedule.dart';
 import 'package:manajemensekolah/screen/walimurid/parent_class_activity.dart';
-import 'package:manajemensekolah/screen/walimurid/pengumuman_screen.dart';
+import 'package:manajemensekolah/screen/walimurid/announcement_screen.dart';
 import 'package:manajemensekolah/screen/walimurid/presence_parent.dart';
-import 'package:manajemensekolah/screen/walimurid/tagihan_wali.dart';
+import 'package:manajemensekolah/screen/walimurid/parent_billing.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
@@ -206,25 +206,25 @@ class _DashboardState extends State<Dashboard>
           print('📅 Jadwal ditemukan: ${schedule.length}');
         }
 
-        final materi = await ApiSubjectService.getMateri(
-          guruId: userData['id'],
+        final subjects = await ApiSubjectService.getMateri(
+          teacherId: userData['id'],
         );
         if (kDebugMode) {
-          print('📚 Materi ditemukan: ${materi.length}');
+          print('📚 Materi ditemukan: ${subjects.length}');
         }
 
-        final rpp = await ApiService.getRPP(guruId: userData['id']);
+        final rpp = await ApiService.getRPP(teacherId: userData['id']);
         if (kDebugMode) {
           print('📋 RPP ditemukan: ${rpp.length}');
         }
 
-        final totalSiswa = await _getTotalSiswaDiampu();
-        final totalKelas = await _getTotalKelasDiampu();
-        final kelasHariIni = _getKelasHariIni(schedule);
+        final totalStudentsTaught = await _getTotalStudentsTaught();
+        final totalClassesTaught = await _getTotalClassesTaught();
+        final todaysClasses = _getTodaysClasses(schedule);
 
         if (kDebugMode) {
           print(
-            '📊 Stats Guru - Siswa: $totalSiswa, Kelas: $totalKelas, Hari Ini: $kelasHariIni',
+            '📊 Stats Guru - Siswa: $totalStudentsTaught, Kelas: $totalClassesTaught, Hari Ini: $todaysClasses',
           );
         }
 
@@ -232,10 +232,10 @@ class _DashboardState extends State<Dashboard>
 
         setState(() {
           _stats = {
-            'total_siswa': totalSiswa,
-            'total_kelas': totalKelas,
-            'kelas_hari_ini': kelasHariIni,
-            'total_materi': materi.length,
+            'total_siswa': totalStudentsTaught,
+            'total_kelas': totalClassesTaught,
+            'kelas_hari_ini': todaysClasses,
+            'total_materi': subjects.length,
             'total_rpp': rpp.length,
           };
         });
@@ -245,33 +245,33 @@ class _DashboardState extends State<Dashboard>
           print('👤 Loading stats untuk admin');
         }
 
-        final siswa = await ApiStudentService.getStudent();
+        final student = await ApiStudentService.getStudent();
         if (kDebugMode) {
-          print('🎒 Siswa ditemukan: ${siswa.length}');
+          print('🎒 Siswa ditemukan: ${student.length}');
         }
 
-        final guru = await ApiTeacherService().getTeacher();
+        final teacher = await ApiTeacherService().getTeacher();
         if (kDebugMode) {
-          print('👨‍🏫 Guru ditemukan: ${guru.length}');
+          print('👨‍🏫 Guru ditemukan: ${teacher.length}');
         }
 
-        final kelas = await ApiClassService().getClass();
+        final classes = await ApiClassService().getClass();
         if (kDebugMode) {
-          print('🏫 Kelas ditemukan: ${kelas.length}');
+          print('🏫 Kelas ditemukan: ${classes.length}');
         }
 
-        final mapel = await ApiSubjectService().getSubject();
+        final subjects = await ApiSubjectService().getSubject();
         if (kDebugMode) {
-          print('📖 Mata Pelajaran ditemukan: ${mapel.length}');
+          print('📖 Mata Pelajaran ditemukan: ${subjects.length}');
         }
 
         if (!mounted) return;
         setState(() {
           _stats = {
-            'total_siswa': siswa.length,
-            'total_guru': guru.length,
-            'total_kelas': kelas.length,
-            'total_mapel': mapel.length,
+            'total_siswa': student.length,
+            'total_guru': teacher.length,
+            'total_kelas': classes.length,
+            'total_mapel': subjects.length,
           };
         });
       } else if (widget.role == 'wali') {
@@ -281,22 +281,22 @@ class _DashboardState extends State<Dashboard>
           print('👤 Loading stats untuk wali: ${userData['id']}');
         }
 
-        final siswaData = await _getSiswaDataForParent(userData['id'] ?? '');
+        final studentsData = await _getStudentDataForParent(userData['id'] ?? '');
         if (kDebugMode) {
-          print('👶 Data siswa untuk wali: ${siswaData.length}');
+          print('👶 Data siswa untuk wali: ${studentsData.length}');
         }
 
         // Untuk pengumuman, kita gunakan fallback dulu
-        final pengumuman = await _getPengumumanTerbaru();
+        final announcements = await _getAnnouncements();
         if (kDebugMode) {
-          print('📢 Pengumuman untuk wali: ${pengumuman.length}');
+          print('📢 Pengumuman untuk wali: ${announcements.length}');
         }
 
         if (!mounted) return;
         setState(() {
           _stats = {
-            'anak_terdaftar': siswaData.length,
-            'pengumuman_terbaru': pengumuman.length,
+            'anak_terdaftar': studentsData.length,
+            'pengumuman_terbaru': announcements.length,
           };
         });
       }
@@ -332,26 +332,26 @@ class _DashboardState extends State<Dashboard>
     }
   }
 
-  Future<int> _getTotalSiswaDiampu() async {
+  Future<int> _getTotalStudentsTaught() async {
     try {
-      final kelasDiampu = await _getKelasDiampu();
-      if (kelasDiampu.isEmpty) {
+      final classesTaught = await _getClassesTaught();
+      if (classesTaught.isEmpty) {
         return 0;
       }
 
       int total = 0;
-      for (var kelas in kelasDiampu) {
+      for (var classes in classesTaught) {
         try {
-          final siswa = await ApiClassService().getStudentsByClassId(
-            kelas['id']?.toString() ?? '',
+          final students = await ApiClassService().getStudentsByClassId(
+            classes['id']?.toString() ?? '',
           );
-          total += siswa.length;
+          total += students.length;
           if (kDebugMode) {
-            print('`Siswa di kelas ${kelas['nama']}: ${siswa.length}`');
+            print('`Siswa di kelas ${classes['nama']}: ${students.length}`');
           }
         } catch (e) {
           if (kDebugMode) {
-            print('❌ Error getting students for class ${kelas['id']}: $e');
+            print('❌ Error getting students for class ${classes['id']}: $e');
           }
         }
       }
@@ -362,25 +362,25 @@ class _DashboardState extends State<Dashboard>
       return total;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error in _getTotalSiswaDiampu: $e');
+        print('❌ Error in _getTotalStudentsTaught: $e');
       }
       return 0;
     }
   }
 
-  Future<int> _getTotalKelasDiampu() async {
+  Future<int> _getTotalClassesTaught() async {
     try {
-      final kelasDiampu = await _getKelasDiampu();
-      return kelasDiampu.length;
+      final classesTaught = await _getClassesTaught();
+      return classesTaught.length;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error in _getTotalKelasDiampu: $e');
+        print('❌ Error in _getTotalClassesTaught: $e');
       }
       return 0;
     }
   }
 
-  Future<List<dynamic>> _getKelasDiampu() async {
+  Future<List<dynamic>> _getClassesTaught() async {
     try {
       final schedule = await ApiScheduleService.getCurrentUserSchedule();
       if (kDebugMode) {
@@ -403,12 +403,12 @@ class _DashboardState extends State<Dashboard>
         print('🎯 Kelas IDs unik: $classIds');
       }
 
-      List<dynamic> kelas = [];
+      List<dynamic> classes = [];
       for (var classId in classIds) {
         try {
-          final kelasData = await ApiClassService().getClassById(classId!);
-          if (kelasData != null) {
-            kelas.add(kelasData);
+          final classData = await ApiClassService().getClassById(classId!);
+          if (classData != null) {
+            classes.add(classData);
             if (kDebugMode) {
               print('✅ Kelas $classId ditemukan');
             }
@@ -425,18 +425,18 @@ class _DashboardState extends State<Dashboard>
       }
 
       if (kDebugMode) {
-        print('🏫 Total kelas diampu: ${kelas.length}');
+        print('🏫 Total kelas diampu: ${classes.length}');
       }
-      return kelas;
+      return classes;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error in _getKelasDiampu: $e');
+        print('❌ Error in _getClassesTaught: $e');
       }
       return [];
     }
   }
 
-  int _getKelasHariIni(List<dynamic> schedule) {
+  int _getTodaysClasses(List<dynamic> schedule) {
     try {
       if (schedule.isEmpty) return 0;
 
@@ -462,25 +462,25 @@ class _DashboardState extends State<Dashboard>
         );
       }
 
-      final kelasHariIni = schedule.where((s) {
-        final hariNama = s['hari_nama']?.toString() ?? '';
-        return hariNama == todayName;
+      final todayClasses = schedule.where((s) {
+        final nameDay = s['hari_nama']?.toString() ?? '';
+        return nameDay == todayName;
       }).toList();
 
       if (kDebugMode) {
-        print('🎯 Kelas hari ini: ${kelasHariIni.length}');
+        print('🎯 Kelas hari ini: ${todayClasses.length}');
       }
-      return kelasHariIni.length;
+      return todayClasses.length;
     } catch (e) {
       if (kDebugMode) {
-        print('❌ Error in _getKelasHariIni: $e');
+        print('❌ Error in _getTodaysClasses: $e');
       }
       return 0;
     }
   }
 
   // Method untuk mendapatkan data siswa untuk parent/wali murid
-  Future<List<dynamic>> _getSiswaDataForParent(String parentId) async {
+  Future<List<dynamic>> _getStudentDataForParent(String parentId) async {
     try {
       if (kDebugMode) {
         print('👤 Mencari data siswa untuk parent: $parentId');
@@ -503,34 +503,34 @@ class _DashboardState extends State<Dashboard>
         if (kDebugMode) {
           print('🔍 Mencari siswa dengan ID: ${userData['siswa_id']}');
         }
-        final siswa = allStudents.firstWhere(
+        final student = allStudents.firstWhere(
           (student) => student['id'] == userData['siswa_id'],
           orElse: () => null,
         );
-        if (siswa != null) {
+        if (student != null) {
           if (kDebugMode) {
-            print('✅ Siswa ditemukan via siswa_id: ${siswa['nama']}');
+            print('✅ Siswa ditemukan via siswa_id: ${student['nama']}');
           }
-          return [siswa];
+          return [student];
         }
       }
 
       // Cek berdasarkan email atau nama wali
-      final siswaWithThisParent = allStudents.where((student) {
+      final studentsWithThisParent = allStudents.where((student) {
         final emailMatch = student['email_wali'] == userData['email'];
-        final namaMatch = student['nama_wali'] == userData['nama'];
+        final nameMatch = student['nama_wali'] == userData['nama'];
 
-        if (emailMatch || namaMatch) {
+        if (emailMatch || nameMatch) {
           if (kDebugMode) {
             print('✅ Siswa cocok: ${student['nama']}');
           }
         }
 
-        return emailMatch || namaMatch;
+        return emailMatch || nameMatch;
       }).toList();
 
-      if (siswaWithThisParent.isNotEmpty) {
-        return siswaWithThisParent;
+      if (studentsWithThisParent.isNotEmpty) {
+        return studentsWithThisParent;
       }
 
       if (kDebugMode) {
@@ -545,7 +545,7 @@ class _DashboardState extends State<Dashboard>
     }
   }
 
-  Future<List<dynamic>> _getPengumumanTerbaru() async {
+  Future<List<dynamic>> _getAnnouncements() async {
     try {
       // Sama seperti di PengumumanScreen - langsung ambil dari API
       // Backend sudah melakukan filtering berdasarkan role user
@@ -553,24 +553,24 @@ class _DashboardState extends State<Dashboard>
         print('🔄 Memuat data pengumuman untuk role: ${widget.role}');
       }
 
-      final pengumumanData = await ApiService().get('/pengumuman');
+      final announcementData = await ApiService().get('/pengumuman');
 
       if (kDebugMode) {
         print('✅ Response dari API:');
-        print('Type: ${pengumumanData.runtimeType}');
+        print('Type: ${announcementData.runtimeType}');
         print(
-          'Length: ${pengumumanData is List ? pengumumanData.length : 'N/A'}',
+          'Length: ${announcementData is List ? announcementData.length : 'N/A'}',
         );
       }
 
       // Backend sudah filter berdasarkan role, jadi langsung return aja
-      if (pengumumanData is List) {
+      if (announcementData is List) {
         if (kDebugMode) {
           print(
-            '📊 Data pengumuman berhasil dimuat: ${pengumumanData.length} pengumuman',
+            '📊 Data pengumuman berhasil dimuat: ${announcementData.length} pengumuman',
           );
         }
-        return pengumumanData;
+        return announcementData;
       }
 
       return [];
@@ -680,7 +680,7 @@ class _DashboardState extends State<Dashboard>
         gradient: _getHeaderGradient(),
         boxShadow: [
           BoxShadow(
-            color: _getPrimaryColor().withOpacity(0.3),
+            color: _getPrimaryColor().withValues(alpha: 0.3),
             blurRadius: 15,
             offset: Offset(0, 4),
           ),
@@ -699,7 +699,7 @@ class _DashboardState extends State<Dashboard>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 8,
                     offset: Offset(0, 2),
                   ),
@@ -731,7 +731,7 @@ class _DashboardState extends State<Dashboard>
                   _getRoleTitle(),
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],
@@ -765,16 +765,16 @@ class _DashboardState extends State<Dashboard>
 
   Widget _buildStatsSection() {
     if (widget.role == 'guru') {
-      return _buildGuruStats();
+      return _buildTeacherStats();
     } else if (widget.role == 'admin') {
       return _buildAdminStats();
     } else if (widget.role == 'wali') {
-      return _buildWaliStats();
+      return _buildParentStats();
     }
     return SizedBox.shrink();
   }
 
-  Widget _buildGuruStats() {
+  Widget _buildTeacherStats() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: 20),
@@ -786,7 +786,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "Semua kelas",
             icon: Icons.people_alt_outlined,
             iconColor: Color(0xFF4361EE),
-            backgroundColor: Color(0xFF4361EE).withOpacity(0.1),
+            backgroundColor: Color(0xFF4361EE).withValues(alpha: 0.1),
           ),
           SizedBox(width: 12),
           _buildStatCard(
@@ -795,7 +795,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "✓ Aktif",
             icon: Icons.class_outlined,
             iconColor: Color(0xFF2EC4B6),
-            backgroundColor: Color(0xFF2EC4B6).withOpacity(0.1),
+            backgroundColor: Color(0xFF2EC4B6).withValues(alpha: 0.1),
           ),
           SizedBox(width: 12),
           _buildStatCard(
@@ -804,7 +804,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "Sedang berlangsung",
             icon: Icons.schedule_outlined,
             iconColor: Color(0xFFFF9F1C),
-            backgroundColor: Color(0xFFFF9F1C).withOpacity(0.1),
+            backgroundColor: Color(0xFFFF9F1C).withValues(alpha: 0.1),
           ),
           SizedBox(width: 12),
           _buildStatCard(
@@ -818,7 +818,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "Terkirim",
             icon: Icons.description_outlined,
             iconColor: Color(0xFF7209B7),
-            backgroundColor: Color(0xFF7209B7).withOpacity(0.1),
+            backgroundColor: Color(0xFF7209B7).withValues(alpha: 0.1),
           ),
         ],
       ),
@@ -837,7 +837,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "✓ Terdaftar",
             icon: "👨‍🎓",
             iconColor: Color(0xFF4361EE),
-            backgroundColor: Color(0xFF4361EE).withOpacity(0.1),
+            backgroundColor: Color(0xFF4361EE).withValues(alpha: 0.1),
           ),
           SizedBox(width: 12),
           _buildStatCard(
@@ -846,7 +846,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "✓ Aktif",
             icon: "👨‍🏫",
             iconColor: Color(0xFF2EC4B6),
-            backgroundColor: Color(0xFF2EC4B6).withOpacity(0.1),
+            backgroundColor: Color(0xFF2EC4B6).withValues(alpha: 0.1),
           ),
           SizedBox(width: 12),
           _buildStatCard(
@@ -864,14 +864,14 @@ class _DashboardState extends State<Dashboard>
             subtitle: "✓ Tersedia",
             icon: "📚",
             iconColor: Color(0xFF7209B7),
-            backgroundColor: Color(0xFF7209B7).withOpacity(0.1),
+            backgroundColor: Color(0xFF7209B7).withValues(alpha: 0.1),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildWaliStats() {
+  Widget _buildParentStats() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: EdgeInsets.symmetric(horizontal: 20),
@@ -883,7 +883,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "Info terbaru",
             icon: Icons.announcement_outlined,
             iconColor: Color(0xFF4361EE),
-            backgroundColor: Color(0xFF4361EE).withOpacity(0.1),
+            backgroundColor: Color(0xFF4361EE).withValues(alpha: 0.1),
           ),
           SizedBox(width: 12),
           _buildStatCard(
@@ -892,7 +892,7 @@ class _DashboardState extends State<Dashboard>
             subtitle: "Anak terdaftar",
             icon: Icons.child_care_outlined,
             iconColor: Color(0xFF2EC4B6),
-            backgroundColor: Color(0xFF2EC4B6).withOpacity(0.1),
+            backgroundColor: Color(0xFF2EC4B6).withValues(alpha: 0.1),
           ),
         ],
       ),
@@ -916,7 +916,7 @@ class _DashboardState extends State<Dashboard>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -994,7 +994,7 @@ class _DashboardState extends State<Dashboard>
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),
@@ -1013,7 +1013,7 @@ class _DashboardState extends State<Dashboard>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _getPrimaryColor().withOpacity(0.2),
+            color: _getPrimaryColor().withValues(alpha: 0.2),
             blurRadius: 20,
             offset: Offset(0, 8),
           ),
@@ -1030,7 +1030,7 @@ class _DashboardState extends State<Dashboard>
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: _getPrimaryColor().withOpacity(0.3),
+                  color: _getPrimaryColor().withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: Offset(0, 4),
                 ),
@@ -1051,7 +1051,7 @@ class _DashboardState extends State<Dashboard>
                   AppLocalizations.welcome.tr,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -1072,7 +1072,7 @@ class _DashboardState extends State<Dashboard>
                   _userData['nama_sekolah'] ?? AppLocalizations.appTitle.tr,
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1095,7 +1095,7 @@ class _DashboardState extends State<Dashboard>
           borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 10,
               offset: Offset(0, 4),
             ),
@@ -1168,7 +1168,7 @@ class _DashboardState extends State<Dashboard>
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.3),
+                color: Colors.grey.withValues(alpha: 0.3),
                 blurRadius: 5,
                 offset: Offset(0, 4),
               ),
@@ -1201,7 +1201,7 @@ class _DashboardState extends State<Dashboard>
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: Colors.grey.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -1220,7 +1220,7 @@ class _DashboardState extends State<Dashboard>
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: _getPrimaryColor().withOpacity(0.1),
+                          color: _getPrimaryColor().withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: _buildIconWidget(icon),
@@ -1333,9 +1333,9 @@ class _DashboardState extends State<Dashboard>
         child: Container(
           padding: EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.3)),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -1374,7 +1374,7 @@ class _DashboardState extends State<Dashboard>
                   borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 20,
                       offset: Offset(0, -5),
                     ),
@@ -1481,12 +1481,12 @@ class _DashboardState extends State<Dashboard>
                                 margin: EdgeInsets.only(bottom: 8),
                                 decoration: BoxDecoration(
                                   color: isCurrent
-                                      ? _getPrimaryColor().withOpacity(0.1)
+                                      ? _getPrimaryColor().withValues(alpha: 0.1)
                                       : Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isCurrent
-                                        ? _getPrimaryColor().withOpacity(0.3)
+                                        ? _getPrimaryColor().withValues(alpha: 0.3)
                                         : Colors.transparent,
                                   ),
                                 ),
@@ -1516,7 +1516,7 @@ class _DashboardState extends State<Dashboard>
                               ),
                             ),
                           );
-                        }).toList(),
+                        }),
                         SizedBox(height: 16),
                         Divider(),
                         SizedBox(height: 16),
@@ -1536,10 +1536,10 @@ class _DashboardState extends State<Dashboard>
                               width: double.infinity,
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: _getPrimaryColor().withOpacity(0.1),
+                                color: _getPrimaryColor().withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
-                                  color: _getPrimaryColor().withOpacity(0.3),
+                                  color: _getPrimaryColor().withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Row(
@@ -1678,7 +1678,7 @@ class _DashboardState extends State<Dashboard>
             ),
           ],
         ),
-        content: Container(
+        content: SizedBox(
           width: double.maxFinite,
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1702,12 +1702,12 @@ class _DashboardState extends State<Dashboard>
                         margin: EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? _getPrimaryColor().withOpacity(0.1)
+                              ? _getPrimaryColor().withValues(alpha: 0.1)
                               : Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: isCurrent
-                                ? _getPrimaryColor().withOpacity(0.3)
+                                ? _getPrimaryColor().withValues(alpha: 0.3)
                                 : Colors.transparent,
                           ),
                         ),
@@ -1757,7 +1757,7 @@ class _DashboardState extends State<Dashboard>
                       ),
                     ),
                   );
-                }).toList(),
+                }),
             ],
           ),
         ),
@@ -1795,7 +1795,7 @@ class _DashboardState extends State<Dashboard>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withOpacity(0.8)],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha:0.8)],
     );
   }
 
@@ -1803,7 +1803,7 @@ class _DashboardState extends State<Dashboard>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withOpacity(0.7)],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha:0.7)],
     );
   }
 
@@ -1878,7 +1878,7 @@ class _DashboardState extends State<Dashboard>
         'icon': "📢",
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => PengumumanScreen()),
+          MaterialPageRoute(builder: (context) => AnnouncementScreen()),
         ),
         'roles': ['guru', 'wali'],
       },
@@ -1889,7 +1889,9 @@ class _DashboardState extends State<Dashboard>
           final prefs = await SharedPreferences.getInstance();
           final userData = json.decode(prefs.getString('user') ?? '{}');
 
-          print('👤 User data for attendance: $userData');
+          if (kDebugMode) {
+            print('👤 User data for attendance: $userData');
+          }
 
           final guruData = {
             'id': userData['id'] ?? '',
@@ -1924,7 +1926,9 @@ class _DashboardState extends State<Dashboard>
           final prefs = await SharedPreferences.getInstance();
           final userData = json.decode(prefs.getString('user') ?? '{}');
 
-          print('👤 User data for grade input: $userData');
+          if (kDebugMode) {
+            print('👤 User data for grade input: $userData');
+          }
 
           final guruData = {
             'id': userData['id'] ?? '',
@@ -2002,7 +2006,7 @@ class _DashboardState extends State<Dashboard>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => MateriPage(guru: teacherData),
+              builder: (context) => MateriPage(teacher: teacherData),
             ),
           );
         },
@@ -2026,16 +2030,18 @@ class _DashboardState extends State<Dashboard>
           final prefs = await SharedPreferences.getInstance();
           final userData = json.decode(prefs.getString('user') ?? '{}');
 
-          print('👤 User data for RPP: $userData');
+          if (kDebugMode) {
+            print('👤 User data for RPP: $userData');
+          }
 
-          final guruData = {
+          final teacherData = {
             'id': userData['id'] ?? '',
             'nama': userData['nama'] ?? 'Teacher',
             'email': userData['email'] ?? '',
             'role': widget.role,
           };
 
-          if (guruData['id']!.isEmpty) {
+          if (teacherData['id']!.isEmpty) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Error: Teacher ID not found')),
@@ -2049,8 +2055,8 @@ class _DashboardState extends State<Dashboard>
             context,
             MaterialPageRoute(
               builder: (context) => RppScreen(
-                guruId: guruData['id']!,
-                guruName: guruData['nama']!,
+                teacherId: teacherData['id']!,
+                teacherName: teacherData['nama']!,
               ),
             ),
           );
@@ -2080,7 +2086,7 @@ class _DashboardState extends State<Dashboard>
         'icon': "💰",
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => KeuanganScreen()),
+          MaterialPageRoute(builder: (context) => FinanceScreen()),
         ),
         'roles': ['admin'],
       },
@@ -2091,11 +2097,13 @@ class _DashboardState extends State<Dashboard>
           final prefs = await SharedPreferences.getInstance();
           final userData = json.decode(prefs.getString('user') ?? '{}');
 
-          print('👤 Parent data: $userData');
+          if (kDebugMode) {
+            print('👤 Parent data: $userData');
+          }
 
-          final siswaData = await _getSiswaDataForParent(userData['id'] ?? '');
+          final studentsData = await _getStudentDataForParent(userData['id'] ?? '');
 
-          if (siswaData.isEmpty) {
+          if (studentsData.isEmpty) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
@@ -2127,18 +2135,18 @@ class _DashboardState extends State<Dashboard>
 
           if (!context.mounted) return;
 
-          if (siswaData.length == 1) {
+          if (studentsData.length == 1) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (context) => PresenceParentPage(
                   parent: userData,
-                  siswaId: siswaData[0]['id'],
+                  siswaId: studentsData[0]['id'],
                 ),
               ),
             );
           } else {
-            _showStudentSelectionDialog(context, userData, siswaData);
+            _showStudentSelectionDialog(context, userData, studentsData);
           }
         },
         'roles': ['wali'],
@@ -2157,7 +2165,7 @@ class _DashboardState extends State<Dashboard>
         'icon': "💰",
         'onTap': () => Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => TagihanWaliScreen()),
+          MaterialPageRoute(builder: (context) => ParentBillingScreen()),
         ),
         'roles': ['wali'],
       },
@@ -2176,7 +2184,7 @@ class _DashboardState extends State<Dashboard>
 void _showStudentSelectionDialog(
   BuildContext context,
   Map<String, dynamic> parent,
-  List<dynamic> siswaData,
+  List<dynamic> studentData,
 ) {
   showDialog(
     context: context,
@@ -2188,9 +2196,9 @@ void _showStudentSelectionDialog(
         width: double.maxFinite,
         child: ListView.builder(
           shrinkWrap: true,
-          itemCount: siswaData.length,
+          itemCount: studentData.length,
           itemBuilder: (context, index) {
-            final siswa = siswaData[index];
+            final student = studentData[index];
             return Material(
               color: Colors.transparent,
               child: InkWell(
@@ -2201,7 +2209,7 @@ void _showStudentSelectionDialog(
                     MaterialPageRoute(
                       builder: (context) => PresenceParentPage(
                         parent: parent,
-                        siswaId: siswa['id'],
+                        siswaId: student['id'],
                       ),
                     ),
                   );
@@ -2217,9 +2225,9 @@ void _showStudentSelectionDialog(
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: Color(0xFF4361EE).withOpacity(0.1),
+                        backgroundColor: Color(0xFF4361EE).withValues(alpha: 0.1),
                         child: Text(
-                          siswa['nama'][0],
+                          student['nama'][0],
                           style: TextStyle(color: Color(0xFF4361EE)),
                         ),
                       ),
@@ -2229,12 +2237,12 @@ void _showStudentSelectionDialog(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              siswa['nama'],
+                              student['nama'],
                               style: TextStyle(fontWeight: FontWeight.w500),
                             ),
                             SizedBox(height: 2),
                             Text(
-                              'Kelas: ${siswa['kelas_nama'] ?? '-'}',
+                              'Kelas: ${student['kelas_nama'] ?? '-'}',
                               style: TextStyle(
                                 color: Colors.grey.shade600,
                                 fontSize: 12,

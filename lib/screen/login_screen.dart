@@ -22,11 +22,11 @@ class LoginScreenState extends State<LoginScreen> {
   bool _serverConnected = true;
   bool _showSchoolSelection = false;
   bool _showRoleSelection = false;
-  List<dynamic> _sekolahList = [];
+  List<dynamic> _schoolList = [];
   List<dynamic> _roleList = [];
-  Map<String, dynamic>? _selectedSekolah;
+  Map<String, dynamic>? _selectedSchool;
   Map<String, dynamic>? _userData;
-  String? _selectedSekolahId;
+  String? _selectedSchoolId;
 
   @override
   void initState() {
@@ -80,11 +80,11 @@ class LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
         _showSchoolSelection = false;
         _showRoleSelection = false;
-        _sekolahList = [];
+        _schoolList = [];
         _roleList = [];
-        _selectedSekolah = null;
+        _selectedSchool = null;
         _userData = null;
-        _selectedSekolahId = null;
+        _selectedSchoolId = null;
       });
 
       // Clear form
@@ -123,7 +123,7 @@ class LoginScreenState extends State<LoginScreen> {
       final responseData = await ApiService.login(
         email,
         password,
-        sekolahId: _selectedSekolahId,
+        schoolId: _selectedSchoolId,
       );
 
       // Debug logging
@@ -155,7 +155,7 @@ class LoginScreenState extends State<LoginScreen> {
 
         setState(() {
           _showSchoolSelection = true;
-          _sekolahList = responseData['sekolah_list'];
+          _schoolList = responseData['sekolah_list'];
           _userData = responseData['user'];
           _isLoading = false;
         });
@@ -183,7 +183,7 @@ class LoginScreenState extends State<LoginScreen> {
           _showRoleSelection = true;
           _roleList = responseData['role_list'];
           _userData = responseData['user'];
-          _selectedSekolah = responseData['sekolah'] ?? {};
+          _selectedSchool = responseData['sekolah'] ?? {};
           _isLoading = false;
         });
         return;
@@ -275,14 +275,14 @@ class LoginScreenState extends State<LoginScreen> {
     // Force refresh and send FCM token to backend after successful login
     try {
       final fcmService = FCMService();
-      
+
       if (kDebugMode) {
         print('🔄 Force refreshing FCM token after login...');
       }
-      
+
       // Force refresh to get new token (in case Firebase project changed)
       final fcmToken = await fcmService.forceRefreshToken();
-      
+
       if (fcmToken != null) {
         if (kDebugMode) {
           print('✅ FCM token refreshed and sent successfully');
@@ -300,21 +300,21 @@ class LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _selectSchool(String sekolahId) async {
+  Future<void> _selectSchool(String schoolId) async {
     if (kDebugMode) {
-      print('🎯 Selecting school: $sekolahId');
+      print('🎯 Selecting school: $schoolId');
     }
 
     setState(() {
       _isLoading = true;
-      _selectedSekolahId = sekolahId;
+      _selectedSchoolId = schoolId;
     });
 
     try {
       final responseData = await ApiService.login(
         emailController.text.trim(),
         passwordController.text,
-        sekolahId: sekolahId,
+        schoolId: schoolId,
       );
 
       if (kDebugMode) {
@@ -341,7 +341,7 @@ class LoginScreenState extends State<LoginScreen> {
           _showRoleSelection = true;
           _roleList = responseData['role_list'];
           _userData = responseData['user'];
-          _selectedSekolah = responseData['sekolah'] ?? {};
+          _selectedSchool = responseData['sekolah'] ?? {};
           _isLoading = false;
         });
         return;
@@ -404,7 +404,7 @@ class LoginScreenState extends State<LoginScreen> {
       final responseData = await ApiService.login(
         emailController.text.trim(),
         passwordController.text,
-        sekolahId: _selectedSekolah?['id'] ?? _selectedSekolahId,
+        schoolId: _selectedSchool?['id'] ?? _selectedSchoolId,
         role: role,
       );
 
@@ -471,7 +471,7 @@ class LoginScreenState extends State<LoginScreen> {
           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
         Text(
-          'Sekolah: ${_selectedSekolah?['nama_sekolah'] ?? _userData?['nama_sekolah']}',
+          'Sekolah: ${_selectedSchool?['nama_sekolah'] ?? _userData?['nama_sekolah']}',
           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
         SizedBox(height: 20),
@@ -569,9 +569,9 @@ class LoginScreenState extends State<LoginScreen> {
         SizedBox(height: 20),
         Expanded(
           child: ListView.builder(
-            itemCount: _sekolahList.length,
+            itemCount: _schoolList.length,
             itemBuilder: (context, index) {
-              final sekolah = _sekolahList[index];
+              final sekolah = _schoolList[index];
               return Card(
                 margin: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                 child: ListTile(

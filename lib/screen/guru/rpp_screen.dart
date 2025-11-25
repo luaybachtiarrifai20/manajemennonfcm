@@ -9,10 +9,10 @@ import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
 class RppScreen extends StatefulWidget {
-  final String guruId;
-  final String guruName;
+  final String teacherId;
+  final String teacherName;
 
-  const RppScreen({super.key, required this.guruId, required this.guruName});
+  const RppScreen({super.key, required this.teacherId, required this.teacherName});
 
   @override
   RppScreenState createState() => RppScreenState();
@@ -321,7 +321,7 @@ class RppScreenState extends State<RppScreen>
         _errorMessage = null;
       });
 
-      final rppData = await ApiService.getRPP(guruId: widget.guruId);
+      final rppData = await ApiService.getRPP(teacherId: widget.teacherId);
 
       setState(() {
         _rppList = rppData;
@@ -341,7 +341,7 @@ class RppScreenState extends State<RppScreen>
     showDialog(
       context: context,
       builder: (context) =>
-          RppFormDialog(guruId: widget.guruId, onSaved: _loadRpp),
+          RppFormDialog(teacherId: widget.teacherId, onSaved: _loadRpp),
     );
   }
 
@@ -349,7 +349,7 @@ class RppScreenState extends State<RppScreen>
     showDialog(
       context: context,
       builder: (context) =>
-          RppFormDialog(guruId: widget.guruId, onSaved: _loadRpp, rppData: rpp),
+          RppFormDialog(teacherId: widget.teacherId, onSaved: _loadRpp, rppData: rpp),
     );
   }
 
@@ -1045,13 +1045,13 @@ class RppScreenState extends State<RppScreen>
 
 // RppFormDialog tetap sama seperti sebelumnya
 class RppFormDialog extends StatefulWidget {
-  final String guruId;
+  final String teacherId;
   final VoidCallback onSaved;
   final Map<String, dynamic>? rppData;
 
   const RppFormDialog({
     super.key,
-    required this.guruId,
+    required this.teacherId,
     required this.onSaved,
     this.rppData,
   });
@@ -1098,7 +1098,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
     try {
       final apiService = ApiService();
       final result = await apiService.get(
-        '/guru/${widget.guruId}/mata-pelajaran',
+        '/guru/${widget.teacherId}/mata-pelajaran',
       );
       setState(() {
         _mataPelajaranList = result is List ? result : [];
@@ -1233,7 +1233,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
 
       // Debug data yang akan dikirim
       print('Submitting RPP data:');
-      print('- Guru ID: ${widget.guruId}');
+      print('- Guru ID: ${widget.teacherId}');
       print('- Mata Pelajaran ID: $_selectedMataPelajaranId');
       print('- Kelas ID: $_selectedClassId');
       print('- Judul: ${_judulController.text}');
@@ -1255,7 +1255,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
         print('RPP updated successfully');
       } else {
         // Mode tambah baru
-        rppData['guru_id'] = widget.guruId;
+        rppData['guru_id'] = widget.teacherId;
         await ApiService.tambahRPP(rppData);
         print('RPP created successfully');
       }

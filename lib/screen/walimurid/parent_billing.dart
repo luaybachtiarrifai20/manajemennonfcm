@@ -12,14 +12,14 @@ import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
-class TagihanWaliScreen extends StatefulWidget {
-  const TagihanWaliScreen({super.key});
+class ParentBillingScreen extends StatefulWidget {
+  const ParentBillingScreen({super.key});
 
   @override
-  TagihanWaliScreenState createState() => TagihanWaliScreenState();
+  ParentBillingScreenState createState() => ParentBillingScreenState();
 }
 
-class TagihanWaliScreenState extends State<TagihanWaliScreen>
+class ParentBillingScreenState extends State<ParentBillingScreen>
     with SingleTickerProviderStateMixin {
   final ApiService _apiService = ApiService();
   List<dynamic> _tagihanList = [];

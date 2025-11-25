@@ -292,14 +292,14 @@ class ApiService {
   static Future<Map<String, dynamic>> login(
     String email,
     String password, {
-    String? sekolahId,
+    String? schoolId,
     String? role,
   }) async {
     try {
       final Map<String, dynamic> body = {'email': email, 'password': password};
 
-      if (sekolahId != null) {
-        body['sekolah_id'] = sekolahId;
+      if (schoolId != null) {
+        body['sekolah_id'] = schoolId;
       }
 
       if (role != null) {
@@ -398,11 +398,11 @@ class ApiService {
   }
 
   // Switch sekolah
-  static Future<Map<String, dynamic>> switchSchool(String sekolahId) async {
+  static Future<Map<String, dynamic>> switchSchool(String schoolId) async {
     final response = await http.post(
       Uri.parse('$baseUrl/switch-school'),
       headers: await _getHeaders(),
-      body: json.encode({'sekolah_id': sekolahId}),
+      body: json.encode({'sekolah_id': schoolId}),
     );
 
     return _handleResponse(response);
@@ -441,9 +441,9 @@ class ApiService {
   }
 
   // RPP methods
-  static Future<List<dynamic>> getRPP({String? guruId, String? status}) async {
+  static Future<List<dynamic>> getRPP({String? teacherId, String? status}) async {
     String url = '$baseUrl/rpp?';
-    if (guruId != null) url += 'guru_id=$guruId&';
+    if (teacherId != null) url += 'guru_id=$teacherId&';
     if (status != null) url += 'status=$status&';
 
     final response = await http.get(
@@ -459,10 +459,10 @@ class ApiService {
   static Future<Map<String, dynamic>> getRppPaginated({
     int page = 1,
     int limit = 10,
-    String? guruId,
+    String? teacherId,
     String? status,
     String? search,
-    String? mataPelajaranId,
+    String? subjectId,
     String? classId,
     String? semester,
     String? tahunAjaran,
@@ -472,11 +472,11 @@ class ApiService {
       'limit': limit.toString(),
     };
 
-    if (guruId != null && guruId.isNotEmpty) queryParams['guru_id'] = guruId;
+    if (teacherId != null && teacherId.isNotEmpty) queryParams['guru_id'] = teacherId;
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
-    if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
-      queryParams['mata_pelajaran_id'] = mataPelajaranId;
+    if (subjectId != null && subjectId.isNotEmpty)
+      queryParams['mata_pelajaran_id'] = subjectId;
     if (classId != null && classId.isNotEmpty)
       queryParams['kelas_id'] = classId;
     if (semester != null && semester.isNotEmpty)

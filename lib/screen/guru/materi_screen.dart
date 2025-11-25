@@ -11,7 +11,7 @@ import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
 class MateriPage extends StatefulWidget {
-  final Map<String, dynamic> guru;
+  final Map<String, dynamic> teacher;
   final String? initialSubjectId;
   final String? initialSubjectName;
   final String? initialClassId;
@@ -19,7 +19,7 @@ class MateriPage extends StatefulWidget {
 
   const MateriPage({
     super.key,
-    required this.guru,
+    required this.teacher,
     this.initialSubjectId,
     this.initialSubjectName,
     this.initialClassId,
@@ -159,8 +159,8 @@ class MateriPageState extends State<MateriPage> {
     List<Map<String, dynamic>> subBabs,
   ) async {
     try {
-      final String? guruId = widget.guru['id'];
-      if (guruId == null || _selectedMataPelajaran == null) return;
+      final String? teacherId = widget.teacher['id'];
+      if (teacherId == null || _selectedMataPelajaran == null) return;
       
       final List<Map<String, dynamic>> items = [];
       
@@ -183,7 +183,7 @@ class MateriPageState extends State<MateriPage> {
       if (items.isEmpty) return;
       
       await ApiSubjectService.markMateriGenerated({
-        'guru_id': guruId,
+        'guru_id': teacherId,
         'mata_pelajaran_id': _selectedMataPelajaran,
         'items': items,
       });
@@ -226,10 +226,10 @@ class MateriPageState extends State<MateriPage> {
     super.initState();
 
     if (kDebugMode) {
-      print('Guru data received: ${widget.guru}');
+      print('Teacher data received: ${widget.teacher}');
     }
     if (kDebugMode) {
-      print('Guru ID: ${widget.guru['id']}');
+      print('Teacher ID: ${widget.teacher['id']}');
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -249,12 +249,12 @@ class MateriPageState extends State<MateriPage> {
         _isLoading = true;
       });
 
-      final String? guruId = widget.guru['id'];
+      final String? teacherId = widget.teacher['id'];
       if (kDebugMode) {
-        print('Loading data for guru ID: $guruId');
+        print('Loading data for teacher ID: $teacherId');
       }
 
-      if (guruId == null || guruId.isEmpty) {
+      if (teacherId == null || teacherId.isEmpty) {
         setState(() {
           _isLoading = false;
         });
@@ -265,7 +265,7 @@ class MateriPageState extends State<MateriPage> {
       }
 
       final ApiTeacherService apiTeacherService = ApiTeacherService();
-      final mataPelajaran = await apiTeacherService.getSubjectByTeacher(guruId);
+      final mataPelajaran = await apiTeacherService.getSubjectByTeacher(teacherId);
 
       if (kDebugMode) {
         print('Mata pelajaran found: ${mataPelajaran.length}');
@@ -281,7 +281,7 @@ class MateriPageState extends State<MateriPage> {
         return;
       }
 
-      final materi = await ApiSubjectService.getMateri(guruId: guruId);
+      final materi = await ApiSubjectService.getMateri(teacherId: teacherId);
 
       setState(() {
         _mataPelajaranList = mataPelajaran;
@@ -444,11 +444,11 @@ class MateriPageState extends State<MateriPage> {
   // Load materi progress from database
   Future<void> _loadMateriProgress(String mataPelajaranId) async {
     try {
-      final String? guruId = widget.guru['id'];
-      if (guruId == null) return;
+      final String? teacherId = widget.teacher['id'];
+      if (teacherId == null) return;
       
       final progress = await ApiSubjectService.getMateriProgress(
-        guruId: guruId,
+        guruId: teacherId,
         mataPelajaranId: mataPelajaranId,
       );
       
@@ -485,11 +485,11 @@ class MateriPageState extends State<MateriPage> {
   // Save single progress to database
   Future<void> _saveProgress(String babId, String? subBabId, bool isChecked) async {
     try {
-      final String? guruId = widget.guru['id'];
-      if (guruId == null || _selectedMataPelajaran == null) return;
+      final String? teacherId = widget.teacher['id'];
+      if (teacherId == null || _selectedMataPelajaran == null) return;
       
       await ApiSubjectService.saveMateriProgress({
-        'guru_id': guruId,
+        'guru_id': teacherId,
         'mata_pelajaran_id': _selectedMataPelajaran,
         'bab_id': babId,
         'sub_bab_id': subBabId,
@@ -509,8 +509,8 @@ class MateriPageState extends State<MateriPage> {
   // Save bab and all its sub-babs progress to database
   Future<void> _saveBabAndSubBabsProgress(String babId, bool isChecked) async {
     try {
-      final String? guruId = widget.guru['id'];
-      if (guruId == null || _selectedMataPelajaran == null) return;
+      final String? teacherId = widget.teacher['id'];
+      if (teacherId == null || _selectedMataPelajaran == null) return;
       
       // Prepare batch items
       final List<Map<String, dynamic>> progressItems = [];
@@ -533,7 +533,7 @@ class MateriPageState extends State<MateriPage> {
       
       // Batch save
       await ApiSubjectService.batchSaveMateriProgress({
-        'guru_id': guruId,
+        'guru_id': teacherId,
         'mata_pelajaran_id': _selectedMataPelajaran,
         'progress_items': progressItems,
       });

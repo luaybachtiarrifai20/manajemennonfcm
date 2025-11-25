@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
@@ -131,12 +132,16 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
             response['data']['grade_levels'] ?? [],
           );
         });
-        print(
-          '✅ Filter options loaded: ${_availableGradeLevels.length} grades',
-        );
+        if (kDebugMode) {
+          print(
+            '✅ Filter options loaded: ${_availableGradeLevels.length} grades',
+          );
+        }
       }
     } catch (e) {
-      print('Error loading filter options: $e');
+      if (kDebugMode) {
+        print('Error loading filter options: $e');
+      }
       // Continue with empty options - not critical error
     }
   }
@@ -148,9 +153,13 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       setState(() {
         _teachers = teachers;
       });
-      print('✅ Loaded ${_teachers.length} teachers for wali kelas selection');
+      if (kDebugMode) {
+        print('✅ Loaded ${_teachers.length} teachers for wali kelas selection');
+      }
     } catch (e) {
-      print('Error loading teachers: $e');
+      if (kDebugMode) {
+        print('Error loading teachers: $e');
+      }
       // Continue with empty list - not critical error
     }
   }
@@ -273,18 +282,18 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         spacing: 8,
                         runSpacing: 8,
                         children: List.generate(12, (index) {
-                          final kelas = (index + 1).toString();
-                          final isSelected = tempSelectedClass == kelas;
+                          final gradeLevel = (index + 1).toString();
+                          final isSelected = tempSelectedClass == gradeLevel;
                           return FilterChip(
-                            label: Text(kelas),
+                            label: Text(gradeLevel),
                             selected: isSelected,
                             onSelected: (selected) {
                               setModalState(() {
-                                tempSelectedClass = selected ? kelas : null;
+                                tempSelectedClass = selected ? gradeLevel : null;
                               });
                             },
                             backgroundColor: Colors.grey.shade100,
-                            selectedColor: _getPrimaryColor().withOpacity(0.2),
+                            selectedColor: _getPrimaryColor().withValues(alpha: 0.2),
                             checkmarkColor: _getPrimaryColor(),
                             labelStyle: TextStyle(
                               color: isSelected
@@ -308,7 +317,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withValues(alpha: 0.2),
                       blurRadius: 4,
                       offset: Offset(0, -2),
                     ),
@@ -431,9 +440,11 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         _isLoadingMore = false;
       });
 
-      print(
-        '✅ Loaded more data: Page $_currentPage, Total items: ${_classes.length}',
-      );
+      if (kDebugMode) {
+        print(
+          '✅ Loaded more data: Page $_currentPage, Total items: ${_classes.length}',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -442,7 +453,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         _currentPage--; // Revert page increment on error
       });
 
-      print('Error loading more data: $e');
+      if (kDebugMode) {
+        print('Error loading more data: $e');
+      }
     }
   }
 
@@ -505,7 +518,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     String? selectedGradeLevel = classData != null
         ? classData['grade_level']?.toString()
         : null;
-    String? selectedWaliKelasId = classData != null
+    String? selectedHomeroomTeacherId = classData != null
         ? classData['wali_kelas_id']?.toString()
         : null;
 
@@ -541,7 +554,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
@@ -597,11 +610,11 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                               languageProvider: languageProvider,
                             ),
                             SizedBox(height: 12),
-                            _buildWaliKelasDropdown(
-                              value: selectedWaliKelasId,
+                            _buildHomeroomTeacherDropdown(
+                              value: selectedHomeroomTeacherId,
                               onChanged: (value) {
                                 setDialogState(() {
-                                  selectedWaliKelasId = value;
+                                  selectedHomeroomTeacherId = value;
                                 });
                               },
                               languageProvider: languageProvider,
@@ -661,7 +674,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                       'grade_level': int.parse(
                                         selectedGradeLevel!,
                                       ),
-                                      'wali_kelas_id': selectedWaliKelasId,
+                                      'wali_kelas_id': selectedHomeroomTeacherId,
                                     };
 
                                     if (isEdit) {
@@ -826,7 +839,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     );
   }
 
-  Widget _buildWaliKelasDropdown({
+  Widget _buildHomeroomTeacherDropdown({
     required String? value,
     required Function(String?) onChanged,
     required LanguageProvider languageProvider,
@@ -962,7 +975,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       blurRadius: 5,
                       offset: Offset(0, 4),
                     ),
@@ -995,7 +1008,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1044,10 +1057,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withOpacity(0.1),
+                                  color: _getPrimaryColor().withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: _getPrimaryColor().withOpacity(0.3),
+                                    color: _getPrimaryColor().withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Text(
@@ -1071,7 +1084,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withOpacity(0.1),
+                                  color: _getPrimaryColor().withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -1173,10 +1186,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white.withOpacity(0.2),
+          color: backgroundColor ?? Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: borderColor ?? Colors.white.withOpacity(0.3),
+            color: borderColor ?? Colors.white.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -1228,7 +1241,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                       width: 60,
                       height: 60,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(15),
                       ),
                       child: Icon(Icons.school, size: 30, color: Colors.white),
@@ -1251,7 +1264,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                       ),
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                       ),
                     ),
                   ],
@@ -1358,7 +1371,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: _getPrimaryColor().withOpacity(0.1),
+              color: _getPrimaryColor().withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, size: 18, color: _getPrimaryColor()),
@@ -1464,7 +1477,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getPrimaryColor().withOpacity(0.3),
+                      color: _getPrimaryColor().withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -1481,7 +1494,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -1515,7 +1528,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                 }),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
                             ],
@@ -1539,7 +1552,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -1606,7 +1619,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: TextField(
@@ -1638,10 +1651,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                           decoration: BoxDecoration(
                             color: _hasActiveFilter
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Stack(
@@ -1691,7 +1704,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -1726,10 +1739,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                         ),
                                         onDeleted: filter['onRemove'],
                                         backgroundColor: _getPrimaryColor()
-                                            .withOpacity(0.1),
+                                            .withValues(alpha: 0.1),
                                         side: BorderSide(
-                                          color: _getPrimaryColor().withOpacity(
-                                            0.3,
+                                          color: _getPrimaryColor().withValues(
+                                            alpha: 0.3,
                                           ),
                                           width: 1,
                                         ),

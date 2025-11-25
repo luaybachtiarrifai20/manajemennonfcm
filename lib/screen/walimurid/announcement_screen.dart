@@ -8,14 +8,14 @@ import 'package:manajemensekolah/services/api_services.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
-class PengumumanScreen extends StatefulWidget {
-  const PengumumanScreen({super.key});
+class AnnouncementScreen extends StatefulWidget {
+  const AnnouncementScreen({super.key});
 
   @override
-  PengumumanScreenState createState() => PengumumanScreenState();
+  AnnouncementScreenState createState() => AnnouncementScreenState();
 }
 
-class PengumumanScreenState extends State<PengumumanScreen> {
+class AnnouncementScreenState extends State<AnnouncementScreen> {
   final ApiService _apiService = ApiService();
   List<dynamic> _pengumuman = [];
   bool _isLoading = true;

@@ -1589,7 +1589,7 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => MateriPage(
-                                      guru: {'id': _guruId, 'nama': _guruNama},
+                                      teacher: {'id': _guruId, 'nama': _guruNama},
                                       initialSubjectId:
                                           jadwal['mata_pelajaran_id']
                                               ?.toString(),

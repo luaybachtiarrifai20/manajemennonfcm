@@ -389,7 +389,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
       final result = await ApiService.getRppPaginated(
         page: _currentPage,
         limit: _perPage,
-        guruId: widget.teacherId,
+        teacherId: widget.teacherId,
         status: _selectedStatusFilter,
         search: _searchController.text.isNotEmpty
             ? _searchController.text
