@@ -8,6 +8,7 @@ import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
+import 'package:manajemensekolah/services/api_teacher_services.dart';
 import 'package:manajemensekolah/services/excel_class_service.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
@@ -23,7 +24,9 @@ class ClassManagementScreen extends StatefulWidget {
 class ClassManagementScreenState extends State<ClassManagementScreen>
     with SingleTickerProviderStateMixin {
   final ApiClassService _classService = ApiClassService();
+  final ApiTeacherService _teacherService = ApiTeacherService();
   List<dynamic> _classes = [];
+  List<dynamic> _teachers = [];
   bool _isLoading = true;
   String? _errorMessage;
 
@@ -38,7 +41,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
   // Pagination States (Infinite Scroll)
   int _currentPage = 1;
-  int _perPage = 10; // Fixed 10 items per load
+  final int _perPage = 10; // Fixed 10 items per load
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _paginationMeta;
@@ -83,6 +86,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     _searchController.addListener(_onSearchChanged);
 
     _loadFilterOptions();
+    _fetchTeachers();
     _loadData();
   }
 
@@ -141,6 +145,20 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     } catch (e) {
       print('Error loading filter options: $e');
       // Continue with empty options - not critical error
+    }
+  }
+
+  Future<void> _fetchTeachers() async {
+    try {
+      final teachers = await _teacherService.getTeacher();
+      if (!mounted) return;
+      setState(() {
+        _teachers = teachers;
+      });
+      print('✅ Loaded ${_teachers.length} teachers for wali kelas selection');
+    } catch (e) {
+      print('Error loading teachers: $e');
+      // Continue with empty list - not critical error
     }
   }
 
@@ -734,28 +752,15 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       text: classData?['nama'] ?? '',
     );
 
-    // Validate grade level - must be between 1-12 or null
-    String? selectedGradeLevel;
-    if (classData?['grade_level'] != null) {
-      final gradeValue = classData!['grade_level'].toString();
-      if (gradeValue.isNotEmpty) {
-        final gradeInt = int.tryParse(gradeValue);
-        if (gradeInt != null && gradeInt >= 1 && gradeInt <= 12) {
-          selectedGradeLevel = gradeValue;
-        }
-      }
-    }
-
-    // Validate wali_kelas_id - must not be empty string
-    String? selectedHomeroomTeacher;
-    if (classData?['wali_kelas_id'] != null) {
-      final teacherId = classData!['wali_kelas_id'].toString();
-      if (teacherId.isNotEmpty) {
-        selectedHomeroomTeacher = teacherId;
-      }
-    }
-
     final isEdit = classData != null;
+
+    // Initialize state variables outside builder to preserve state across rebuilds
+    String? selectedGradeLevel = classData != null
+        ? classData['grade_level']?.toString()
+        : null;
+    String? selectedWaliKelasId = classData != null
+        ? classData['wali_kelas_id']?.toString()
+        : null;
 
     showDialog(
       context: context,
@@ -844,6 +849,16 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                               },
                               languageProvider: languageProvider,
                             ),
+                            SizedBox(height: 12),
+                            _buildWaliKelasDropdown(
+                              value: selectedWaliKelasId,
+                              onChanged: (value) {
+                                setDialogState(() {
+                                  selectedWaliKelasId = value;
+                                });
+                              },
+                              languageProvider: languageProvider,
+                            ),
                           ],
                         ),
                       ),
@@ -899,11 +914,12 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                       'grade_level': int.parse(
                                         selectedGradeLevel!,
                                       ),
+                                      'wali_kelas_id': selectedWaliKelasId,
                                     };
 
                                     if (isEdit) {
                                       await _classService.updateClass(
-                                        classData!['id'],
+                                        classData['id'],
                                         data,
                                       );
                                       if (context.mounted) {
@@ -1031,7 +1047,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: languageProvider.getTranslatedText({
             'en': 'Grade Level',
@@ -1059,6 +1075,50 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         }),
         onChanged: onChanged,
         style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+      ),
+    );
+  }
+
+  Widget _buildWaliKelasDropdown({
+    required String? value,
+    required Function(String?) onChanged,
+    required LanguageProvider languageProvider,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: DropdownButtonFormField<String>(
+        initialValue: value,
+        decoration: InputDecoration(
+          labelText: languageProvider.getTranslatedText({
+            'en': 'Homeroom Teacher',
+            'id': 'Wali Kelas',
+          }),
+          prefixIcon: Icon(Icons.person, color: _getPrimaryColor(), size: 20),
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        items: [
+          DropdownMenuItem<String>(
+            value: null,
+            child: Text(
+              languageProvider.getTranslatedText({
+                'en': 'No Homeroom Teacher',
+                'id': 'Tidak ada wali kelas',
+              }),
+            ),
+          ),
+          ..._teachers.map((teacher) {
+            return DropdownMenuItem<String>(
+              value: teacher['id']?.toString(),
+              child: Text(teacher['nama'] ?? 'Unknown'),
+            );
+          }),
+        ],
+        onChanged: onChanged,
       ),
     );
   }
@@ -1244,11 +1304,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                   ),
                                 ),
                                 child: Text(
-                                  '${classData['jumlah_siswa'] ?? 0} ' +
-                                      languageProvider.getTranslatedText({
-                                        'en': 'students',
-                                        'id': 'siswa',
-                                      }),
+                                  '${classData['jumlah_siswa'] ?? 0} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
                                   style: TextStyle(
                                     color: _getPrimaryColor(),
                                     fontSize: 10,
@@ -1468,11 +1524,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         'id': 'Jumlah Siswa',
                       }),
                       value:
-                          '${classData['jumlah_siswa'] ?? 0} ' +
-                          languageProvider.getTranslatedText({
-                            'en': 'students',
-                            'id': 'siswa',
-                          }),
+                          '${classData['jumlah_siswa'] ?? 0} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
                     ),
                     _buildDetailItem(
                       icon: Icons.person,
@@ -1885,7 +1937,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                     // Show active filters as chips
                     if (_hasActiveFilter) ...[
                       SizedBox(height: 12),
-                      Container(
+                      SizedBox(
                         height: 42,
                         child: Row(
                           children: [
@@ -1946,7 +1998,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
