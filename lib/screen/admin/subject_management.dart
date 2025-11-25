@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
@@ -37,7 +38,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
 
   // Pagination States (Infinite Scroll)
   int _currentPage = 1;
-  int _perPage = 10; // Fixed 10 items per load
+  final int _perPage = 10; // Fixed 10 items per load
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _paginationMeta;
@@ -139,10 +140,14 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         setState(() {
           _availableStatusOptions = response['data']['status_options'] ?? [];
         });
-        print('✅ Filter options loaded');
+        if (kDebugMode) {
+          print('✅ Filter options loaded');
+        }
       }
     } catch (e) {
-      print('Error loading filter options: $e');
+      if (kDebugMode) {
+        print('Error loading filter options: $e');
+      }
       // Continue with empty options - not critical error
     }
   }
@@ -344,7 +349,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                               });
                             },
                             backgroundColor: Colors.grey.shade100,
-                            selectedColor: _getPrimaryColor().withOpacity(0.2),
+                            selectedColor: _getPrimaryColor().withValues(
+                              alpha: 0.2,
+                            ),
                             checkmarkColor: _getPrimaryColor(),
                             labelStyle: TextStyle(
                               color: isSelected
@@ -405,8 +412,8 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                   });
                                 },
                                 backgroundColor: Colors.grey.shade100,
-                                selectedColor: _getPrimaryColor().withOpacity(
-                                  0.2,
+                                selectedColor: _getPrimaryColor().withValues(
+                                  alpha: 0.2,
                                 ),
                                 checkmarkColor: _getPrimaryColor(),
                                 labelStyle: TextStyle(
@@ -454,8 +461,8 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                     });
                                   },
                                   backgroundColor: Colors.grey.shade100,
-                                  selectedColor: _getPrimaryColor().withOpacity(
-                                    0.2,
+                                  selectedColor: _getPrimaryColor().withValues(
+                                    alpha: 0.2,
                                   ),
                                   checkmarkColor: _getPrimaryColor(),
                                   labelStyle: TextStyle(
@@ -482,8 +489,8 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                     });
                                   },
                                   backgroundColor: Colors.grey.shade100,
-                                  selectedColor: _getPrimaryColor().withOpacity(
-                                    0.2,
+                                  selectedColor: _getPrimaryColor().withValues(
+                                    alpha: 0.2,
                                   ),
                                   checkmarkColor: _getPrimaryColor(),
                                   labelStyle: TextStyle(
@@ -530,8 +537,8 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                 });
                               },
                               backgroundColor: Colors.grey.shade100,
-                              selectedColor: _getPrimaryColor().withOpacity(
-                                0.2,
+                              selectedColor: _getPrimaryColor().withValues(
+                                alpha: 0.2,
                               ),
                               checkmarkColor: _getPrimaryColor(),
                               labelStyle: TextStyle(
@@ -558,7 +565,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.2),
+                      color: Colors.grey.withValues(alpha: 0.2),
                       blurRadius: 4,
                       offset: Offset(0, -2),
                     ),
@@ -743,9 +750,11 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         _isLoadingMore = false;
       });
 
-      print(
-        '✅ Loaded more subjects: Page $_currentPage, Total: ${_subjectList.length}',
-      );
+      if (kDebugMode) {
+        print(
+          '✅ Loaded more subjects: Page $_currentPage, Total: ${_subjectList.length}',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -754,7 +763,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
         _currentPage--; // Revert page increment on error
       });
 
-      print('Error loading more data: $e');
+      if (kDebugMode) {
+        print('Error loading more data: $e');
+      }
     }
   }
 
@@ -840,7 +851,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -1217,7 +1228,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withOpacity(0.3),
+                      color: Colors.grey.withValues(alpha: 0.3),
                       blurRadius: 5,
                       offset: Offset(0, 4),
                     ),
@@ -1250,7 +1261,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.grey.withOpacity(0.1),
+                          color: Colors.grey.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1296,18 +1307,18 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withOpacity(0.1),
+                                  color: _getPrimaryColor().withValues(
+                                    alpha: 0.1,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: _getPrimaryColor().withOpacity(0.3),
+                                    color: _getPrimaryColor().withValues(
+                                      alpha: 0.3,
+                                    ),
                                   ),
                                 ),
                                 child: Text(
-                                  '$kelasCount ' +
-                                      languageProvider.getTranslatedText({
-                                        'en': 'Classes',
-                                        'id': 'Kelas',
-                                      }),
+                                  '$kelasCount ${languageProvider.getTranslatedText({'en': 'Classes', 'id': 'Kelas'})}',
                                   style: TextStyle(
                                     color: _getPrimaryColor(),
                                     fontSize: 10,
@@ -1328,7 +1339,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: _getPrimaryColor().withOpacity(0.1),
+                                    color: _getPrimaryColor().withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Icon(
@@ -1382,7 +1395,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                   width: 32,
                                   height: 32,
                                   decoration: BoxDecoration(
-                                    color: _getPrimaryColor().withOpacity(0.1),
+                                    color: _getPrimaryColor().withValues(
+                                      alpha: 0.1,
+                                    ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Icon(
@@ -1483,10 +1498,10 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: backgroundColor ?? Colors.white.withOpacity(0.2),
+          color: backgroundColor ?? Colors.white.withValues(alpha: 0.2),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: borderColor ?? Colors.white.withOpacity(0.3),
+            color: borderColor ?? Colors.white.withValues(alpha: 0.3),
             width: 1,
           ),
         ),
@@ -1517,7 +1532,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withOpacity(0.7)],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha: 0.7)],
     );
   }
 
@@ -1564,7 +1579,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getPrimaryColor().withOpacity(0.3),
+                      color: _getPrimaryColor().withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -1581,7 +1596,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -1615,7 +1630,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                 }),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
                             ],
@@ -1639,7 +1654,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -1706,7 +1721,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: TextField(
@@ -1738,10 +1753,10 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                           decoration: BoxDecoration(
                             color: _hasActiveFilter
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Stack(
@@ -1784,14 +1799,14 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                     // Show active filters as chips
                     if (_hasActiveFilter) ...[
                       SizedBox(height: 12),
-                      Container(
+                      SizedBox(
                         height: 42,
                         child: Row(
                           children: [
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -1826,10 +1841,10 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                         ),
                                         onDeleted: filter['onRemove'],
                                         backgroundColor: _getPrimaryColor()
-                                            .withOpacity(0.1),
+                                            .withValues(alpha: 0.1),
                                         side: BorderSide(
-                                          color: _getPrimaryColor().withOpacity(
-                                            0.3,
+                                          color: _getPrimaryColor().withValues(
+                                            alpha: 0.3,
                                           ),
                                           width: 1,
                                         ),
@@ -1845,7 +1860,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -1874,19 +1889,6 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                 ),
               ),
 
-              if (filteredSubjects.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
-                    children: [
-                      Text(
-                        '${filteredSubjects.length} ${languageProvider.getTranslatedText({'en': 'subjects found', 'id': 'mata pelajaran ditemukan'})}',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              SizedBox(height: 4),
               Expanded(
                 child: filteredSubjects.isEmpty
                     ? EmptyState(
@@ -1910,7 +1912,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                         onRefresh: _loadSubjects,
                         child: ListView.builder(
                           controller: _scrollController,
-                          padding: EdgeInsets.all(16),
+                          padding: EdgeInsets.only(top: 8, bottom: 16),
                           itemCount:
                               filteredSubjects.length +
                               (_isLoadingMore ? 1 : 0),
@@ -2161,7 +2163,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -2264,7 +2266,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                                           height: 36,
                                           decoration: BoxDecoration(
                                             color: _getPrimaryColor()
-                                                .withOpacity(0.1),
+                                                .withValues(alpha: 0.1),
                                             borderRadius: BorderRadius.circular(
                                               6,
                                             ),
@@ -2458,14 +2460,14 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                 boxShadow: [
                   BoxShadow(
                     color: (isAssigned ? _getPrimaryColor() : Colors.grey)
-                        .withOpacity(0.2),
+                        .withValues(alpha: 0.2),
                     blurRadius: 12,
                     offset: Offset(0, 4),
                   ),
                 ],
                 border: Border.all(
                   color: isAssigned
-                      ? _getPrimaryColor().withOpacity(0.3)
+                      ? _getPrimaryColor().withValues(alpha: 0.3)
                       : Colors.grey.shade300,
                   width: 1,
                 ),
@@ -2481,7 +2483,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -2497,8 +2499,8 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                           height: 40,
                           decoration: BoxDecoration(
                             color: isAssigned
-                                ? Colors.white.withOpacity(0.2)
-                                : _getPrimaryColor().withOpacity(0.1),
+                                ? Colors.white.withValues(alpha: 0.2)
+                                : _getPrimaryColor().withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -2533,7 +2535,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: isAssigned
-                                        ? Colors.white.withOpacity(0.8)
+                                        ? Colors.white.withValues(alpha: 0.8)
                                         : Colors.grey[600],
                                   ),
                                 ),
@@ -2543,7 +2545,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: isAssigned
-                                        ? Colors.white.withOpacity(0.7)
+                                        ? Colors.white.withValues(alpha: 0.7)
                                         : Colors.grey[500],
                                   ),
                                 ),
@@ -2559,12 +2561,12 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                           ),
                           decoration: BoxDecoration(
                             color: isAssigned
-                                ? Colors.white.withOpacity(0.2)
+                                ? Colors.white.withValues(alpha: 0.2)
                                 : Colors.grey.shade200,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
                               color: isAssigned
-                                  ? Colors.white.withOpacity(0.3)
+                                  ? Colors.white.withValues(alpha: 0.3)
                                   : Colors.grey.shade300,
                             ),
                           ),
@@ -2614,7 +2616,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withOpacity(0.7)],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha: 0.7)],
     );
   }
 
@@ -2652,7 +2654,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
               'Kelas Management',
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.white.withOpacity(0.8),
+                color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -2681,7 +2683,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: _getPrimaryColor().withOpacity(0.3),
+                        color: _getPrimaryColor().withValues(alpha: 0.3),
                         blurRadius: 12,
                         offset: Offset(0, 4),
                       ),
@@ -2799,7 +2801,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
           width: 36,
           height: 36,
           decoration: BoxDecoration(
-            color: color.withOpacity(0.2),
+            color: color.withValues(alpha: 0.2),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: color, size: 18),
@@ -2815,7 +2817,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 10, color: color.withOpacity(0.8)),
+          style: TextStyle(fontSize: 10, color: color.withValues(alpha: 0.8)),
         ),
       ],
     );
