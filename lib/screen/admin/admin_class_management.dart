@@ -1047,9 +1047,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
           if (grade <= 6) {
             gradeText = 'Kelas $grade SD';
           } else if (grade <= 9) {
-            gradeText = 'Kelas ${grade - 6} SMP';
+            gradeText = 'Kelas $grade SMP';
           } else {
-            gradeText = 'Kelas ${grade - 9} SMA';
+            gradeText = 'Kelas $grade SMA';
           }
 
           return DropdownMenuItem<String>(
@@ -1606,9 +1606,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     if (level <= 6) {
       return '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})} $level SD';
     } else if (level <= 9) {
-      return '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})} ${level - 6} SMP';
+      return '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})} $level SMP';
     } else {
-      return '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})} ${level - 9} SMA';
+      return '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Kelas'})} $level SMA';
     }
   }
 
