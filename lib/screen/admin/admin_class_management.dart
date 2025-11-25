@@ -47,17 +47,11 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
   Map<String, dynamic>? _paginationMeta;
 
   // Filter States (Backend filtering)
-  String?
-  _selectedLevelFilter; // 'Elementary', 'Middle', 'High School', or null for all
   String? _selectedGradeFilter; // '1' to '12', or null for all
-  String? _selectedHomeroomFilter; // 'has', 'no_homeroom', or null for all
-  String? _selectedStudentFilter; // 'has_students', 'empty', or null for all
-  String? _selectedWaliclassId; // Filter by wali kelas
   bool _hasActiveFilter = false;
 
   // Filter Options (from backend)
   List<String> _availableGradeLevels = [];
-  List<dynamic> _availableWaliKelas = [];
 
   // Search debounce
   Timer? _searchDebounce;
@@ -136,10 +130,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
           _availableGradeLevels = List<String>.from(
             response['data']['grade_levels'] ?? [],
           );
-          _availableWaliKelas = response['data']['wali_kelas'] ?? [];
         });
         print(
-          '✅ Filter options loaded: ${_availableGradeLevels.length} grades, ${_availableWaliKelas.length} wali kelas',
+          '✅ Filter options loaded: ${_availableGradeLevels.length} grades',
         );
       }
     } catch (e) {
@@ -164,21 +157,13 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
   void _checkActiveFilter() {
     setState(() {
-      _hasActiveFilter =
-          _selectedLevelFilter != null ||
-          _selectedGradeFilter != null ||
-          _selectedHomeroomFilter != null ||
-          _selectedStudentFilter != null;
+      _hasActiveFilter = _selectedGradeFilter != null;
     });
   }
 
   void _clearAllFilters() {
     setState(() {
-      _selectedLevelFilter = null;
       _selectedGradeFilter = null;
-      _selectedHomeroomFilter = null;
-      _selectedStudentFilter = null;
-      _selectedWaliclassId = null;
       _searchController.clear();
       _currentPage = 1;
       _hasActiveFilter = false;
@@ -190,20 +175,6 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     LanguageProvider languageProvider,
   ) {
     List<Map<String, dynamic>> filterChips = [];
-
-    if (_selectedLevelFilter != null) {
-      filterChips.add({
-        'label':
-            '${languageProvider.getTranslatedText({'en': 'Level', 'id': 'Tingkat'})}: $_selectedLevelFilter',
-        'onRemove': () {
-          setState(() {
-            _selectedLevelFilter = null;
-          });
-          _checkActiveFilter();
-          _loadData(); // Reload data setelah remove filter
-        },
-      });
-    }
 
     if (_selectedGradeFilter != null) {
       filterChips.add({
@@ -219,49 +190,6 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
       });
     }
 
-    if (_selectedHomeroomFilter != null) {
-      final statusText = _selectedHomeroomFilter == 'ada'
-          ? languageProvider.getTranslatedText({
-              'en': 'Has Homeroom',
-              'id': 'Ada Wali Kelas',
-            })
-          : languageProvider.getTranslatedText({
-              'en': 'No Homeroom',
-              'id': 'Tanpa Wali Kelas',
-            });
-      filterChips.add({
-        'label':
-            '${languageProvider.getTranslatedText({'en': 'Homeroom', 'id': 'Wali Kelas'})}: $statusText',
-        'onRemove': () {
-          setState(() {
-            _selectedHomeroomFilter = null;
-          });
-          _checkActiveFilter();
-          _loadData(); // Reload data setelah remove filter
-        },
-      });
-    }
-
-    if (_selectedStudentFilter != null) {
-      final siswaText = _selectedStudentFilter == 'ada'
-          ? languageProvider.getTranslatedText({
-              'en': 'Has Students',
-              'id': 'Ada Siswa',
-            })
-          : languageProvider.getTranslatedText({'en': 'Empty', 'id': 'Kosong'});
-      filterChips.add({
-        'label':
-            '${languageProvider.getTranslatedText({'en': 'Students', 'id': 'Siswa'})}: $siswaText',
-        'onRemove': () {
-          setState(() {
-            _selectedStudentFilter = null;
-          });
-          _checkActiveFilter();
-          _loadData(); // Reload data setelah remove filter
-        },
-      });
-    }
-
     return filterChips;
   }
 
@@ -269,10 +197,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     final languageProvider = context.read<LanguageProvider>();
 
     // Temporary state for bottom sheet
-    String? tempSelectedTingkat = _selectedLevelFilter;
     String? tempSelectedClass = _selectedGradeFilter;
-    String? tempSelectedHomeroom = _selectedHomeroomFilter;
-    String? tempSelectedSiswa = _selectedStudentFilter;
 
     showModalBottomSheet(
       context: context,
@@ -311,10 +236,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                     TextButton(
                       onPressed: () {
                         setModalState(() {
-                          tempSelectedTingkat = null;
                           tempSelectedClass = null;
-                          tempSelectedHomeroom = null;
-                          tempSelectedSiswa = null;
                         });
                       },
                       child: Text(
@@ -335,48 +257,6 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Tingkat Filter
-                      Text(
-                        languageProvider.getTranslatedText({
-                          'en': 'Level',
-                          'id': 'Tingkat',
-                        }),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: ['SD', 'SMP', 'SMA'].map((tingkat) {
-                          final isSelected = tempSelectedTingkat == tingkat;
-                          return FilterChip(
-                            label: Text(tingkat),
-                            selected: isSelected,
-                            onSelected: (selected) {
-                              setModalState(() {
-                                tempSelectedTingkat = selected ? tingkat : null;
-                              });
-                            },
-                            backgroundColor: Colors.grey.shade100,
-                            selectedColor: _getPrimaryColor().withOpacity(0.2),
-                            checkmarkColor: _getPrimaryColor(),
-                            labelStyle: TextStyle(
-                              color: isSelected
-                                  ? _getPrimaryColor()
-                                  : Colors.grey.shade700,
-                              fontWeight: isSelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-
-                      SizedBox(height: 24),
-
                       // Kelas Filter (1-12)
                       Text(
                         languageProvider.getTranslatedText({
@@ -417,132 +297,6 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                           );
                         }).toList(),
                       ),
-
-                      SizedBox(height: 24),
-
-                      // Wali Kelas Filter
-                      Text(
-                        languageProvider.getTranslatedText({
-                          'en': 'Homeroom Teacher',
-                          'id': 'Wali Kelas',
-                        }),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children:
-                            [
-                              {
-                                'value': 'ada',
-                                'label': languageProvider.getTranslatedText({
-                                  'en': 'Has Homeroom',
-                                  'id': 'Ada Wali Kelas',
-                                }),
-                              },
-                              {
-                                'value': 'tidak_ada',
-                                'label': languageProvider.getTranslatedText({
-                                  'en': 'No Homeroom',
-                                  'id': 'Tanpa Wali Kelas',
-                                }),
-                              },
-                            ].map((item) {
-                              final isSelected =
-                                  tempSelectedHomeroom == item['value'];
-                              return FilterChip(
-                                label: Text(item['label']!),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  setModalState(() {
-                                    tempSelectedHomeroom = selected
-                                        ? item['value']
-                                        : null;
-                                  });
-                                },
-                                backgroundColor: Colors.grey.shade100,
-                                selectedColor: _getPrimaryColor().withOpacity(
-                                  0.2,
-                                ),
-                                checkmarkColor: _getPrimaryColor(),
-                                labelStyle: TextStyle(
-                                  color: isSelected
-                                      ? _getPrimaryColor()
-                                      : Colors.grey.shade700,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              );
-                            }).toList(),
-                      ),
-
-                      SizedBox(height: 24),
-
-                      // Siswa Filter
-                      Text(
-                        languageProvider.getTranslatedText({
-                          'en': 'Students',
-                          'id': 'Siswa',
-                        }),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children:
-                            [
-                              {
-                                'value': 'ada',
-                                'label': languageProvider.getTranslatedText({
-                                  'en': 'Has Students',
-                                  'id': 'Ada Siswa',
-                                }),
-                              },
-                              {
-                                'value': 'kosong',
-                                'label': languageProvider.getTranslatedText({
-                                  'en': 'Empty',
-                                  'id': 'Kosong',
-                                }),
-                              },
-                            ].map((item) {
-                              final isSelected =
-                                  tempSelectedSiswa == item['value'];
-                              return FilterChip(
-                                label: Text(item['label']!),
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  setModalState(() {
-                                    tempSelectedSiswa = selected
-                                        ? item['value']
-                                        : null;
-                                  });
-                                },
-                                backgroundColor: Colors.grey.shade100,
-                                selectedColor: _getPrimaryColor().withOpacity(
-                                  0.2,
-                                ),
-                                checkmarkColor: _getPrimaryColor(),
-                                labelStyle: TextStyle(
-                                  color: isSelected
-                                      ? _getPrimaryColor()
-                                      : Colors.grey.shade700,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                ),
-                              );
-                            }).toList(),
-                      ),
                     ],
                   ),
                 ),
@@ -565,10 +319,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   child: ElevatedButton(
                     onPressed: () {
                       setState(() {
-                        _selectedLevelFilter = tempSelectedTingkat;
                         _selectedGradeFilter = tempSelectedClass;
-                        _selectedHomeroomFilter = tempSelectedHomeroom;
-                        _selectedStudentFilter = tempSelectedSiswa;
                       });
                       _checkActiveFilter();
                       Navigator.pop(context);
@@ -610,12 +361,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         });
       }
 
-      // Load with pagination and backend filtering
       final response = await ApiClassService.getClassPaginated(
         page: _currentPage,
         limit: _perPage,
         gradeLevel: _selectedGradeFilter,
-        waliclassId: _selectedWaliclassId,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
@@ -663,12 +412,10 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     try {
       _currentPage++;
 
-      // Load next page
       final response = await ApiClassService.getClassPaginated(
         page: _currentPage,
         limit: _perPage,
         gradeLevel: _selectedGradeFilter,
-        waliclassId: _selectedWaliclassId,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
