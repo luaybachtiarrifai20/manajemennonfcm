@@ -59,7 +59,7 @@ class TeachingScheduleManagementScreenState
 
   // Pagination States (Infinite Scroll)
   int _currentPage = 1;
-  int _perPage = 10; // Fixed 10 items per load
+  final int _perPage = 10; // Fixed 10 items per load
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _paginationMeta;
@@ -1231,9 +1231,9 @@ class TeachingScheduleManagementScreenState
                   headingRowColor: WidgetStateProperty.resolveWith<Color?>(
                     (states) => _getPrimaryColor(),
                   ),
-                  dataRowColor: MaterialStateProperty.resolveWith<Color?>(
-                    (Set<MaterialState> states) =>
-                        states.contains(MaterialState.selected)
+                  dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+                    (Set<WidgetState> states) =>
+                        states.contains(WidgetState.selected)
                         ? Theme.of(
                             context,
                           ).colorScheme.primary.withOpacity(0.08)
@@ -1788,7 +1788,7 @@ class TeachingScheduleManagementScreenState
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -2172,7 +2172,7 @@ class TeachingScheduleManagementScreenState
     required Color color,
     required VoidCallback onPressed,
   }) {
-    return Container(
+    return SizedBox(
       height: 28,
       child: ElevatedButton.icon(
         onPressed: onPressed,

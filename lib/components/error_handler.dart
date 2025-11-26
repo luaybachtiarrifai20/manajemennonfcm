@@ -1,7 +1,6 @@
 // error_handler.dart
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 
 class AppErrorHandler {
   static final AppErrorHandler _instance = AppErrorHandler._internal();

@@ -265,7 +265,7 @@ class TeachingScheduleScreenState extends State<TeachingScheduleScreen> {
         _selectedFilterSemester != _selectedSemester) {
       final semester = _semesterList.firstWhere(
         (s) => s['id'].toString() == _selectedFilterSemester,
-        orElse: () => {'nama': 'Semester ${_selectedFilterSemester}'},
+        orElse: () => {'nama': 'Semester $_selectedFilterSemester'},
       );
       filterChips.add({
         'label': semester['nama'] ?? 'Semester',

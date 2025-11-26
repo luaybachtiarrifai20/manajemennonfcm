@@ -50,7 +50,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   List<dynamic> _chapterList = [];
   List<dynamic> _subChapterList = [];
   List<dynamic> _activityList = [];
-  List<dynamic> _studentList = [];
+  final List<dynamic> _studentList = [];
 
   bool _isLoading = true;
   String _teacherId = '';
@@ -2262,7 +2262,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                   prefixIcon: Icon(Icons.book),
                   border: OutlineInputBorder(),
                 ),
-                value: _selectedSubjectId,
+                initialValue: _selectedSubjectId,
                 isExpanded: true,
                 items: widget.subjectList.isEmpty
                     ? null
@@ -2327,7 +2327,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                   prefixIcon: Icon(Icons.class_),
                   border: OutlineInputBorder(),
                 ),
-                value: _selectedClassId,
+                initialValue: _selectedClassId,
                 isExpanded: true,
                 items: _selectedSubjectId == null
                     ? null
@@ -2424,7 +2424,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                     prefixIcon: Icon(Icons.menu_book),
                     border: OutlineInputBorder(),
                   ),
-                  value: _babMateriList.isEmpty
+                  initialValue: _babMateriList.isEmpty
                       ? null
                       : (_babMateriList.any(
                               (bab) => bab['id'].toString() == _selectedBabId,
@@ -2477,7 +2477,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                     prefixIcon: Icon(Icons.article),
                     border: OutlineInputBorder(),
                   ),
-                  value: _subBabMateriList.isEmpty
+                  initialValue: _subBabMateriList.isEmpty
                       ? null
                       : (_subBabMateriList.any(
                               (subBab) =>

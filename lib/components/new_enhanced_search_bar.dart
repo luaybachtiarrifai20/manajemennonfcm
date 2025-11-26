@@ -14,7 +14,7 @@ class NewEnhancedSearchBar extends StatelessWidget {
   final Color? primaryColor;
 
   const NewEnhancedSearchBar({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onChanged,
     required this.hintText,
@@ -22,7 +22,7 @@ class NewEnhancedSearchBar extends StatelessWidget {
     this.hasActiveFilter = false,
     required this.onFilterPressed,
     this.primaryColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

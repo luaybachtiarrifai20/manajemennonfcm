@@ -35,7 +35,7 @@ class SeparatedSearchFilter extends StatelessWidget {
   final Color? containerColor;
 
   const SeparatedSearchFilter({
-    Key? key,
+    super.key,
     required this.controller,
     required this.onChanged,
     required this.hintText,
@@ -61,7 +61,7 @@ class SeparatedSearchFilter extends StatelessWidget {
     this.margin,
     this.padding,
     this.containerColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -132,7 +132,7 @@ class SeparatedSearchFilter extends StatelessWidget {
         child: InkWell(
           onTap: onFilterPressed,
           borderRadius: BorderRadius.circular(filterBorderRadius),
-          child: Container(
+          child: SizedBox(
             width: buttonWidth,
             height: buttonHeight,
             child: Stack(

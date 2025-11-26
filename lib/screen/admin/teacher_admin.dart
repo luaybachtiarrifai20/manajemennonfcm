@@ -661,10 +661,11 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     String base64File,
   ) async {
     try {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           'Calling /guru/import (API) with base64 size=${base64File.length}',
         );
+      }
       final response = await ApiService().post('/guru/import', {
         'file_data': base64File,
       });
@@ -692,15 +693,17 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
     String base64File,
   ) async {
     try {
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint(
           'Calling /guru/import (helper) with base64 size=${base64File.length}',
         );
+      }
       final response = await ApiService().post('/guru/import', {
         'file_data': base64File,
       });
-      if (kDebugMode)
+      if (kDebugMode) {
         debugPrint('Response from /guru/import (helper): $response');
+      }
       return response;
     } catch (e) {
       debugPrint('Error importing teachers from Excel: $e');

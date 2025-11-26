@@ -201,7 +201,7 @@ class ClassFormDialogState extends State<ClassFormDialog> {
                               value: grade.toString(),
                               child: Text('Grade $grade'),
                             );
-                          }).toList(),
+                          }),
                         ],
                         onChanged: (value) {
                           setState(() {
@@ -235,7 +235,7 @@ class ClassFormDialogState extends State<ClassFormDialog> {
                                   child: Text(teacher['nama'] ?? 'Unknown Teacher'),
                                 );
                               })
-                              .toList(),
+                              ,
                         ],
                         onChanged: (value) {
                           setState(() {
@@ -344,7 +344,7 @@ class ClassFormDialogState extends State<ClassFormDialog> {
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: _getPrimaryColor(), size: 20),

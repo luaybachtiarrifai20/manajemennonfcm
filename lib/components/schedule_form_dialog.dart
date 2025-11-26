@@ -438,7 +438,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedTeacher.isNotEmpty ? _selectedTeacher : null,
+            initialValue: _selectedTeacher.isNotEmpty ? _selectedTeacher : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -458,7 +458,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     style: TextStyle(fontSize: 14),
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -523,7 +523,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedSubject.isNotEmpty ? _selectedSubject : null,
+            initialValue: _selectedSubject.isNotEmpty ? _selectedSubject : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -543,7 +543,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     style: TextStyle(fontSize: 14),
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: _isLoadingSubjects
                 ? null
@@ -604,7 +604,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedClass.isNotEmpty ? _selectedClass : null,
+            initialValue: _selectedClass.isNotEmpty ? _selectedClass : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -624,7 +624,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     style: TextStyle(fontSize: 14),
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -682,7 +682,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedHari.isNotEmpty ? _selectedHari : null,
+            initialValue: _selectedHari.isNotEmpty ? _selectedHari : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -702,7 +702,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     style: TextStyle(fontSize: 14),
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -763,7 +763,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedSemester.isNotEmpty ? _selectedSemester : null,
+            initialValue: _selectedSemester.isNotEmpty ? _selectedSemester : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -783,7 +783,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                     style: TextStyle(fontSize: 14),
                   ),
                 );
-              }).toList(),
+              }),
             ],
             onChanged: (value) {
               setState(() {
@@ -844,7 +844,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            value: _selectedJamPelajaran.isNotEmpty
+            initialValue: _selectedJamPelajaran.isNotEmpty
                 ? _selectedJamPelajaran
                 : null,
             items: [

@@ -312,7 +312,7 @@ class RPPGeneratePageState extends State<RPPGeneratePage> {
                   ),
                 ],
               ),
-            )).toList(),
+            )),
           ],
           
           // Display selected chapters dengan sub bab-nya
@@ -363,10 +363,10 @@ class RPPGeneratePageState extends State<RPPGeneratePage> {
                       ),
                     ],
                   ),
-                )).toList(),
+                )),
                 SizedBox(height: 12),
               ],
-            )).toList(),
+            )),
           ],
         ],
       ),

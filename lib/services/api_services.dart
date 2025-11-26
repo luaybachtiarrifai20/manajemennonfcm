@@ -475,14 +475,18 @@ class ApiService {
     if (teacherId != null && teacherId.isNotEmpty) queryParams['guru_id'] = teacherId;
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
-    if (subjectId != null && subjectId.isNotEmpty)
+    if (subjectId != null && subjectId.isNotEmpty) {
       queryParams['mata_pelajaran_id'] = subjectId;
-    if (classId != null && classId.isNotEmpty)
+    }
+    if (classId != null && classId.isNotEmpty) {
       queryParams['kelas_id'] = classId;
-    if (semester != null && semester.isNotEmpty)
+    }
+    if (semester != null && semester.isNotEmpty) {
       queryParams['semester'] = semester;
-    if (tahunAjaran != null && tahunAjaran.isNotEmpty)
+    }
+    if (tahunAjaran != null && tahunAjaran.isNotEmpty) {
       queryParams['tahun_ajaran'] = tahunAjaran;
+    }
 
     final queryString = Uri(queryParameters: queryParams).query;
 
@@ -524,10 +528,12 @@ class ApiService {
     };
 
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
-    if (siswaId != null && siswaId.isNotEmpty)
+    if (siswaId != null && siswaId.isNotEmpty) {
       queryParams['siswa_id'] = siswaId;
-    if (jenisPembayaranId != null && jenisPembayaranId.isNotEmpty)
+    }
+    if (jenisPembayaranId != null && jenisPembayaranId.isNotEmpty) {
       queryParams['jenis_pembayaran_id'] = jenisPembayaranId;
+    }
 
     final queryString = Uri(queryParameters: queryParams).query;
 
@@ -684,8 +690,9 @@ class ApiService {
       };
       if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
       if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
-      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
+      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
         params['mata_pelajaran_id'] = mataPelajaranId;
+      }
       if (siswaId != null && siswaId.isNotEmpty) params['siswa_id'] = siswaId;
       if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
 

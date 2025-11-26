@@ -8,11 +8,11 @@ class TabSwitcher extends StatelessWidget {
   final Color? primaryColor;
 
   const TabSwitcher({
-    Key? key,
+    super.key,
     required this.tabController,
     required this.tabs,
     this.primaryColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

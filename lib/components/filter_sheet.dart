@@ -11,12 +11,12 @@ class FilterSheet extends StatefulWidget {
   final Color? primaryColor;
 
   const FilterSheet({
-    Key? key,
+    super.key,
     required this.config,
     required this.initialFilters,
     required this.onApplyFilters,
     this.primaryColor,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterSheet> createState() => _FilterSheetState();

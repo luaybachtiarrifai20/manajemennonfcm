@@ -749,11 +749,11 @@ class RppScreenState extends State<RppScreen>
           SizedBox(height: 16),
           ElevatedButton(
             onPressed: _loadRpp,
-            child: Text(AppLocalizations.retry.tr),
             style: ElevatedButton.styleFrom(
               backgroundColor: _getPrimaryColor(),
               foregroundColor: Colors.white,
             ),
+            child: Text(AppLocalizations.retry.tr),
           ),
         ],
       ),
@@ -1330,7 +1330,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
                     child: Text(mp['nama']),
                   );
                 }).toList(),
-                value: _selectedMataPelajaranId,
+                initialValue: _selectedMataPelajaranId,
                 onChanged: (value) {
                   setState(() {
                     _selectedMataPelajaranId = value.toString();
@@ -1356,7 +1356,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
                     child: Text(kelas['nama']),
                   );
                 }).toList(),
-                value: _selectedClassId,
+                initialValue: _selectedClassId,
                 onChanged: (value) {
                   setState(() {
                     _selectedClassId = value.toString();
@@ -1380,7 +1380,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
                     child: Text(semester),
                   );
                 }).toList(),
-                value: _selectedSemester,
+                initialValue: _selectedSemester,
                 onChanged: (value) {
                   setState(() {
                     _selectedSemester = value;

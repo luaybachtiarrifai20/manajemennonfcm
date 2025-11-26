@@ -36,7 +36,7 @@ class GradePageState extends State<GradePage> {
 
   // Pagination States (Infinite Scroll)
   int _currentPage = 1;
-  int _perPage = 10; // Fixed 10 items per load
+  final int _perPage = 10; // Fixed 10 items per load
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
   Map<String, dynamic>? _paginationMeta;
@@ -783,7 +783,7 @@ class GradePageState extends State<GradePage> {
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -1541,7 +1541,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                                         labelPadding: EdgeInsets.only(left: 4),
                                       ),
                                     );
-                                  }).toList(),
+                                  }),
                                 ],
                               ),
                             ),
@@ -1861,15 +1861,15 @@ class GradeBookPageState extends State<GradeBookPage> {
                 _updateFilteredJenisNilai();
                 Navigator.of(context).pop();
               },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _getPrimaryColor(),
+                foregroundColor: Colors.white,
+              ),
               child: Text(
                 languageProvider.getTranslatedText({
                   'en': 'Apply',
                   'id': 'Terapkan',
                 }),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _getPrimaryColor(),
-                foregroundColor: Colors.white,
               ),
             ),
           ],
@@ -1897,7 +1897,7 @@ class GradeBookPageState extends State<GradeBookPage> {
     String jenisNilai,
     LanguageProvider languageProvider,
   ) {
-    final existingNilai = _getNilaiForSiswaAndJenis(siswa.id!, jenisNilai);
+    final existingNilai = _getNilaiForSiswaAndJenis(siswa.id, jenisNilai);
 
     Navigator.push(
       context,
@@ -1938,7 +1938,7 @@ class GradeBookPageState extends State<GradeBookPage> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       controller: _horizontalScrollController,
-      child: Container(
+      child: SizedBox(
         width: totalWidth,
         child: Column(
           children: [
@@ -2024,7 +2024,7 @@ class GradeBookPageState extends State<GradeBookPage> {
                     ),
                     // Kolom Nilai
                     ..._filteredJenisNilaiList.map((jenis) {
-                      final nilai = _getNilaiForSiswaAndJenis(siswa.id!, jenis);
+                      final nilai = _getNilaiForSiswaAndJenis(siswa.id, jenis);
                       final nilaiText = nilai?.isNotEmpty == true
                           ? nilai!['nilai'].toString()
                           : '-';
@@ -2070,11 +2070,11 @@ class GradeBookPageState extends State<GradeBookPage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                   ],
                 ),
               );
-            }).toList(),
+            }),
           ],
         ),
       ),
@@ -2788,7 +2788,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
     super.initState();
     // Initialize map dengan nilai default untuk setiap siswa
     for (var siswa in widget.siswaList) {
-      _nilaiSiswaMap[siswa.id!] = {'nilai': '', 'deskripsi': ''};
+      _nilaiSiswaMap[siswa.id] = {'nilai': '', 'deskripsi': ''};
     }
   }
 
@@ -2829,7 +2829,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
       // Cek apakah ada setidaknya satu siswa yang memiliki nilai
       bool hasData = false;
       for (var siswa in widget.siswaList) {
-        final nilaiData = _nilaiSiswaMap[siswa.id!];
+        final nilaiData = _nilaiSiswaMap[siswa.id];
         if (nilaiData?['nilai']?.isNotEmpty == true) {
           hasData = true;
           break;
@@ -2856,7 +2856,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
         int successCount = 0;
 
         for (var siswa in widget.siswaList) {
-          final nilaiData = _nilaiSiswaMap[siswa.id!];
+          final nilaiData = _nilaiSiswaMap[siswa.id];
           final nilai = nilaiData?['nilai']?.toString().trim();
 
           // Skip jika tidak ada nilai yang diinput
@@ -2943,7 +2943,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
   }
 
   Widget _buildSiswaInputCard(Siswa siswa, LanguageProvider languageProvider) {
-    final nilaiData = _nilaiSiswaMap[siswa.id!] ?? {};
+    final nilaiData = _nilaiSiswaMap[siswa.id] ?? {};
     final nilaiController = TextEditingController(
       text: nilaiData['nilai'] ?? '',
     );
@@ -2959,7 +2959,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
         leading: CircleAvatar(
           backgroundColor: _getPrimaryColor().withOpacity(0.1),
           child: Text(
-            siswa.nama?.substring(0, 1).toUpperCase() ?? '?',
+            siswa.nama.substring(0, 1).toUpperCase() ?? '?',
             style: TextStyle(color: _getPrimaryColor()),
           ),
         ),
@@ -2999,7 +2999,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                   ),
                   keyboardType: TextInputType.number,
                   onChanged: (value) {
-                    _nilaiSiswaMap[siswa.id!]?['nilai'] = value;
+                    _nilaiSiswaMap[siswa.id]?['nilai'] = value;
                   },
                   validator: (value) {
                     if (value != null && value.isNotEmpty) {
@@ -3041,7 +3041,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                   ),
                   maxLines: 3,
                   onChanged: (value) {
-                    _nilaiSiswaMap[siswa.id!]?['deskripsi'] = value;
+                    _nilaiSiswaMap[siswa.id]?['deskripsi'] = value;
                   },
                 ),
                 const SizedBox(height: 8),
@@ -3087,7 +3087,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
     return Consumer<LanguageProvider>(
       builder: (context, languageProvider, child) {
         final siswaWithNilaiCount = widget.siswaList.where((siswa) {
-          final nilaiData = _nilaiSiswaMap[siswa.id!];
+          final nilaiData = _nilaiSiswaMap[siswa.id];
           return nilaiData?['nilai']?.isNotEmpty == true;
         }).length;
 
@@ -3188,7 +3188,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                           ],
                         ),
                         child: DropdownButtonFormField<String>(
-                          value: _selectedJenisNilai,
+                          initialValue: _selectedJenisNilai,
                           decoration: InputDecoration(
                             border: InputBorder.none,
                             prefixIcon: Icon(

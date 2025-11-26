@@ -90,7 +90,7 @@ class PresencePageState extends State<PresencePage>
   bool _isSubmitting = false;
   bool _hasActiveFilter = false;
   bool _showSearch = false;
-  bool _showQuickActions = false;
+  final bool _showQuickActions = false;
 
   // Search dan Filter untuk Results Mode
   final TextEditingController _searchController = TextEditingController();
@@ -2476,7 +2476,7 @@ class PresencePageState extends State<PresencePage>
           const SizedBox(height: 12),
 
           // Status Options
-          Container(
+          SizedBox(
             height: 36,
             child: ListView(
               scrollDirection: Axis.horizontal,

@@ -302,7 +302,7 @@ class ApiTeacherService {
       if (response.statusCode == 200) {
         return json.decode(responseData);
       } else {
-        throw Exception('Failed to import teachers: ${responseData}');
+        throw Exception('Failed to import teachers: $responseData');
       }
     } catch (e) {
       throw Exception('Failed to import teachers: $e');

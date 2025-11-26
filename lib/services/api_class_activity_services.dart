@@ -352,8 +352,9 @@ class ApiClassActivityService {
       if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
       if (bulan != null && bulan.isNotEmpty) params['bulan'] = bulan;
       if (tahun != null && tahun.isNotEmpty) params['tahun'] = tahun;
-      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty)
+      if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
         params['mata_pelajaran_id'] = mataPelajaranId;
+      }
 
       final uri = Uri.parse(
         '$baseUrl/kegiatan/filter-options',
