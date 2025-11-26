@@ -773,11 +773,46 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       text: teacher?['nip']?.toString() ?? '',
     );
 
-    String? selectedClassId = teacher?['class_id']?.toString();
-    bool isHomeroomTeacher =
-        teacher?['is_wali_kelas'] == 1 || teacher?['is_wali_kelas'] == true;
+    // New fields for updated structure
+    String? selectedGender = teacher?['jenis_kelamin']?.toString();
+    String? selectedWaliKelasId = teacher?['wali_kelas_id']?.toString();
+    String? selectedStatus = teacher?['status_kepegawaian']?.toString();
 
+    // Parse subject IDs from comma-separated string
     List<String> selectedSubjectIds = [];
+    if (teacher != null && teacher['mata_pelajaran_ids'] != null) {
+      final idsString = teacher['mata_pelajaran_ids'].toString();
+      if (idsString.isNotEmpty) {
+        selectedSubjectIds = idsString
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    }
+
+    // Parse class IDs from comma-separated string
+    List<String> selectedClassIds = [];
+    if (teacher != null && teacher['kelas_ids'] != null) {
+      final idsString = teacher['kelas_ids'].toString();
+      if (idsString.isNotEmpty) {
+        selectedClassIds = idsString
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    }
+
+    // Validate that selectedWaliKelasId exists in _classes
+    if (selectedWaliKelasId != null) {
+      final exists = _classes.any(
+        (c) => c['id']?.toString() == selectedWaliKelasId,
+      );
+      if (!exists) {
+        selectedWaliKelasId = null;
+      }
+    }
 
     Future<void> showDialogWithSubjects(List<String> subjectIds) async {
       selectedSubjectIds = subjectIds;
@@ -878,41 +913,27 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                 icon: Icons.badge,
                               ),
                               SizedBox(height: 12),
+
+                              // Gender Dropdown (REQUIRED)
                               _buildDialogDropdown(
-                                value: selectedClassId,
+                                value: selectedGender,
                                 label: languageProvider.getTranslatedText({
-                                  'en': 'Class (Optional)',
-                                  'id': 'Kelas (Opsional)',
+                                  'en': 'Gender*',
+                                  'id': 'Jenis Kelamin*',
                                 }),
-                                icon: Icons.school,
+                                icon: Icons.person_outline,
                                 items: [
                                   DropdownMenuItem(
-                                    value: null,
-                                    child: Text(
-                                      languageProvider.getTranslatedText({
-                                        'en': 'None',
-                                        'id': 'Tidak ada',
-                                      }),
-                                    ),
+                                    value: 'L',
+                                    child: Text('Laki-laki'),
                                   ),
-                                  ..._classes
-                                      .where(
-                                        (classItem) =>
-                                            classItem['id'] != null &&
-                                            classItem['name'] != null,
-                                      )
-                                      .map(
-                                        (classItem) => DropdownMenuItem<String>(
-                                          value: classItem['id'].toString(),
-                                          child: Text(
-                                            classItem['name']?.toString() ??
-                                                'Unknown Class',
-                                          ),
-                                        ),
-                                      ),
+                                  DropdownMenuItem(
+                                    value: 'P',
+                                    child: Text('Perempuan'),
+                                  ),
                                 ],
                                 onChanged: (value) {
-                                  setState(() => selectedClassId = value);
+                                  setState(() => selectedGender = value);
                                 },
                               ),
                               SizedBox(height: 16),
@@ -986,8 +1007,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                               ),
                               SizedBox(height: 12),
 
-                              // Homeroom Teacher Checkbox
+                              // Classes Multi-Select
                               Container(
+                                width: double.infinity,
                                 padding: EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   color: Colors.grey.shade50,
@@ -996,27 +1018,132 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                     color: Colors.grey.shade200,
                                   ),
                                 ),
-                                child: CheckboxListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  title: Text(
-                                    languageProvider.getTranslatedText({
-                                      'en': 'Homeroom Teacher',
-                                      'id': 'Wali Kelas',
-                                    }),
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'Classes Taught:',
+                                        'id': 'Kelas yang Diajar:',
+                                      }),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    ..._classes
+                                        .where(
+                                          (classItem) =>
+                                              classItem['id'] != null &&
+                                              classItem['nama'] != null,
+                                        )
+                                        .map(
+                                          (classItem) => CheckboxListTile(
+                                            contentPadding: EdgeInsets.zero,
+                                            title: Text(
+                                              classItem['nama']?.toString() ??
+                                                  'Unknown Class',
+                                              style: TextStyle(fontSize: 14),
+                                            ),
+                                            value: selectedClassIds.contains(
+                                              classItem['id']?.toString(),
+                                            ),
+                                            onChanged: (value) {
+                                              final classId = classItem['id']
+                                                  ?.toString();
+                                              if (classId == null) return;
+
+                                              setState(() {
+                                                if (value == true) {
+                                                  selectedClassIds.add(classId);
+                                                } else {
+                                                  selectedClassIds.remove(
+                                                    classId,
+                                                  );
+                                                }
+                                              });
+                                            },
+                                            controlAffinity:
+                                                ListTileControlAffinity.leading,
+                                          ),
+                                        ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(height: 12),
+
+                              // Homeroom Class Dropdown (Optional)
+                              _buildDialogDropdown(
+                                value: selectedWaliKelasId,
+                                label: languageProvider.getTranslatedText({
+                                  'en': 'Homeroom Class (Optional)',
+                                  'id': 'Wali Kelas (Opsional)',
+                                }),
+                                icon: Icons.class_,
+                                items: [
+                                  DropdownMenuItem(
+                                    value: null,
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'None',
+                                        'id': 'Tidak ada',
+                                      }),
                                     ),
                                   ),
-                                  value: isHomeroomTeacher,
-                                  onChanged: (value) {
-                                    setState(
-                                      () => isHomeroomTeacher = value ?? false,
-                                    );
-                                  },
-                                  controlAffinity:
-                                      ListTileControlAffinity.leading,
-                                ),
+                                  ..._classes
+                                      .where(
+                                        (classItem) =>
+                                            classItem['id'] != null &&
+                                            classItem['nama'] != null,
+                                      )
+                                      .map(
+                                        (classItem) => DropdownMenuItem<String>(
+                                          value: classItem['id'].toString(),
+                                          child: Text(
+                                            classItem['nama']?.toString() ??
+                                                'Unknown Class',
+                                          ),
+                                        ),
+                                      ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() => selectedWaliKelasId = value);
+                                },
+                              ),
+                              SizedBox(height: 12),
+
+                              // Employment Status Dropdown (Optional)
+                              _buildDialogDropdown(
+                                value: selectedStatus,
+                                label: languageProvider.getTranslatedText({
+                                  'en': 'Employment Status (Optional)',
+                                  'id': 'Status Kepegawaian (Opsional)',
+                                }),
+                                icon: Icons.work_outline,
+                                items: [
+                                  DropdownMenuItem(
+                                    value: null,
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'None',
+                                        'id': 'Tidak ada',
+                                      }),
+                                    ),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'tetap',
+                                    child: Text('Tetap'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'tidak_tetap',
+                                    child: Text('Tidak Tetap'),
+                                  ),
+                                ],
+                                onChanged: (value) {
+                                  setState(() => selectedStatus = value);
+                                },
                               ),
                             ],
                           ),
@@ -1055,9 +1182,10 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                     final email = emailController.text.trim();
                                     final nip = nipController.text.trim();
 
+                                    // Validate required fields
                                     if (name.isEmpty ||
                                         email.isEmpty ||
-                                        nip.isEmpty) {
+                                        selectedGender == null) {
                                       ScaffoldMessenger.of(
                                         context,
                                       ).showSnackBar(
@@ -1065,9 +1193,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                           content: Text(
                                             languageProvider.getTranslatedText({
                                               'en':
-                                                  'Name, email, and NIP must be filled',
+                                                  'Name, email, and gender are required',
                                               'id':
-                                                  'Nama, email, dan NIP harus diisi',
+                                                  'Nama, email, dan jenis kelamin wajib diisi',
                                             }),
                                           ),
                                           backgroundColor: Colors.orange,
@@ -1077,12 +1205,16 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                     }
 
                                     try {
+                                      // Prepare data with new structure
                                       final data = {
                                         'nama': name,
                                         'email': email,
-                                        'kelas_id': selectedClassId,
-                                        'nip': nip,
-                                        'is_wali_kelas': isHomeroomTeacher,
+                                        'nip': nip.isNotEmpty ? nip : null,
+                                        'jenis_kelamin': selectedGender,
+                                        'subject_ids': selectedSubjectIds,
+                                        'class_ids': selectedClassIds,
+                                        'wali_kelas_id': selectedWaliKelasId,
+                                        'status_kepegawaian': selectedStatus,
                                       };
 
                                       String teacherId;
@@ -1135,12 +1267,8 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                         }
                                       }
 
-                                      if (teacherId.isNotEmpty) {
-                                        await _manageTeacherSubject(
-                                          teacherId,
-                                          selectedSubjectIds,
-                                        );
-                                      }
+                                      // No need to manage subjects separately anymore
+                                      // Backend handles it in POST/PUT
 
                                       if (context.mounted) {
                                         Navigator.pop(context);
@@ -1193,22 +1321,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       );
     }
 
-    if (teacher == null) {
-      showDialogWithSubjects([]);
-    } else {
-      _teacherService
-          .getSubjectByTeacher(teacher['id']?.toString() ?? '')
-          .then((list) {
-            final ids = list
-                .where((subject) => subject['id'] != null)
-                .map((subject) => subject['id'].toString())
-                .toList();
-            showDialogWithSubjects(ids);
-          })
-          .catchError((error) {
-            showDialogWithSubjects([]);
-          });
-    }
+    // Show dialog with already-parsed subject IDs
+    // (parsed in initialization at line 784-791)
+    showDialogWithSubjects(selectedSubjectIds);
   }
 
   Widget _buildDialogTextField({

@@ -29,20 +29,13 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
         _errorMessage = null;
       });
 
-      final teacherDetail = await apiTeacherService.getTeacherById(widget.teacher['id']);
-      final teacherSubjects = await apiTeacherService.getSubjectByTeacher(
+      // Backend already returns everything including subjects and classes
+      final teacherDetail = await apiTeacherService.getTeacherById(
         widget.teacher['id'],
       );
 
-      final combinedData = Map<String, dynamic>.from(teacherDetail);
-      combinedData['mata_pelajaran_list'] = teacherSubjects;
-      combinedData['mata_pelajaran_names'] = teacherSubjects
-          .map((mp) => mp['nama']?.toString() ?? '')
-          .where((name) => name.isNotEmpty)
-          .join(', ');
-
       setState(() {
-        _teacherDetail = combinedData;
+        _teacherDetail = teacherDetail;
         _isLoading = false;
       });
     } catch (e) {
@@ -64,7 +57,9 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
     return Container(
       margin: EdgeInsets.only(bottom: 16),
       child: Row(
-        crossAxisAlignment: isMultiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+        crossAxisAlignment: isMultiline
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.center,
         children: [
           Container(
             width: 36,
@@ -191,10 +186,7 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                   SizedBox(height: 16),
                   Text(
                     'Memuat detail guru...',
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                   ),
                 ],
               ),
@@ -227,18 +219,12 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                   SizedBox(height: 16),
                   Text(
                     'Terjadi kesalahan:',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade700,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
                   ),
                   SizedBox(height: 8),
                   Text(
                     _errorMessage!,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                   SizedBox(height: 20),
@@ -249,7 +235,10 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                     ),
                     child: Text(
                       'Coba Lagi',
@@ -382,19 +371,27 @@ class TeacherDetailScreenState extends State<TeacherDetailScreen> {
                         SizedBox(height: 12),
                         _buildInfoRow(
                           'Kelas',
-                          teacher['kelas_nama'] ?? 'Tidak ditugaskan',
+                          teacher['kelas_names'] ?? 'Belum ditugaskan',
+                          isMultiline: true,
                         ),
                         _buildInfoRow(
                           'Mata Pelajaran',
-                          teacher['mata_pelajaran_names']?.isNotEmpty == true
+                          (teacher['mata_pelajaran_names'] != null &&
+                                  teacher['mata_pelajaran_names']
+                                      .toString()
+                                      .isNotEmpty)
                               ? teacher['mata_pelajaran_names']
-                              : 'Tidak ditugaskan',
+                              : 'Belum ditugaskan',
                           isMultiline: true,
                         ),
-                        _buildInfoRow('Role', teacher['role']?.toUpperCase() ?? 'GURU'),
+                        _buildInfoRow(
+                          'Role',
+                          teacher['role']?.toUpperCase() ?? 'GURU',
+                        ),
                         _buildInfoRow(
                           'Status Wali Kelas',
-                          teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true
+                          teacher['is_wali_kelas'] == 1 ||
+                                  teacher['is_wali_kelas'] == true
                               ? 'Ya'
                               : 'Tidak',
                         ),

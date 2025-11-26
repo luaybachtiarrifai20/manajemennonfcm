@@ -36,7 +36,7 @@ class ApiTeacherService {
   static Future<String> downloadTemplate() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/guru/template'),
+        Uri.parse('$baseUrl/download-teacher-template'),
         headers: await _getHeaders(),
       );
 
@@ -173,14 +173,19 @@ class ApiTeacherService {
     return await ApiService().get('/guru/$id');
   }
 
+  // Add teacher with new structure
+  // Required fields: nama, email, jenis_kelamin ("L" or "P")
+  // Optional fields: nip, subject_ids (List<String>), class_ids (List<String>),
+  //                  wali_kelas_id (String), status_kepegawaian ("tetap" or "tidak_tetap")
   Future<dynamic> addTeacher(Map<String, dynamic> data) async {
     return await ApiService().post('/guru', data);
   }
 
+  // Update teacher with new structure
+  // All fields same as addTeacher
+  // Note: id parameter is guru.id (not user_id)
   Future<void> updateTeacher(String id, Map<String, dynamic> data) async {
-    final cleanData = Map<String, dynamic>.from(data);
-    cleanData.remove('mata_pelajaran_id');
-    await ApiService().put('/guru/$id', cleanData);
+    await ApiService().put('/guru/$id', data);
   }
 
   Future<void> deleteTeacher(String id) async {
@@ -280,7 +285,7 @@ class ApiTeacherService {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('${ApiService.baseUrl}/guru/import'),
+        Uri.parse('${ApiService.baseUrl}/import-teachers'),
       );
 
       // Add authorization header
