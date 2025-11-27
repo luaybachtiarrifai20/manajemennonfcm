@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
@@ -5,8 +7,10 @@ import 'package:manajemensekolah/components/enhanced_search_bar.dart';
 import 'package:manajemensekolah/components/error_screen.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
 import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AnnouncementScreen extends StatefulWidget {
   const AnnouncementScreen({super.key});
@@ -21,6 +25,7 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   final TextEditingController _searchController = TextEditingController();
+  String _userRole = 'wali'; // Default role
 
   @override
   void initState() {
@@ -35,28 +40,36 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
         _errorMessage = null;
       });
 
-      if (kDebugMode) {
-        print('🔄 Memuat data pengumuman...');
+      // Load user role from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final userData = prefs.getString('user');
+      if (userData != null) {
+        final user = json.decode(userData);
+        _userRole = user['role'] ?? 'wali';
       }
-      final pengumumanData = await _apiService.get('/pengumuman');
+
+      if (kDebugMode) {
+        print('🔄 Memuat data pengumuman untuk role: $_userRole');
+      }
+      final response = await _apiService.get('/pengumuman');
 
       if (kDebugMode) {
         print('✅ Response dari API:');
+        print('Type: ${response.runtimeType}');
+        print('Data: $response');
       }
-      if (kDebugMode) {
-        print('Type: ${pengumumanData.runtimeType}');
-      }
-      if (kDebugMode) {
-        print('Data: $pengumumanData');
-      }
-      if (kDebugMode) {
-        print(
-        'Length: ${pengumumanData is List ? pengumumanData.length : 'N/A'}',
-      );
+
+      // Handle response structure: {success, data, pagination}
+      List<dynamic> pengumumanList = [];
+      if (response is Map<String, dynamic> && response['data'] != null) {
+        pengumumanList = response['data'] is List ? response['data'] : [];
+      } else if (response is List) {
+        // Fallback for direct list response
+        pengumumanList = response;
       }
 
       setState(() {
-        _pengumuman = pengumumanData is List ? pengumumanData : [];
+        _pengumuman = pengumumanList;
         _isLoading = false;
       });
 
@@ -91,8 +104,8 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
   }
 
   Color _getPrimaryColor() {
-    // Warna purple untuk wali murid
-    return Color(0xFF9333EA);
+    // Use ColorUtils with dynamic role from user data
+    return ColorUtils.getRoleColor(_userRole);
   }
 
   LinearGradient _getCardGradient() {
@@ -118,11 +131,15 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
     Map<String, dynamic> pengumumanData,
     LanguageProvider languageProvider,
   ) {
-    final roleTarget = (pengumumanData['role_target'] ?? 'all').toString().toLowerCase().trim();
+    final roleTarget = (pengumumanData['role_target'] ?? 'all')
+        .toString()
+        .toLowerCase()
+        .trim();
     final kelasNama = pengumumanData['kelas_nama'];
 
     // Handle both 'all' (English) and 'semua' (Indonesian) from backend
-    if ((roleTarget == 'all' || roleTarget == 'semua' || roleTarget == '') && kelasNama == null) {
+    if ((roleTarget == 'all' || roleTarget == 'semua' || roleTarget == '') &&
+        kelasNama == null) {
       return languageProvider.getTranslatedText({
         'en': 'All Users',
         'id': 'Semua Pengguna',
@@ -521,7 +538,9 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: _getPrimaryColor().withValues(alpha: 0.1),
+                                color: _getPrimaryColor().withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Icon(
@@ -572,7 +591,9 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: _getPrimaryColor().withValues(alpha: 0.1),
+                                color: _getPrimaryColor().withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Icon(
@@ -621,7 +642,9 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: _getPrimaryColor().withValues(alpha: 0.1),
+                                color: _getPrimaryColor().withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Icon(
