@@ -151,8 +151,9 @@ class FinanceScreenState extends State<FinanceScreen>
         'onRemove': () {
           setState(() {
             _selectedStatusFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData();
         },
       });
     }
@@ -173,8 +174,9 @@ class FinanceScreenState extends State<FinanceScreen>
         'onRemove': () {
           setState(() {
             _selectedPeriodeFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData();
         },
       });
     }
@@ -3364,26 +3366,17 @@ class FinanceScreenState extends State<FinanceScreen>
                               SizedBox(width: 8),
                               InkWell(
                                 onTap: _clearAllFilters,
+                                borderRadius: BorderRadius.circular(8),
                                 child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
+                                  padding: EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: Colors.red.withOpacity(0.1),
+                                    color: Colors.red,
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: Colors.red.withOpacity(0.3),
-                                      width: 1,
-                                    ),
                                   ),
-                                  child: Text(
-                                    'Hapus Semua',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.red,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  child: Icon(
+                                    Icons.clear_all,
+                                    size: 18,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
