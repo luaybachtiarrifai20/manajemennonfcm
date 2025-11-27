@@ -41,17 +41,15 @@ class ApiSubjectService {
       );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback
       return {
         'success': false,
-        'data': {
-          'status_options': [],
-        }
+        'data': {'status_options': []},
       };
     } catch (e) {
       print('Error getting filter options: $e');
@@ -65,6 +63,7 @@ class ApiSubjectService {
     int limit = 10,
     String? status,
     String? search,
+    List<String>? subjectIds,
   }) async {
     // Build query parameters
     Map<String, dynamic> queryParams = {
@@ -79,23 +78,29 @@ class ApiSubjectService {
       queryParams['search'] = search;
     }
 
+    if (subjectIds != null && subjectIds.isNotEmpty) {
+      queryParams['subject_ids'] = subjectIds.join(',');
+    }
+
     // Build query string
     String queryString = Uri(queryParameters: queryParams).query;
-    
+
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/mata-pelajaran?$queryString'),
         headers: await _getHeaders(),
       );
 
-      print('GET /mata-pelajaran?$queryString - Status: ${response.statusCode}');
+      print(
+        'GET /mata-pelajaran?$queryString - Status: ${response.statusCode}',
+      );
 
       final result = _handleResponse(response);
-      
+
       if (result is Map<String, dynamic>) {
         return result;
       }
-      
+
       // Fallback untuk backward compatibility
       return {
         'success': true,
@@ -107,7 +112,7 @@ class ApiSubjectService {
           'per_page': limit,
           'has_next_page': false,
           'has_prev_page': false,
-        }
+        },
       };
     } catch (e) {
       print('Error getting paginated subjects: $e');
@@ -119,12 +124,12 @@ class ApiSubjectService {
   // Now handles paginated response from backend
   Future<List<dynamic>> getSubject() async {
     final result = await ApiService().get('/mata-pelajaran');
-    
+
     // Handle new pagination format
     if (result is Map<String, dynamic>) {
       return result['data'] ?? [];
     }
-    
+
     // Handle old format (List)
     return result is List ? result : [];
   }
@@ -405,7 +410,9 @@ class ApiSubjectService {
     required String mataPelajaranId,
   }) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/materi-progress?guru_id=$guruId&mata_pelajaran_id=$mataPelajaranId'),
+      Uri.parse(
+        '$baseUrl/materi-progress?guru_id=$guruId&mata_pelajaran_id=$mataPelajaranId',
+      ),
       headers: await _getHeaders(),
     );
 
@@ -425,7 +432,9 @@ class ApiSubjectService {
   }
 
   // Batch save materi progress (for saving multiple checkboxes at once)
-  static Future<dynamic> batchSaveMateriProgress(Map<String, dynamic> data) async {
+  static Future<dynamic> batchSaveMateriProgress(
+    Map<String, dynamic> data,
+  ) async {
     final response = await http.post(
       Uri.parse('$baseUrl/materi-progress/batch'),
       headers: await _getHeaders(),

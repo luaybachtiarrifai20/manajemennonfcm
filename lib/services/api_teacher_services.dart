@@ -207,12 +207,22 @@ class ApiTeacherService {
     required String guruId,
     int page = 1,
     int limit = 10,
+    String? search,
+    List<String>? subjectIds,
   }) async {
     // Build query parameters
     Map<String, dynamic> queryParams = {
       'page': page.toString(),
       'limit': limit.toString(),
     };
+
+    if (search != null && search.isNotEmpty) {
+      queryParams['search'] = search;
+    }
+
+    if (subjectIds != null && subjectIds.isNotEmpty) {
+      queryParams['subject_ids'] = subjectIds.join(',');
+    }
 
     // Build query string
     String queryString = Uri(queryParameters: queryParams).query;
