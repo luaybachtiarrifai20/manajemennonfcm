@@ -15,9 +15,9 @@ import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:provider/provider.dart';
 
 class GradePage extends StatefulWidget {
-  final Map<String, dynamic> guru;
+  final Map<String, dynamic> teacher;
 
-  const GradePage({super.key, required this.guru});
+  const GradePage({super.key, required this.teacher});
 
   @override
   GradePageState createState() => GradePageState();
@@ -111,10 +111,10 @@ class GradePageState extends State<GradePage> {
 
       List<dynamic> mataPelajaran;
 
-      if (widget.guru['role'] == 'guru') {
+      if (widget.teacher['role'] == 'guru') {
         // For teachers, get subjects by teacher with pagination
         final response = await ApiTeacherService.getSubjectsByTeacherPaginated(
-          guruId: widget.guru['id'],
+          guruId: widget.teacher['id'],
           page: _currentPage,
           limit: _perPage,
           search: _searchController.text,
@@ -161,10 +161,10 @@ class GradePageState extends State<GradePage> {
 
       List<dynamic> newSubjects;
 
-      if (widget.guru['role'] == 'guru') {
+      if (widget.teacher['role'] == 'guru') {
         // For teachers, get subjects by teacher
         final response = await ApiTeacherService.getSubjectsByTeacherPaginated(
-          guruId: widget.guru['id'],
+          guruId: widget.teacher['id'],
           page: _currentPage,
           limit: _perPage,
           search: _searchController.text,
@@ -250,13 +250,13 @@ class GradePageState extends State<GradePage> {
       context,
       MaterialPageRoute(
         builder: (context) =>
-            ClassSelectionPage(guru: widget.guru, mataPelajaran: mataPelajaran),
+            ClassSelectionPage(teacher: widget.teacher, subject: mataPelajaran),
       ),
     );
   }
 
   Color _getPrimaryColor() {
-    return ColorUtils.getRoleColor(widget.guru['role'] ?? 'guru');
+    return ColorUtils.getRoleColor(widget.teacher['role'] ?? 'guru');
   }
 
   LinearGradient _getCardGradient() {
@@ -668,7 +668,7 @@ class GradePageState extends State<GradePage> {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              widget.guru['role'] == 'guru'
+                              widget.teacher['role'] == 'guru'
                                   ? Icons.school
                                   : Icons.admin_panel_settings,
                               color: Colors.white,
@@ -681,7 +681,7 @@ class GradePageState extends State<GradePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.guru['nama'] ?? 'Unknown',
+                                  widget.teacher['nama'] ?? 'Unknown',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -689,7 +689,7 @@ class GradePageState extends State<GradePage> {
                                   ),
                                 ),
                                 Text(
-                                  widget.guru['role'] == 'guru'
+                                  widget.teacher['role'] == 'guru'
                                       ? languageProvider.getTranslatedText({
                                           'en': 'Teacher',
                                           'id': 'Guru',
@@ -858,14 +858,14 @@ class GradePageState extends State<GradePage> {
                               _searchController.text.isNotEmpty ||
                                   _hasActiveFilter
                               ? 'No subjects found for your search'
-                              : widget.guru['role'] == 'guru'
+                              : widget.teacher['role'] == 'guru'
                               ? 'No subjects assigned to you'
                               : 'No subjects available',
                           'id':
                               _searchController.text.isNotEmpty ||
                                   _hasActiveFilter
                               ? 'Tidak ada mata pelajaran yang sesuai dengan pencarian'
-                              : widget.guru['role'] == 'guru'
+                              : widget.teacher['role'] == 'guru'
                               ? 'Tidak ada mata pelajaran yang diajarkan'
                               : 'Tidak ada mata pelajaran tersedia',
                         }),
@@ -942,13 +942,13 @@ class GradePageState extends State<GradePage> {
 
 // Halaman Pemilihan Kelas - Diperbaiki agar langsung ke tabel nilai
 class ClassSelectionPage extends StatefulWidget {
-  final Map<String, dynamic> guru;
-  final Map<String, dynamic> mataPelajaran;
+  final Map<String, dynamic> teacher;
+  final Map<String, dynamic> subject;
 
   const ClassSelectionPage({
     super.key,
-    required this.guru,
-    required this.mataPelajaran,
+    required this.teacher,
+    required this.subject,
   });
 
   @override
@@ -1003,7 +1003,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
       });
 
       final kelasData = await ApiService().getKelasByMataPelajaran(
-        widget.mataPelajaran['id'],
+        widget.subject['id'],
       );
 
       setState(() {
@@ -1045,8 +1045,8 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
       context,
       MaterialPageRoute(
         builder: (context) => GradeBookPage(
-          guru: widget.guru,
-          mataPelajaran: widget.mataPelajaran,
+          teacher: widget.teacher,
+          subject: widget.subject,
           kelas: kelas,
         ),
       ),
@@ -1054,7 +1054,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
   }
 
   Color _getPrimaryColor() {
-    return ColorUtils.getRoleColor(widget.guru['role'] ?? 'guru');
+    return ColorUtils.getRoleColor(widget.teacher['role'] ?? 'guru');
   }
 
   LinearGradient _getCardGradient() {
@@ -1309,7 +1309,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                                 ),
                                 SizedBox(height: 1),
                                 Text(
-                                  widget.mataPelajaran['nama'] ??
+                                  widget.subject['nama'] ??
                                       languageProvider.getTranslatedText({
                                         'en': 'No subject',
                                         'id': 'Tidak ada mata pelajaran',
@@ -1463,7 +1463,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.mataPelajaran['nama'] ?? 'Subject',
+                                  widget.subject['nama'] ?? 'Subject',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1471,7 +1471,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                                   ),
                                 ),
                                 Text(
-                                  '${languageProvider.getTranslatedText({'en': 'Code', 'id': 'Kode'})}: ${widget.mataPelajaran['kode'] ?? '-'}',
+                                  '${languageProvider.getTranslatedText({'en': 'Code', 'id': 'Kode'})}: ${widget.subject['kode'] ?? '-'}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.white.withOpacity(0.8),
@@ -1693,14 +1693,14 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
 
 // Halaman Grade Book/Tabel Nilai
 class GradeBookPage extends StatefulWidget {
-  final Map<String, dynamic> guru;
-  final Map<String, dynamic> mataPelajaran;
+  final Map<String, dynamic> teacher;
+  final Map<String, dynamic> subject;
   final Map<String, dynamic> kelas;
 
   const GradeBookPage({
     super.key,
-    required this.guru,
-    required this.mataPelajaran,
+    required this.teacher,
+    required this.subject,
     required this.kelas,
   });
 
@@ -1776,7 +1776,7 @@ class GradeBookPageState extends State<GradeBookPage> {
 
       // Load nilai yang sudah ada
       final nilaiData = await ApiService().getNilaiByMataPelajaran(
-        widget.mataPelajaran['id'],
+        widget.subject['id'],
       );
 
       setState(() {
@@ -1933,8 +1933,8 @@ class GradeBookPageState extends State<GradeBookPage> {
       context,
       MaterialPageRoute(
         builder: (context) => GradeInputForm(
-          guru: widget.guru,
-          mataPelajaran: widget.mataPelajaran,
+          teacher: widget.teacher,
+          subject: widget.subject,
           siswa: siswa,
           jenisNilai: jenisNilai,
           existingNilai: existingNilai?.isNotEmpty == true
@@ -1952,8 +1952,8 @@ class GradeBookPageState extends State<GradeBookPage> {
       context,
       MaterialPageRoute(
         builder: (context) => GradeInputFormNew(
-          guru: widget.guru,
-          mataPelajaran: widget.mataPelajaran,
+          teacher: widget.teacher,
+          subject: widget.subject,
           siswaList: _siswaList,
         ),
       ),
@@ -2141,7 +2141,7 @@ class GradeBookPageState extends State<GradeBookPage> {
   }
 
   Color _getPrimaryColor() {
-    return ColorUtils.getRoleColor(widget.guru['role'] ?? 'guru');
+    return ColorUtils.getRoleColor(widget.teacher['role'] ?? 'guru');
   }
 
   @override
@@ -2156,7 +2156,7 @@ class GradeBookPageState extends State<GradeBookPage> {
           backgroundColor: Colors.grey.shade50,
           appBar: AppBar(
             title: Text(
-              '${languageProvider.getTranslatedText({'en': 'Grades', 'id': 'Nilai'})} - ${widget.mataPelajaran['nama']} - ${widget.kelas['nama']}',
+              '${languageProvider.getTranslatedText({'en': 'Grades', 'id': 'Nilai'})} - ${widget.subject['nama']} - ${widget.kelas['nama']}',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 18,
@@ -2251,7 +2251,7 @@ class GradeBookPageState extends State<GradeBookPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${widget.mataPelajaran['nama']} - ${widget.kelas['nama']}',
+                            '${widget.subject['nama']} - ${widget.kelas['nama']}',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -2380,16 +2380,16 @@ class GradeBookPageState extends State<GradeBookPage> {
 
 // Form Input Nilai Individual
 class GradeInputForm extends StatefulWidget {
-  final Map<String, dynamic> guru;
-  final Map<String, dynamic> mataPelajaran;
+  final Map<String, dynamic> teacher;
+  final Map<String, dynamic> subject;
   final Siswa siswa;
   final String jenisNilai;
   final Map<String, dynamic>? existingNilai;
 
   const GradeInputForm({
     super.key,
-    required this.guru,
-    required this.mataPelajaran,
+    required this.teacher,
+    required this.subject,
     required this.siswa,
     required this.jenisNilai,
     this.existingNilai,
@@ -2442,8 +2442,8 @@ class GradeInputFormState extends State<GradeInputForm> {
       try {
         final data = {
           'siswa_id': widget.siswa.id,
-          'guru_id': widget.guru['id'],
-          'mata_pelajaran_id': widget.mataPelajaran['id'],
+          'guru_id': widget.teacher['id'],
+          'mata_pelajaran_id': widget.subject['id'],
           'jenis': widget.jenisNilai,
           'nilai': double.parse(_nilaiController.text),
           'deskripsi': _deskripsiController.text,
@@ -2522,7 +2522,7 @@ class GradeInputFormState extends State<GradeInputForm> {
   }
 
   Color _getPrimaryColor() {
-    return ColorUtils.getRoleColor(widget.guru['role'] ?? 'guru');
+    return ColorUtils.getRoleColor(widget.teacher['role'] ?? 'guru');
   }
 
   @override
@@ -2610,7 +2610,7 @@ class GradeInputFormState extends State<GradeInputForm> {
                             Icon(Icons.menu_book, color: _getPrimaryColor()),
                             SizedBox(width: 8),
                             Text(
-                              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${widget.mataPelajaran['nama']}',
+                              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${widget.subject['nama']}',
                             ),
                           ],
                         ),
@@ -2769,14 +2769,14 @@ class GradeInputFormState extends State<GradeInputForm> {
 
 // Form Input Nilai Baru untuk Multiple Siswa
 class GradeInputFormNew extends StatefulWidget {
-  final Map<String, dynamic> guru;
-  final Map<String, dynamic> mataPelajaran;
+  final Map<String, dynamic> teacher;
+  final Map<String, dynamic> subject;
   final List<Siswa> siswaList;
 
   const GradeInputFormNew({
     super.key,
-    required this.guru,
-    required this.mataPelajaran,
+    required this.teacher,
+    required this.subject,
     required this.siswaList,
   });
 
@@ -2884,8 +2884,8 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
 
           final data = {
             'siswa_id': siswa.id,
-            'guru_id': widget.guru['id'],
-            'mata_pelajaran_id': widget.mataPelajaran['id'],
+            'guru_id': widget.teacher['id'],
+            'mata_pelajaran_id': widget.subject['id'],
             'jenis': _selectedJenisNilai!,
             'nilai': double.parse(nilai),
             'deskripsi': nilaiData?['deskripsi']?.toString().trim() ?? '',
@@ -2957,7 +2957,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
   }
 
   Color _getPrimaryColor() {
-    return ColorUtils.getRoleColor(widget.guru['role'] ?? 'guru');
+    return ColorUtils.getRoleColor(widget.teacher['role'] ?? 'guru');
   }
 
   Widget _buildSiswaInputCard(Siswa siswa, LanguageProvider languageProvider) {
@@ -2977,16 +2977,12 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
         leading: CircleAvatar(
           backgroundColor: _getPrimaryColor().withOpacity(0.1),
           child: Text(
-            siswa.nama.substring(0, 1).toUpperCase() ?? '?',
+            siswa.nama.substring(0, 1).toUpperCase(),
             style: TextStyle(color: _getPrimaryColor()),
           ),
         ),
         title: Text(
-          siswa.nama ??
-              languageProvider.getTranslatedText({
-                'en': 'Student',
-                'id': 'Siswa',
-              }),
+          siswa.nama,
           style: TextStyle(fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
@@ -3163,18 +3159,18 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${widget.mataPelajaran['nama']}',
+                                  '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${widget.subject['nama']}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
                                     color: _getPrimaryColor(),
                                   ),
                                 ),
-                                if (widget.mataPelajaran['kode'] != null)
+                                if (widget.subject['kode'] != null)
                                   Padding(
                                     padding: const EdgeInsets.only(top: 4.0),
                                     child: Text(
-                                      '${languageProvider.getTranslatedText({'en': 'Code', 'id': 'Kode'})}: ${widget.mataPelajaran['kode']}',
+                                      '${languageProvider.getTranslatedText({'en': 'Code', 'id': 'Kode'})}: ${widget.subject['kode']}',
                                       style: TextStyle(fontSize: 12),
                                     ),
                                   ),

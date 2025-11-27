@@ -173,36 +173,53 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         'onRemove': () {
           setState(() {
             _selectedDateFilter = null;
-            _checkActiveFilter();
           });
+          _checkActiveFilter();
+          _loadData();
         },
       });
     }
 
+    // Show individual chips for each selected subject
     if (_selectedSubjectIds.isNotEmpty) {
-      filterChips.add({
-        'label':
-            '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${_selectedSubjectIds.length}',
-        'onRemove': () {
-          setState(() {
-            _selectedSubjectIds.clear();
+      for (var subjectId in _selectedSubjectIds) {
+        final subject = _subjectList.firstWhere(
+          (s) => s['id'].toString() == subjectId,
+          orElse: () => {'nama': 'Subject #$subjectId'},
+        );
+        filterChips.add({
+          'label':
+              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mapel'})}: ${subject['nama']}',
+          'onRemove': () {
+            setState(() {
+              _selectedSubjectIds.remove(subjectId);
+            });
             _checkActiveFilter();
-          });
-        },
-      });
+            _loadData();
+          },
+        });
+      }
     }
 
+    // Show individual chips for each selected class
     if (_selectedClassIds.isNotEmpty) {
-      filterChips.add({
-        'label':
-            '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${_selectedClassIds.length}',
-        'onRemove': () {
-          setState(() {
-            _selectedClassIds.clear();
+      for (var classId in _selectedClassIds) {
+        final kelas = _classList.firstWhere(
+          (k) => k['id'].toString() == classId,
+          orElse: () => {'nama': 'Class #$classId'},
+        );
+        filterChips.add({
+          'label':
+              '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['nama']}',
+          'onRemove': () {
+            setState(() {
+              _selectedClassIds.remove(classId);
+            });
             _checkActiveFilter();
-          });
-        },
-      });
+            _loadData();
+          },
+        });
+      }
     }
 
     return filterChips;
@@ -1223,14 +1240,14 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                                           filter['label'],
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.white,
+                                            color: _getPrimaryColor(),
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                         deleteIcon: Icon(
                                           Icons.close,
                                           size: 16,
-                                          color: Colors.white,
+                                          color: Colors.red,
                                         ),
                                         onDeleted: filter['onRemove'],
                                         backgroundColor: Colors.white
@@ -1258,29 +1275,17 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                             SizedBox(width: 8),
                             InkWell(
                               onTap: _clearAllFilters,
+                              borderRadius: BorderRadius.circular(8),
                               child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 6,
-                                ),
+                                padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.withOpacity(0.2),
+                                  color: Colors.red,
                                   borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.red.withOpacity(0.3),
-                                    width: 1,
-                                  ),
                                 ),
-                                child: Text(
-                                  languageProvider.getTranslatedText({
-                                    'en': 'Clear All',
-                                    'id': 'Hapus Semua',
-                                  }),
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                child: Icon(
+                                  Icons.clear_all,
+                                  size: 18,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -1357,7 +1362,6 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
   List<dynamic> _absensiData = [];
   List<Siswa> _siswaList = [];
   bool _isLoading = true;
-  String? _classId;
 
   // Animations
   late AnimationController _animationController;
@@ -1392,31 +1396,49 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
 
   Future<void> _loadData() async {
     try {
-      // 1. Pertama, ambil data absensi untuk mendapatkan kelas_id
+      // 1. Load attendance data
       final absensiData = await ApiService.getAbsensi(
         mataPelajaranId: widget.mataPelajaranId,
         tanggal: DateFormat('yyyy-MM-dd').format(widget.tanggal),
       );
 
-      if (absensiData.isNotEmpty) {
-        // Ambil kelas_id dari record absensi pertama (asumsi semua record di kelas yang sama)
-        _classId = absensiData.first['kelas_id']?.toString();
-
+      // 2. Load students by class ID (from widget parameter)
+      List<dynamic> siswaData;
+      if (widget.classId.isNotEmpty) {
+        siswaData = await ApiStudentService.getStudentByClass(widget.classId);
         if (kDebugMode) {
-          print('Kelas ID from attendance: $_classId');
+          print(
+            'Loaded ${siswaData.length} students for class: ${widget.classId}',
+          );
+        }
+      } else {
+        // Fallback: if no classId provided, try to get from attendance data
+        if (absensiData.isNotEmpty) {
+          final classIdFromData = absensiData.first['kelas_id']?.toString();
+          if (classIdFromData != null && classIdFromData.isNotEmpty) {
+            siswaData = await ApiStudentService.getStudentByClass(
+              classIdFromData,
+            );
+            if (kDebugMode) {
+              print(
+                'Loaded ${siswaData.length} students for class: $classIdFromData (from attendance data)',
+              );
+            }
+          } else {
+            siswaData = await ApiStudentService.getStudent();
+            if (kDebugMode) {
+              print('Loaded all students (no class ID available)');
+            }
+          }
+        } else {
+          siswaData = await ApiStudentService.getStudent();
+          if (kDebugMode) {
+            print('Loaded all students (no attendance data)');
+          }
         }
       }
 
-      // 2. Load siswa berdasarkan kelas_id jika tersedia, jika tidak load semua siswa
-      List<dynamic> siswaData;
-      if (_classId != null && _classId!.isNotEmpty) {
-        siswaData = await ApiStudentService.getStudentByClass(_classId!);
-      } else {
-        siswaData = await ApiStudentService.getStudent();
-      }
-
       if (kDebugMode) {
-        print('Loaded ${siswaData.length} students for class: $_classId');
         print('Loaded ${absensiData.length} attendance records');
       }
 

@@ -1930,14 +1930,14 @@ class _DashboardState extends State<Dashboard>
             print('👤 User data for grade input: $userData');
           }
 
-          final guruData = {
+          final teacherData = {
             'id': userData['id'] ?? '',
             'nama': userData['nama'] ?? 'Teacher',
             'email': userData['email'] ?? '',
             'role': widget.role,
           };
 
-          if (guruData['id']!.isEmpty) {
+          if (teacherData['id']!.isEmpty) {
             if (context.mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Error: Teacher ID not found')),
@@ -1949,7 +1949,7 @@ class _DashboardState extends State<Dashboard>
           if (!context.mounted) return;
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => GradePage(guru: guruData)),
+            MaterialPageRoute(builder: (context) => GradePage(teacher: teacherData)),
           );
         },
         'roles': ['admin', 'guru'],

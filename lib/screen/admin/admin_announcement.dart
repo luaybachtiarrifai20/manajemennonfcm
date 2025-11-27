@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:manajemensekolah/components/confirmation_dialog.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
@@ -135,10 +136,14 @@ class AnnouncementManagementScreenState
           _availableTargetOptions = response['data']['target_options'] ?? [];
           _availableStatusOptions = response['data']['status_options'] ?? [];
         });
-        print('✅ Announcement filter options loaded');
+        if (kDebugMode) {
+          print('✅ Announcement filter options loaded');
+        }
       }
     } catch (e) {
-      print('Error loading announcement filter options: $e');
+      if (kDebugMode) {
+        print('Error loading announcement filter options: $e');
+      }
       // Continue with empty options - not critical error
     }
   }
@@ -611,7 +616,9 @@ class AnnouncementManagementScreenState
           _errorMessage = null;
         });
       } else {
-        print('❌ Unexpected response structure');
+        if (kDebugMode) {
+          print('❌ Unexpected response structure');
+        }
         setState(() {
           _isLoading = false;
           _errorMessage = 'Unexpected response structure';
@@ -723,9 +730,11 @@ class AnnouncementManagementScreenState
         _isLoadingMore = false;
       });
 
-      print(
-        '✅ Loaded more announcements: Page $_currentPage, Total: ${_announcements.length}',
-      );
+      if (kDebugMode) {
+        print(
+          '✅ Loaded more announcements: Page $_currentPage, Total: ${_announcements.length}',
+        );
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -734,7 +743,9 @@ class AnnouncementManagementScreenState
         _currentPage--; // Revert page increment on error
       });
 
-      print('Error loading more announcements: $e');
+      if (kDebugMode) {
+        print('Error loading more announcements: $e');
+      }
     }
   }
 
@@ -745,7 +756,7 @@ class AnnouncementManagementScreenState
     final kontenController = TextEditingController(
       text: announcementData?['konten'] ?? '',
     );
-    String? selectedKelas = announcementData?['kelas_id'];
+    String? selectedClassId = announcementData?['kelas_id'];
     String? selectedRole = announcementData?['role_target'] ?? 'all';
     String? selectedPrioritas = announcementData?['prioritas'] ?? 'biasa';
     DateTime? tanggalAwal = announcementData?['tanggal_awal'] != null
@@ -789,7 +800,7 @@ class AnnouncementManagementScreenState
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
@@ -1960,15 +1971,15 @@ class AnnouncementManagementScreenState
     LanguageProvider languageProvider,
   ) {
     final roleTarget = announcementData['role_target'] ?? 'all';
-    final kelasNama = announcementData['kelas_nama'];
+    final classNama = announcementData['kelas_nama'];
 
-    if (roleTarget == 'all' && kelasNama == null) {
+    if (roleTarget == 'all' && classNama == null) {
       return languageProvider.getTranslatedText({
         'en': 'All Users',
         'id': 'Semua Pengguna',
       });
-    } else if (kelasNama != null) {
-      return '$kelasNama (${roleTarget.toUpperCase()})';
+    } else if (classNama != null) {
+      return '$classNama (${roleTarget.toUpperCase()})';
     } else {
       return roleTarget.toUpperCase();
     }
@@ -2018,7 +2029,7 @@ class AnnouncementManagementScreenState
                   gradient: _getCardGradient(),
                   boxShadow: [
                     BoxShadow(
-                      color: _getPrimaryColor().withOpacity(0.3),
+                      color: _getPrimaryColor().withValues(alpha: 0.3),
                       blurRadius: 8,
                       offset: Offset(0, 2),
                     ),
@@ -2035,7 +2046,7 @@ class AnnouncementManagementScreenState
                             width: 40,
                             height: 40,
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Icon(
@@ -2069,7 +2080,7 @@ class AnnouncementManagementScreenState
                                 }),
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: Colors.white.withOpacity(0.9),
+                                  color: Colors.white.withValues(alpha: 0.9),
                                 ),
                               ),
                             ],
@@ -2079,7 +2090,7 @@ class AnnouncementManagementScreenState
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -2098,7 +2109,7 @@ class AnnouncementManagementScreenState
                         Expanded(
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.9),
+                              color: Colors.white.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: TextField(
@@ -2130,10 +2141,10 @@ class AnnouncementManagementScreenState
                           decoration: BoxDecoration(
                             color: _hasActiveFilter
                                 ? Colors.white
-                                : Colors.white.withOpacity(0.2),
+                                : Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: Colors.white.withOpacity(0.3),
+                              color: Colors.white.withValues(alpha: 0.3),
                             ),
                           ),
                           child: Stack(
@@ -2183,7 +2194,7 @@ class AnnouncementManagementScreenState
                             Container(
                               padding: EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
@@ -2218,9 +2229,10 @@ class AnnouncementManagementScreenState
                                         ),
                                         onDeleted: filter['onRemove'],
                                         backgroundColor: Colors.white
-                                            .withOpacity(0.2),
+                                            .withValues(alpha: 0.2),
                                         side: BorderSide(
-                                          color: Colors.white.withOpacity(0.3),
+                                          color: Colors.white
+                                              .withValues(alpha: 0.3),
                                           width: 1,
                                         ),
                                         shape: RoundedRectangleBorder(
