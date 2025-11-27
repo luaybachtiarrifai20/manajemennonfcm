@@ -536,13 +536,63 @@ class AnnouncementManagementScreenState
         });
       }
 
+      // Map display values to backend values
+      String? mappedPrioritas;
+      if (_selectedPriorityFilter != null) {
+        mappedPrioritas = _selectedPriorityFilter!.toLowerCase();
+      }
+
+      String? mappedRoleTarget;
+      if (_selectedTargetFilter != null) {
+        switch (_selectedTargetFilter) {
+          case 'Semua':
+          case 'All':
+            mappedRoleTarget = 'semua';
+            break;
+          case 'Guru':
+          case 'Teachers':
+            mappedRoleTarget = 'guru';
+            break;
+          case 'Siswa':
+          case 'Students':
+            mappedRoleTarget = 'siswa';
+            break;
+          case 'Orang Tua':
+          case 'Parents':
+            mappedRoleTarget = 'wali';
+            break;
+          default:
+            mappedRoleTarget = _selectedTargetFilter!.toLowerCase();
+        }
+      }
+
+      String? mappedStatus;
+      if (_selectedStatusFilter != null) {
+        switch (_selectedStatusFilter) {
+          case 'Aktif':
+          case 'Active':
+            mappedStatus = 'aktif';
+            break;
+          case 'Terjadwal':
+          case 'Scheduled':
+            mappedStatus = 'terjadwal';
+            break;
+          case 'Kedaluwarsa':
+          case 'Expired':
+            mappedStatus = 'kedaluwarsa';
+            break;
+          default:
+            mappedStatus = _selectedStatusFilter!.toLowerCase();
+        }
+      }
+
       // Load with pagination and backend filtering
       final response = await ApiAnnouncementService.getAnnouncementsPaginated(
         page: _currentPage,
         limit: _perPage,
-        prioritas: _selectedPriorityFilter,
-        roleTarget: _selectedTargetFilter,
-        status: _selectedStatusFilter,
+        prioritas: mappedPrioritas,
+        roleTarget: mappedRoleTarget,
+        status: mappedStatus,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
@@ -602,12 +652,62 @@ class AnnouncementManagementScreenState
     try {
       _currentPage++;
 
+      // Map display values to backend values (same logic as _loadData)
+      String? mappedPrioritas;
+      if (_selectedPriorityFilter != null) {
+        mappedPrioritas = _selectedPriorityFilter!.toLowerCase();
+      }
+
+      String? mappedRoleTarget;
+      if (_selectedTargetFilter != null) {
+        switch (_selectedTargetFilter) {
+          case 'Semua':
+          case 'All':
+            mappedRoleTarget = 'semua';
+            break;
+          case 'Guru':
+          case 'Teachers':
+            mappedRoleTarget = 'guru';
+            break;
+          case 'Siswa':
+          case 'Students':
+            mappedRoleTarget = 'siswa';
+            break;
+          case 'Orang Tua':
+          case 'Parents':
+            mappedRoleTarget = 'wali';
+            break;
+          default:
+            mappedRoleTarget = _selectedTargetFilter!.toLowerCase();
+        }
+      }
+
+      String? mappedStatus;
+      if (_selectedStatusFilter != null) {
+        switch (_selectedStatusFilter) {
+          case 'Aktif':
+          case 'Active':
+            mappedStatus = 'aktif';
+            break;
+          case 'Terjadwal':
+          case 'Scheduled':
+            mappedStatus = 'terjadwal';
+            break;
+          case 'Kedaluwarsa':
+          case 'Expired':
+            mappedStatus = 'kedaluwarsa';
+            break;
+          default:
+            mappedStatus = _selectedStatusFilter!.toLowerCase();
+        }
+      }
+
       final response = await ApiAnnouncementService.getAnnouncementsPaginated(
         page: _currentPage,
         limit: _perPage,
-        prioritas: _selectedPriorityFilter,
-        roleTarget: _selectedTargetFilter,
-        status: _selectedStatusFilter,
+        prioritas: mappedPrioritas,
+        roleTarget: mappedRoleTarget,
+        status: mappedStatus,
         search: _searchController.text.trim().isEmpty
             ? null
             : _searchController.text.trim(),
@@ -1897,62 +1997,6 @@ class AnnouncementManagementScreenState
     );
   }
 
-  List<dynamic> get _filteredAnnouncements {
-    var filtered = _announcements;
-
-    // Filter berdasarkan search
-    if (_searchController.text.isNotEmpty) {
-      final searchLower = _searchController.text.toLowerCase();
-      filtered = filtered.where((p) {
-        final judul = p['judul']?.toString().toLowerCase() ?? '';
-        final konten = p['konten']?.toString().toLowerCase() ?? '';
-        final pembuat = p['pembuat_nama']?.toString().toLowerCase() ?? '';
-        return judul.contains(searchLower) ||
-            konten.contains(searchLower) ||
-            pembuat.contains(searchLower);
-      }).toList();
-    }
-
-    // Filter berdasarkan prioritas
-    if (_selectedPriorityFilter != null) {
-      filtered = filtered.where((p) {
-        return p['prioritas']?.toString() == _selectedPriorityFilter;
-      }).toList();
-    }
-
-    // Filter berdasarkan target
-    if (_selectedTargetFilter != null) {
-      filtered = filtered.where((p) {
-        return p['target']?.toString() == _selectedTargetFilter;
-      }).toList();
-    }
-
-    // Filter berdasarkan status (tanggal publikasi)
-    if (_selectedStatusFilter != null) {
-      final now = DateTime.now();
-      filtered = filtered.where((p) {
-        final tanggalMulai = p['tanggal_mulai'] != null
-            ? DateTime.tryParse(p['tanggal_mulai'].toString())
-            : null;
-        final tanggalSelesai = p['tanggal_selesai'] != null
-            ? DateTime.tryParse(p['tanggal_selesai'].toString())
-            : null;
-
-        if (_selectedStatusFilter == 'Aktif') {
-          return (tanggalMulai == null || tanggalMulai.isBefore(now)) &&
-              (tanggalSelesai == null || tanggalSelesai.isAfter(now));
-        } else if (_selectedStatusFilter == 'Terjadwal') {
-          return tanggalMulai != null && tanggalMulai.isAfter(now);
-        } else if (_selectedStatusFilter == 'Kedaluwarsa') {
-          return tanggalSelesai != null && tanggalSelesai.isBefore(now);
-        }
-        return true;
-      }).toList();
-    }
-
-    return filtered;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<LanguageProvider>(
@@ -2234,7 +2278,7 @@ class AnnouncementManagementScreenState
                         errorMessage: _errorMessage!,
                         onRetry: _loadData,
                       )
-                    : _filteredAnnouncements.isEmpty
+                    : _announcements.isEmpty
                     ? EmptyState(
                         icon: Icons.announcement_outlined,
                         title: languageProvider.getTranslatedText({
