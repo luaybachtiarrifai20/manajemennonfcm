@@ -26,6 +26,7 @@ class AbsensiSummary {
   final int hadir;
   final int tidakHadir;
   final String? classId;
+  final String? className;
 
   AbsensiSummary({
     required this.mataPelajaranId,
@@ -35,6 +36,7 @@ class AbsensiSummary {
     required this.hadir,
     required this.tidakHadir,
     this.classId,
+    this.className,
   });
 
   String get key =>
@@ -332,9 +334,13 @@ class PresencePageState extends State<PresencePage>
         final classId = absen['kelas_id']?.toString() ?? '';
         final key =
             '${absen['mata_pelajaran_id']}-${absen['tanggal']}-$classId';
-        final mataPelajaranNama = _getMataPelajaranName(
-          absen['mata_pelajaran_id'],
-        );
+
+        // Use name from API if available, otherwise fallback to lookup
+        final mataPelajaranNama =
+            absen['mata_pelajaran_nama'] ??
+            _getMataPelajaranName(absen['mata_pelajaran_id']);
+
+        final className = absen['kelas_nama'];
 
         if (!summaryMap.containsKey(key)) {
           summaryMap[key] = AbsensiSummary(
@@ -345,6 +351,7 @@ class PresencePageState extends State<PresencePage>
             hadir: 0,
             tidakHadir: 0,
             classId: classId.isNotEmpty ? classId : null,
+            className: className,
           );
         }
 
@@ -357,6 +364,7 @@ class PresencePageState extends State<PresencePage>
           hadir: summary.hadir + (absen['status'] == 'hadir' ? 1 : 0),
           tidakHadir: summary.tidakHadir + (absen['status'] != 'hadir' ? 1 : 0),
           classId: summary.classId,
+          className: summary.className,
         );
       }
 
@@ -1707,7 +1715,8 @@ class PresencePageState extends State<PresencePage>
                                   SizedBox(height: 2),
                                   if (summary.classId != null)
                                     Text(
-                                      _getKelasName(summary.classId!),
+                                      summary.className ??
+                                          _getKelasName(summary.classId!),
                                       style: TextStyle(
                                         fontSize: 11,
                                         color: _getPrimaryColor(),
