@@ -96,6 +96,29 @@ class ApiTeacherService {
     }
   }
 
+  // Get Guru by User ID
+  static Future<Map<String, dynamic>?> getGuruByUserId(String userId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/guru?user_id=$userId'),
+        headers: await _getHeaders(),
+      );
+
+      final result = _handleResponse(response);
+
+      if (result is Map<String, dynamic> &&
+          result['data'] is List &&
+          (result['data'] as List).isNotEmpty) {
+        return result['data'][0];
+      }
+
+      return null;
+    } catch (e) {
+      print('Error getting guru by user id: $e');
+      return null;
+    }
+  }
+
   // Get Teachers with Pagination & Filters (Recommended)
   static Future<Map<String, dynamic>> getTeachersPaginated({
     int page = 1,

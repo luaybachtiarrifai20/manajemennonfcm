@@ -1,4 +1,5 @@
 // class_activity.dart
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -11,6 +12,7 @@ import 'package:manajemensekolah/components/tab_switcher.dart';
 import 'package:manajemensekolah/services/api_class_activity_services.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/services/api_subject_services.dart';
+import 'package:manajemensekolah/services/api_teacher_services.dart';
 import 'package:manajemensekolah/utils/color_utils.dart';
 import 'package:manajemensekolah/utils/date_utils.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
@@ -62,6 +64,19 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   List<String> _selectedSubjectIds = [];
   bool _hasActiveFilter = false;
 
+  // Pagination
+  int _currentPage = 1;
+  final int _perPage = 10;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+
+  // Scroll controller for infinite scroll
+  final ScrollController _scrollController = ScrollController();
+
+  // Search debouncing
+  Timer? _searchDebounce;
+
   late TabController _tabController;
   String _currentTarget = 'umum';
 
@@ -79,6 +94,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(_handleTabSelection);
+    _scrollController.addListener(_onScroll);
     _loadUserData();
   }
 
@@ -86,6 +102,8 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
+    _scrollController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -93,6 +111,27 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
     setState(() {
       _currentTarget = _tabController.index == 0 ? 'umum' : 'khusus';
     });
+    // Reset pagination when switching tabs
+    _resetAndLoadActivities();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData) {
+        _loadMoreActivities();
+      }
+    }
+  }
+
+  void _resetAndLoadActivities() {
+    setState(() {
+      _currentPage = 1;
+      _activityList.clear();
+      _hasMoreData = true;
+      _isLoading = true;
+    });
+    _loadActivities();
   }
 
   Future<void> _loadUserData() async {
@@ -104,6 +143,25 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         _teacherId = userData['id']?.toString() ?? '';
         _teacherName = userData['nama']?.toString() ?? 'Guru';
       });
+
+      // Fetch actual guru ID
+      if (_teacherId.isNotEmpty) {
+        try {
+          final guruData = await ApiTeacherService.getGuruByUserId(_teacherId);
+          if (guruData != null && guruData['id'] != null) {
+            setState(() {
+              _teacherId = guruData['id'].toString();
+            });
+            if (kDebugMode) {
+              print('Resolved Guru ID: $_teacherId');
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('Failed to resolve guru ID: $e');
+          }
+        }
+      }
 
       if (_teacherId.isEmpty) {
         setState(() => _isLoading = false);
@@ -531,67 +589,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
     );
   }
 
-  List<dynamic> _getFilteredActivities() {
-    final searchTerm = _searchController.text.toLowerCase();
-    final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(Duration(days: 6));
-    final startOfMonth = DateTime(now.year, now.month, 1);
-    final endOfMonth = DateTime(now.year, now.month + 1, 0);
-
-    return _activityList.where((activity) {
-      // Filter berdasarkan tab
-      final matchesTarget = activity['target'] == _currentTarget;
-
-      // Filter search
-      final matchesSearch =
-          searchTerm.isEmpty ||
-          (activity['judul']?.toString().toLowerCase().contains(searchTerm) ??
-              false) ||
-          (activity['mata_pelajaran_nama']?.toString().toLowerCase().contains(
-                searchTerm,
-              ) ??
-              false);
-
-      // Filter tanggal
-      final activityDate = activity['tanggal'] != null
-          ? DateTime.tryParse(activity['tanggal'])
-          : null;
-
-      bool matchesDateFilter = true;
-      if (_selectedDateFilter != null && activityDate != null) {
-        if (_selectedDateFilter == 'today') {
-          matchesDateFilter = _isSameDay(activityDate, now);
-        } else if (_selectedDateFilter == 'week') {
-          matchesDateFilter =
-              activityDate.isAfter(startOfWeek.subtract(Duration(days: 1))) &&
-              activityDate.isBefore(endOfWeek.add(Duration(days: 1)));
-        } else if (_selectedDateFilter == 'month') {
-          matchesDateFilter =
-              activityDate.isAfter(startOfMonth.subtract(Duration(days: 1))) &&
-              activityDate.isBefore(endOfMonth.add(Duration(days: 1)));
-        }
-      }
-
-      // Filter mata pelajaran
-      final matchesSubject =
-          _selectedSubjectIds.isEmpty ||
-          _selectedSubjectIds.contains(
-            activity['mata_pelajaran_id']?.toString(),
-          );
-
-      return matchesTarget &&
-          matchesSearch &&
-          matchesDateFilter &&
-          matchesSubject;
-    }).toList();
-  }
-
-  bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year &&
-        date1.month == date2.month &&
-        date1.day == date2.day;
-  }
+  // Removed _getFilteredActivities - now using backend filtering
 
   void _checkActiveFilter() {
     setState(() {
@@ -606,6 +604,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
       _selectedSubjectIds.clear();
       _hasActiveFilter = false;
     });
+    _resetAndLoadActivities();
   }
 
   // ========== HEADER SEPERTI PRESENCE TEACHER ==========
@@ -751,7 +750,13 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   Widget _buildSearchAndFilter(LanguageProvider languageProvider) {
     return NewEnhancedSearchBar(
       controller: _searchController,
-      onChanged: (value) => setState(() {}),
+      onChanged: (value) {
+        // Debounce search to avoid excessive API calls
+        if (_searchDebounce?.isActive ?? false) _searchDebounce!.cancel();
+        _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+          _resetAndLoadActivities();
+        });
+      },
       hintText: languageProvider.getTranslatedText({
         'en': 'Search activities...',
         'id': 'Cari kegiatan...',
@@ -839,6 +844,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
             _selectedSubjectIds = List<String>.from(filters['subjects'] ?? []);
             _checkActiveFilter();
           });
+          _resetAndLoadActivities();
         },
       ),
     );
@@ -873,6 +879,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
             _selectedDateFilter = null;
             _checkActiveFilter();
           });
+          _resetAndLoadActivities();
         },
       });
     }
@@ -886,6 +893,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
             _selectedSubjectIds.clear();
             _checkActiveFilter();
           });
+          _resetAndLoadActivities();
         },
       });
     }
@@ -894,7 +902,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   }
 
   Widget _buildActivityList() {
-    final filteredActivities = _getFilteredActivities();
+    // Now using backend filtering, so _activityList is already filtered
 
     return Consumer<LanguageProvider>(
       builder: (context, languageProvider, child) {
@@ -994,13 +1002,13 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
               SizedBox(height: 8),
             ],
 
-            if (filteredActivities.isNotEmpty)
+            if (_activityList.isNotEmpty)
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
                     Text(
-                      '${filteredActivities.length} ${languageProvider.getTranslatedText({'en': 'activities found', 'id': 'kegiatan ditemukan'})}',
+                      '${_activityList.length} ${languageProvider.getTranslatedText({'en': 'activities found', 'id': 'kegiatan ditemukan'})}',
                       style: TextStyle(color: Colors.grey[600], fontSize: 14),
                     ),
                   ],
@@ -1009,7 +1017,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
             SizedBox(height: 8),
 
             Expanded(
-              child: filteredActivities.isEmpty
+              child: _activityList.isEmpty
                   ? EmptyState(
                       title: languageProvider.getTranslatedText({
                         'en': 'No Activities',
@@ -1032,10 +1040,23 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                       icon: Icons.event_note,
                     )
                   : ListView.builder(
+                      controller: _scrollController,
                       padding: EdgeInsets.all(16),
-                      itemCount: filteredActivities.length,
+                      itemCount:
+                          _activityList.length + (_isLoadingMore ? 1 : 0),
                       itemBuilder: (context, index) {
-                        final activity = filteredActivities[index];
+                        if (index == _activityList.length) {
+                          // Loading indicator at bottom
+                          return Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(16),
+                              child: CircularProgressIndicator(
+                                color: _getPrimaryColor(),
+                              ),
+                            ),
+                          );
+                        }
+                        final activity = _activityList[index];
                         return _buildActivityCard(activity, context);
                       },
                     ),
@@ -1547,17 +1568,48 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   }
 
   Future<void> _loadActivities() async {
+    if (_isLoadingMore) return;
+
     try {
-      final activities = await ApiClassActivityService.getActivityByGuru(
-        _teacherId,
-      );
       setState(() {
-        _activityList = activities;
+        if (_currentPage == 1) {
+          _isLoading = true;
+        }
+      });
+
+      final response = await ApiClassActivityService.getClassActivityPaginated(
+        page: _currentPage,
+        limit: _perPage,
+        guruId: _teacherId,
+        target: _currentTarget,
+        search: _searchController.text.isNotEmpty
+            ? _searchController.text
+            : null,
+        tanggal: _selectedDateFilter,
+        mataPelajaranId: _selectedSubjectIds.isNotEmpty
+            ? _selectedSubjectIds.first
+            : null,
+      );
+
+      if (kDebugMode) {
+        print(
+          'Loaded activities page $_currentPage: ${response['data']?.length ?? 0} items',
+        );
+      }
+
+      setState(() {
+        if (_currentPage == 1) {
+          _activityList = response['data'] ?? [];
+        } else {
+          _activityList.addAll(response['data'] ?? []);
+        }
+        _paginationMeta = response['pagination'];
+        _hasMoreData = response['pagination']?['has_next_page'] ?? false;
         _isLoading = false;
       });
 
       // Auto show activity dialog if specified
-      if (widget.autoShowActivityDialog) {
+      if (widget.autoShowActivityDialog && _currentPage == 1) {
         Future.delayed(Duration(milliseconds: 300), () {
           if (mounted) {
             _showActivityTypeDialog();
@@ -1565,10 +1617,34 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _hasMoreData = false;
+      });
       if (kDebugMode) {
         print('Error load activities: $e');
       }
+    }
+  }
+
+  Future<void> _loadMoreActivities() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+      await _loadActivities();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error loading more activities: $e');
+      }
+    } finally {
+      setState(() {
+        _isLoadingMore = false;
+      });
     }
   }
 }
