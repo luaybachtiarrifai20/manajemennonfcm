@@ -1988,6 +1988,278 @@ class GradeBookPageState extends State<GradeBookPage> {
     });
   }
 
+  void _showColumnOptions(
+    String jenis,
+    String date,
+    LanguageProvider languageProvider,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Text(
+                "${_getJenisNilaiLabel(jenis, languageProvider)} - ${_formatDateDisplay(date)}",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 20),
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.visibility, color: Colors.blue),
+                ),
+                title: Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'View Details',
+                    'id': 'Lihat Detail',
+                  }),
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAssessmentDetail(jenis, date, languageProvider);
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.delete_outline, color: Colors.red),
+                ),
+                title: Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'Delete Assessment',
+                    'id': 'Hapus Penilaian',
+                  }),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Colors.red,
+                  ),
+                ),
+                subtitle: Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'Delete all grades for this date',
+                    'id': 'Hapus semua nilai pada tanggal ini',
+                  }),
+                  style: TextStyle(fontSize: 12, color: Colors.red.shade300),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _confirmDeleteAssessment(jenis, date, languageProvider);
+                },
+              ),
+              SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDateDisplay(String dateStr) {
+    try {
+      final parts = dateStr.split('-');
+      if (parts.length == 3) {
+        return "${parts[2]}/${parts[1]}/${parts[0]}";
+      }
+      return dateStr;
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  void _showAssessmentDetail(
+    String jenis,
+    String date,
+    LanguageProvider languageProvider,
+  ) {
+    // Calculate stats
+    int totalSiswa = _siswaList.length;
+    int gradedCount = 0;
+    double totalNilai = 0;
+
+    for (var siswa in _siswaList) {
+      final nilai = _getNilaiForSiswaAndJenisAndDate(siswa.id, jenis, date);
+      if (nilai != null && nilai.isNotEmpty) {
+        gradedCount++;
+        totalNilai += double.tryParse(nilai['nilai'].toString()) ?? 0.0;
+      }
+    }
+
+    double average = gradedCount > 0 ? totalNilai / gradedCount : 0;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          languageProvider.getTranslatedText({
+            'en': 'Assessment Details',
+            'id': 'Detail Penilaian',
+          }),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildDetailRow(
+              languageProvider.getTranslatedText({'en': 'Type', 'id': 'Jenis'}),
+              _getJenisNilaiLabel(jenis, languageProvider),
+            ),
+            _buildDetailRow(
+              languageProvider.getTranslatedText({
+                'en': 'Date',
+                'id': 'Tanggal',
+              }),
+              _formatDateDisplay(date),
+            ),
+            Divider(),
+            _buildDetailRow(
+              languageProvider.getTranslatedText({
+                'en': 'Total Students',
+                'id': 'Total Siswa',
+              }),
+              totalSiswa.toString(),
+            ),
+            _buildDetailRow(
+              languageProvider.getTranslatedText({
+                'en': 'Graded',
+                'id': 'Sudah Dinilai',
+              }),
+              "$gradedCount / $totalSiswa",
+            ),
+            _buildDetailRow(
+              languageProvider.getTranslatedText({
+                'en': 'Average Score',
+                'id': 'Rata-rata Nilai',
+              }),
+              average.toStringAsFixed(2),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(value, style: TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAssessment(
+    String jenis,
+    String date,
+    LanguageProvider languageProvider,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          languageProvider.getTranslatedText({
+            'en': 'Delete Assessment?',
+            'id': 'Hapus Penilaian?',
+          }),
+        ),
+        content: Text(
+          languageProvider.getTranslatedText({
+            'en':
+                'Are you sure you want to delete all grades for ${_getJenisNilaiLabel(jenis, languageProvider)} on ${_formatDateDisplay(date)}? This action cannot be undone.',
+            'id':
+                'Apakah Anda yakin ingin menghapus semua nilai ${_getJenisNilaiLabel(jenis, languageProvider)} pada tanggal ${_formatDateDisplay(date)}? Tindakan ini tidak dapat dibatalkan.',
+          }),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              languageProvider.getTranslatedText({
+                'en': 'Cancel',
+                'id': 'Batal',
+              }),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAssessment(jenis, date);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text(
+              languageProvider.getTranslatedText({
+                'en': 'Delete',
+                'id': 'Hapus',
+              }),
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAssessment(String jenis, String date) async {
+    setState(() => _isLoading = true);
+    try {
+      final apiService = ApiService();
+      // Use the new batch delete endpoint
+      // We need to construct the query parameters manually or add a method to ApiService
+      // For now, let's use the generic delete with query params if supported,
+      // or we might need to use a custom request.
+      // Since ApiService.delete takes a path, we can append query params.
+
+      final queryParams = {
+        'mata_pelajaran_id': widget.subject['id'],
+        'jenis': jenis,
+        'tanggal': date,
+      };
+
+      final queryString = Uri(queryParameters: queryParams).query;
+
+      await apiService.delete('/nilai/batch?$queryString');
+
+      _showSuccessSnackBar('Assessment deleted successfully');
+      _loadData(); // Reload to refresh the table
+    } catch (e) {
+      setState(() => _isLoading = false);
+      _showErrorSnackBar('Failed to delete assessment: $e');
+    }
+  }
+
   Future<void> _addNewAssessment(String jenis) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -2083,35 +2355,39 @@ class GradeBookPageState extends State<GradeBookPage> {
                           : date;
 
                       columns.add(
-                        Container(
-                          width: 90,
-                          padding: EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            border: Border(
-                              right: BorderSide(color: Colors.grey.shade300),
+                        InkWell(
+                          onTap: () =>
+                              _showColumnOptions(jenis, date, languageProvider),
+                          child: Container(
+                            width: 90,
+                            padding: EdgeInsets.all(4),
+                            decoration: BoxDecoration(
+                              border: Border(
+                                right: BorderSide(color: Colors.grey.shade300),
+                              ),
                             ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                _getJenisNilaiLabel(jenis, languageProvider),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _getJenisNilaiLabel(jenis, languageProvider),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 10,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
                                 ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                              ),
-                              Text(
-                                displayDate,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.grey.shade700,
+                                Text(
+                                  displayDate,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade700,
+                                  ),
+                                  textAlign: TextAlign.center,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                       );
@@ -2137,7 +2413,7 @@ class GradeBookPageState extends State<GradeBookPage> {
                             color: _getPrimaryColor(),
                           ),
                           onPressed: () => _addNewAssessment(jenis),
-                          tooltip: "Add ${jenis}",
+                          tooltip: "Add $jenis",
                         ),
                       ),
                     );
