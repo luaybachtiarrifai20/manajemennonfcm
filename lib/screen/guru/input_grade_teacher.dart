@@ -1732,6 +1732,10 @@ class GradeBookPageState extends State<GradeBookPage> {
     'uas': true,
   };
 
+  // Map to store unique dates for each grade type
+  // Key: jenis (e.g., 'harian'), Value: List of dates (YYYY-MM-DD)
+  Map<String, List<String>> _assessmentDates = {};
+
   // Scroll controller untuk sinkronisasi scroll horizontal
   final ScrollController _horizontalScrollController = ScrollController();
 
@@ -1783,6 +1787,36 @@ class GradeBookPageState extends State<GradeBookPage> {
         _siswaList = siswaData.map((s) => Siswa.fromJson(s)).toList();
         _filteredSiswaList = List.from(_siswaList);
         _nilaiList = List<Map<String, dynamic>>.from(nilaiData);
+
+        // Process unique dates for each grade type
+        _assessmentDates = {};
+        for (var nilai in _nilaiList) {
+          final jenis = nilai['jenis'];
+          // Ensure date is in YYYY-MM-DD format
+          String? rawDate = nilai['tanggal'];
+          if (rawDate != null) {
+            // Take only the date part if it's a full datetime string
+            final datePart = rawDate.split('T')[0];
+
+            if (!_assessmentDates.containsKey(jenis)) {
+              _assessmentDates[jenis] = [];
+            }
+            if (!_assessmentDates[jenis]!.contains(datePart)) {
+              _assessmentDates[jenis]!.add(datePart);
+            }
+          }
+        }
+
+        // Sort dates for each type
+        for (var key in _assessmentDates.keys) {
+          _assessmentDates[key]!.sort();
+        }
+
+        // Ensure at least one empty column (or default) if no data exists for a type
+        // Actually, we don't force an empty column if there's no data,
+        // but we need a way to add the first one.
+        // We'll handle this in the UI by showing a "+" button even if list is empty.
+
         _isLoading = false;
       });
     } catch (e) {
@@ -1908,15 +1942,18 @@ class GradeBookPageState extends State<GradeBookPage> {
     );
   }
 
-  Map<String, dynamic>? _getNilaiForSiswaAndJenis(
+  Map<String, dynamic>? _getNilaiForSiswaAndJenisAndDate(
     String siswaId,
     String jenis,
+    String date,
   ) {
     try {
-      return _nilaiList.firstWhere(
-        (nilai) => nilai['siswa_id'] == siswaId && nilai['jenis'] == jenis,
-        orElse: () => <String, dynamic>{},
-      );
+      return _nilaiList.firstWhere((nilai) {
+        final nilaiDate = nilai['tanggal']?.toString().split('T')[0];
+        return nilai['siswa_id'] == siswaId &&
+            nilai['jenis'] == jenis &&
+            nilaiDate == date;
+      }, orElse: () => <String, dynamic>{});
     } catch (e) {
       return null;
     }
@@ -1925,9 +1962,12 @@ class GradeBookPageState extends State<GradeBookPage> {
   void _openInputForm(
     Siswa siswa,
     String jenisNilai,
-    LanguageProvider languageProvider,
-  ) {
-    final existingNilai = _getNilaiForSiswaAndJenis(siswa.id, jenisNilai);
+    LanguageProvider languageProvider, {
+    String? date,
+  }) {
+    final existingNilai = date != null
+        ? _getNilaiForSiswaAndJenisAndDate(siswa.id, jenisNilai, date)
+        : null; // Should not happen in new logic, we always pass date
 
     Navigator.push(
       context,
@@ -1940,11 +1980,36 @@ class GradeBookPageState extends State<GradeBookPage> {
           existingNilai: existingNilai?.isNotEmpty == true
               ? existingNilai
               : null,
+          initialDate: date != null ? DateTime.parse(date) : null,
         ),
       ),
     ).then((_) {
       _loadData();
     });
+  }
+
+  Future<void> _addNewAssessment(String jenis) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+
+    if (picked != null) {
+      final dateStr =
+          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+
+      setState(() {
+        if (!_assessmentDates.containsKey(jenis)) {
+          _assessmentDates[jenis] = [];
+        }
+        if (!_assessmentDates[jenis]!.contains(dateStr)) {
+          _assessmentDates[jenis]!.add(dateStr);
+          _assessmentDates[jenis]!.sort();
+        }
+      });
+    }
   }
 
   void _openNewInputForm(LanguageProvider languageProvider) {
@@ -1963,7 +2028,14 @@ class GradeBookPageState extends State<GradeBookPage> {
   }
 
   Widget _buildGradeTable(LanguageProvider languageProvider) {
-    final totalWidth = 120.0 + (_filteredJenisNilaiList.length * 90.0);
+    // Calculate total width based on columns
+    double totalWidth = 120.0; // Name column
+
+    for (var jenis in _filteredJenisNilaiList) {
+      final dates = _assessmentDates[jenis] ?? [];
+      // Width for dates columns + 1 for "Add" button column
+      totalWidth += (dates.length * 90.0) + 50.0;
+    }
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -1996,21 +2068,81 @@ class GradeBookPageState extends State<GradeBookPage> {
                       ),
                     ),
                   ),
-                  // Kolom jenis nilai
-                  ..._filteredJenisNilaiList.map((jenis) {
-                    return Container(
-                      width: 90,
-                      padding: EdgeInsets.all(8),
-                      child: Text(
-                        _getJenisNilaiLabel(jenis, languageProvider),
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 11,
+                  // Kolom jenis nilai (Dynamic)
+                  ..._filteredJenisNilaiList.expand((jenis) {
+                    final dates = _assessmentDates[jenis] ?? [];
+
+                    List<Widget> columns = [];
+
+                    // Existing date columns
+                    for (var date in dates) {
+                      // Format date for display (e.g. 10/10)
+                      final parts = date.split('-');
+                      final displayDate = parts.length == 3
+                          ? "${parts[2]}/${parts[1]}"
+                          : date;
+
+                      columns.add(
+                        Container(
+                          width: 90,
+                          padding: EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(color: Colors.grey.shade300),
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _getJenisNilaiLabel(jenis, languageProvider),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                              ),
+                              Text(
+                                displayDate,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey.shade700,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
                         ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
+                      );
+                    }
+
+                    // Add button column
+                    columns.add(
+                      Container(
+                        width: 50,
+                        padding: EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            right: BorderSide(
+                              color: Colors.grey.shade400,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.add_circle_outline,
+                            size: 20,
+                            color: _getPrimaryColor(),
+                          ),
+                          onPressed: () => _addNewAssessment(jenis),
+                          tooltip: "Add ${jenis}",
+                        ),
                       ),
                     );
+
+                    return columns;
                   }),
                 ],
               ),
@@ -2052,54 +2184,91 @@ class GradeBookPageState extends State<GradeBookPage> {
                         ],
                       ),
                     ),
-                    // Kolom Nilai
-                    ..._filteredJenisNilaiList.map((jenis) {
-                      final nilai = _getNilaiForSiswaAndJenis(siswa.id, jenis);
-                      final nilaiText = nilai?.isNotEmpty == true
-                          ? nilai!['nilai'].toString()
-                          : '-';
-                      final hasValue = nilai?.isNotEmpty == true;
+                    // Kolom Nilai (Dynamic)
+                    ..._filteredJenisNilaiList.expand((jenis) {
+                      final dates = _assessmentDates[jenis] ?? [];
 
-                      return Container(
-                        width: 90,
-                        padding: EdgeInsets.all(4),
-                        child: GestureDetector(
-                          onTap: () =>
-                              _openInputForm(siswa, jenis, languageProvider),
-                          child: Container(
-                            height: 40,
-                            padding: EdgeInsets.all(6),
+                      List<Widget> columns = [];
+
+                      // Existing date columns
+                      for (var date in dates) {
+                        final nilai = _getNilaiForSiswaAndJenisAndDate(
+                          siswa.id,
+                          jenis,
+                          date,
+                        );
+                        final nilaiText = nilai?.isNotEmpty == true
+                            ? nilai!['nilai'].toString()
+                            : '-';
+                        final hasValue = nilai?.isNotEmpty == true;
+
+                        columns.add(
+                          Container(
+                            width: 90,
+                            padding: EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: hasValue
-                                  ? Colors.green.shade50
-                                  : Colors.grey.shade50,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(
-                                color: hasValue
-                                    ? Colors.green.shade200
-                                    : Colors.grey.shade300,
+                              border: Border(
+                                right: BorderSide(color: Colors.grey.shade100),
                               ),
                             ),
-                            child: Center(
-                              child: Text(
-                                nilaiText,
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontWeight: hasValue
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
+                            child: GestureDetector(
+                              onTap: () => _openInputForm(
+                                siswa,
+                                jenis,
+                                languageProvider,
+                                date: date,
+                              ),
+                              child: Container(
+                                height: 40,
+                                padding: EdgeInsets.all(6),
+                                decoration: BoxDecoration(
                                   color: hasValue
-                                      ? Colors.green.shade800
-                                      : Colors.grey.shade600,
-                                  fontSize: 12,
+                                      ? Colors.green.shade50
+                                      : Colors.grey.shade50,
+                                  borderRadius: BorderRadius.circular(4),
+                                  border: Border.all(
+                                    color: hasValue
+                                        ? Colors.green.shade200
+                                        : Colors.grey.shade300,
+                                  ),
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                                child: Center(
+                                  child: Text(
+                                    nilaiText,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: hasValue
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: hasValue
+                                          ? Colors.green.shade800
+                                          : Colors.grey.shade600,
+                                      fontSize: 12,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
                               ),
                             ),
                           ),
+                        );
+                      }
+
+                      // Spacer for Add button column
+                      columns.add(
+                        Container(
+                          width: 50,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            color: Colors.grey.shade50.withOpacity(0.5),
+                          ),
                         ),
                       );
+
+                      return columns;
                     }),
                   ],
                 ),
@@ -2385,6 +2554,7 @@ class GradeInputForm extends StatefulWidget {
   final Siswa siswa;
   final String jenisNilai;
   final Map<String, dynamic>? existingNilai;
+  final DateTime? initialDate;
 
   const GradeInputForm({
     super.key,
@@ -2393,6 +2563,7 @@ class GradeInputForm extends StatefulWidget {
     required this.siswa,
     required this.jenisNilai,
     this.existingNilai,
+    this.initialDate,
   });
 
   @override
@@ -2413,6 +2584,12 @@ class GradeInputFormState extends State<GradeInputForm> {
       _nilaiController.text = widget.existingNilai!['nilai'].toString();
       _deskripsiController.text =
           widget.existingNilai!['deskripsi']?.toString() ?? '';
+
+      if (widget.existingNilai!['tanggal'] != null) {
+        _selectedDate = DateTime.parse(widget.existingNilai!['tanggal']);
+      }
+    } else if (widget.initialDate != null) {
+      _selectedDate = widget.initialDate!;
     }
   }
 
@@ -2981,10 +3158,7 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
             style: TextStyle(color: _getPrimaryColor()),
           ),
         ),
-        title: Text(
-          siswa.nama,
-          style: TextStyle(fontWeight: FontWeight.w500),
-        ),
+        title: Text(siswa.nama, style: TextStyle(fontWeight: FontWeight.w500)),
         subtitle: Text(
           '${languageProvider.getTranslatedText({'en': 'NIS', 'id': 'NIS'})}: ${siswa.nis ?? '-'}',
         ),
