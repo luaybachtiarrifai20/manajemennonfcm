@@ -53,32 +53,19 @@ class MateriPageState extends State<MateriPage> {
   // State untuk ceklis
   final Map<String, bool> _checkedBab = {};
   final Map<String, bool> _checkedSubBab = {};
-  
+
   // State untuk generated (sudah pernah di-generate)
   final Map<String, bool> _generatedBab = {};
   final Map<String, bool> _generatedSubBab = {};
 
-  List<Map<String, dynamic>> _getCheckedBab() {
-    return _babMateriList
-        .where((bab) => _checkedBab[bab['id']] == true)
-        .toList()
-        .cast<Map<String, dynamic>>();
-  }
-
-  // Fungsi untuk mendapatkan sub bab yang dicentang
-  List<Map<String, dynamic>> _getCheckedSubBab() {
-    return _subBabMateriList
-        .where((subBab) => _checkedSubBab[subBab['id']] == true)
-        .toList()
-        .cast<Map<String, dynamic>>();
-  }
-  
   // Fungsi untuk mendapatkan bab yang dicentang tapi belum di-generate
   List<Map<String, dynamic>> _getCheckedNotGeneratedBab() {
     return _babMateriList
-        .where((bab) => 
-          _checkedBab[bab['id']] == true && 
-          _generatedBab[bab['id']] != true)
+        .where(
+          (bab) =>
+              _checkedBab[bab['id']] == true &&
+              _generatedBab[bab['id']] != true,
+        )
         .toList()
         .cast<Map<String, dynamic>>();
   }
@@ -86,25 +73,25 @@ class MateriPageState extends State<MateriPage> {
   // Fungsi untuk mendapatkan sub bab yang dicentang tapi belum di-generate
   List<Map<String, dynamic>> _getCheckedNotGeneratedSubBab() {
     return _subBabMateriList
-        .where((subBab) => 
-          _checkedSubBab[subBab['id']] == true && 
-          _generatedSubBab[subBab['id']] != true)
+        .where(
+          (subBab) =>
+              _checkedSubBab[subBab['id']] == true &&
+              _generatedSubBab[subBab['id']] != true,
+        )
         .toList()
         .cast<Map<String, dynamic>>();
   }
 
   // Fungsi untuk navigate ke halaman class activity dengan bab yang dipilih
-  void _navigateToGenerateRPP({bool allowRegenerate = false}) async {
-    // Gunakan yang belum di-generate, atau semua yang checked jika allowRegenerate = true
-    final checkedBab = allowRegenerate ? _getCheckedBab() : _getCheckedNotGeneratedBab();
-    final checkedSubBab = allowRegenerate ? _getCheckedSubBab() : _getCheckedNotGeneratedSubBab();
+  void _navigateToGenerateRPP() async {
+    // Gunakan yang belum di-generate
+    final checkedBab = _getCheckedNotGeneratedBab();
+    final checkedSubBab = _getCheckedNotGeneratedSubBab();
 
     if (checkedBab.isEmpty && checkedSubBab.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(allowRegenerate 
-            ? 'Pilih minimal 1 bab atau sub bab untuk regenerate'
-            : 'Tidak ada materi baru yang bisa di-generate. Gunakan opsi "Regenerate" untuk materi yang sudah ada.'),
+          content: Text('Pilih minimal 1 bab atau sub bab untuk di-generate'),
         ),
       );
       return;
@@ -118,15 +105,17 @@ class MateriPageState extends State<MateriPage> {
       final firstSubBab = checkedSubBab.first;
       selectedSubBabId = firstSubBab['id']?.toString();
       selectedBabId = firstSubBab['bab_id']?.toString();
-      
+
       if (kDebugMode) {
-        print('Selected sub bab: $selectedSubBabId, parent bab: $selectedBabId');
+        print(
+          'Selected sub bab: $selectedSubBabId, parent bab: $selectedBabId',
+        );
       }
-    } 
+    }
     // If only bab is selected (no sub bab)
     else if (checkedBab.isNotEmpty) {
       selectedBabId = checkedBab.first['id']?.toString();
-      
+
       if (kDebugMode) {
         print('Selected bab only: $selectedBabId');
       }
@@ -136,7 +125,7 @@ class MateriPageState extends State<MateriPage> {
     await _markSelectedAsGenerated(checkedBab, checkedSubBab);
 
     if (!mounted) return;
-    
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -152,7 +141,7 @@ class MateriPageState extends State<MateriPage> {
       ),
     );
   }
-  
+
   // Mark selected materials as generated
   Future<void> _markSelectedAsGenerated(
     List<Map<String, dynamic>> babs,
@@ -161,33 +150,27 @@ class MateriPageState extends State<MateriPage> {
     try {
       final String? teacherId = widget.teacher['id'];
       if (teacherId == null || _selectedMataPelajaran == null) return;
-      
+
       final List<Map<String, dynamic>> items = [];
-      
+
       // Add babs
       for (var bab in babs) {
-        items.add({
-          'bab_id': bab['id'],
-          'sub_bab_id': null,
-        });
+        items.add({'bab_id': bab['id'], 'sub_bab_id': null});
       }
-      
+
       // Add sub-babs
       for (var subBab in subBabs) {
-        items.add({
-          'bab_id': subBab['bab_id'],
-          'sub_bab_id': subBab['id'],
-        });
+        items.add({'bab_id': subBab['bab_id'], 'sub_bab_id': subBab['id']});
       }
-      
+
       if (items.isEmpty) return;
-      
+
       await ApiSubjectService.markMateriGenerated({
         'guru_id': teacherId,
         'mata_pelajaran_id': _selectedMataPelajaran,
         'items': items,
       });
-      
+
       // Update local state
       setState(() {
         for (var bab in babs) {
@@ -197,7 +180,7 @@ class MateriPageState extends State<MateriPage> {
           _generatedSubBab[subBab['id']] = true;
         }
       });
-      
+
       if (kDebugMode) {
         print('Marked ${items.length} items as generated');
       }
@@ -265,7 +248,9 @@ class MateriPageState extends State<MateriPage> {
       }
 
       final ApiTeacherService apiTeacherService = ApiTeacherService();
-      final mataPelajaran = await apiTeacherService.getSubjectByTeacher(teacherId);
+      final mataPelajaran = await apiTeacherService.getSubjectByTeacher(
+        teacherId,
+      );
 
       if (kDebugMode) {
         print('Mata pelajaran found: ${mataPelajaran.length}');
@@ -290,7 +275,7 @@ class MateriPageState extends State<MateriPage> {
         _debugInfo = '${mataPelajaran.length} mata pelajaran ditemukan';
 
         // Use initialSubjectId if provided, otherwise use first subject
-        if (widget.initialSubjectId != null && 
+        if (widget.initialSubjectId != null &&
             mataPelajaran.any((mp) => mp['id'] == widget.initialSubjectId)) {
           _selectedMataPelajaran = widget.initialSubjectId;
           _loadBabMateri(_selectedMataPelajaran!);
@@ -336,7 +321,7 @@ class MateriPageState extends State<MateriPage> {
         }
         _debugInfo = '${babMateri.length} bab materi ditemukan';
       });
-      
+
       // Load progress dari database
       await _loadMateriProgress(mataPelajaranId);
     } catch (e) {
@@ -362,13 +347,13 @@ class MateriPageState extends State<MateriPage> {
         final newSubBabs = subBabMateri
             .where((subBab) => subBab['bab_id'] == babId)
             .toList();
-        
+
         // Hapus sub bab lama dari bab ini jika ada
         _subBabMateriList.removeWhere((subBab) => subBab['bab_id'] == babId);
-        
+
         // Tambahkan sub bab baru dari bab ini
         _subBabMateriList.addAll(newSubBabs);
-        
+
         // Inisialisasi state checked untuk setiap sub-bab baru
         for (var subBab in newSubBabs) {
           if (!_checkedSubBab.containsKey(subBab['id'])) {
@@ -387,13 +372,13 @@ class MateriPageState extends State<MateriPage> {
 
   // Fungsi untuk menangani perubahan ceklis pada sub bab
   void _handleSubBabCheck(String subBabId, String babId, bool? value) {
+    // Prevent unchecking if already checked
+    if (_checkedSubBab[subBabId] == true && value == false) {
+      return;
+    }
+
     setState(() {
       _checkedSubBab[subBabId] = value ?? false;
-      
-      // Jika di-unceklis, reset is_generated juga
-      if (!(value ?? false)) {
-        _generatedSubBab[subBabId] = false;
-      }
 
       // Cek apakah semua sub bab dalam bab ini sudah dicentang
       final allSubBabsChecked = _subBabMateriList
@@ -402,41 +387,34 @@ class MateriPageState extends State<MateriPage> {
 
       // Set status ceklis bab berdasarkan apakah semua sub bab sudah dicentang
       _checkedBab[babId] = allSubBabsChecked;
-      
-      // Jika bab menjadi unchecked, reset is_generated bab juga
-      if (!allSubBabsChecked) {
-        _generatedBab[babId] = false;
-      }
     });
-    
+
     // Save to database
     _saveProgress(babId, subBabId, value ?? false);
   }
 
   // Fungsi untuk menangani perubahan ceklis pada bab
   void _handleBabCheck(String babId, bool? value) {
+    // Prevent unchecking if already checked
+    if (_checkedBab[babId] == true && value == false) {
+      return;
+    }
+
     setState(() {
       _checkedBab[babId] = value ?? false;
-      
-      // Jika di-unceklis, reset is_generated juga
-      if (!(value ?? false)) {
-        _generatedBab[babId] = false;
-      }
 
-      // Jika bab dicentang/tidak dicentang, set semua sub bab dalam bab tersebut
-      // dengan nilai yang sama
+      // Jika bab dicentang, set semua sub bab dalam bab tersebut dengan nilai yang sama
+      // Tapi jangan uncheck sub bab yang sudah checked
       for (var subBab in _subBabMateriList.where(
         (subBab) => subBab['bab_id'] == babId,
       )) {
-        _checkedSubBab[subBab['id']] = value ?? false;
-        
-        // Jika di-unceklis, reset is_generated sub bab juga
-        if (!(value ?? false)) {
-          _generatedSubBab[subBab['id']] = false;
+        // Only check, don't uncheck
+        if (value == true) {
+          _checkedSubBab[subBab['id']] = true;
         }
       }
     });
-    
+
     // Save to database (bab and all its sub-babs)
     _saveBabAndSubBabsProgress(babId, value ?? false);
   }
@@ -446,24 +424,26 @@ class MateriPageState extends State<MateriPage> {
     try {
       final String? teacherId = widget.teacher['id'];
       if (teacherId == null) return;
-      
+
       final progress = await ApiSubjectService.getMateriProgress(
         guruId: teacherId,
         mataPelajaranId: mataPelajaranId,
       );
-      
+
       if (kDebugMode) {
         print('Loaded progress: ${progress.length} items');
       }
-      
+
       setState(() {
         // Apply checked and generated state from database
         for (var item in progress) {
           final babId = item['bab_id'];
           final subBabId = item['sub_bab_id'];
-          final isChecked = item['is_checked'] == 1 || item['is_checked'] == true;
-          final isGenerated = item['is_generated'] == 1 || item['is_generated'] == true;
-          
+          final isChecked =
+              item['is_checked'] == 1 || item['is_checked'] == true;
+          final isGenerated =
+              item['is_generated'] == 1 || item['is_generated'] == true;
+
           if (subBabId != null) {
             // Sub bab checked and generated status
             _checkedSubBab[subBabId.toString()] = isChecked;
@@ -483,11 +463,15 @@ class MateriPageState extends State<MateriPage> {
   }
 
   // Save single progress to database
-  Future<void> _saveProgress(String babId, String? subBabId, bool isChecked) async {
+  Future<void> _saveProgress(
+    String babId,
+    String? subBabId,
+    bool isChecked,
+  ) async {
     try {
       final String? teacherId = widget.teacher['id'];
       if (teacherId == null || _selectedMataPelajaran == null) return;
-      
+
       await ApiSubjectService.saveMateriProgress({
         'guru_id': teacherId,
         'mata_pelajaran_id': _selectedMataPelajaran,
@@ -495,9 +479,11 @@ class MateriPageState extends State<MateriPage> {
         'sub_bab_id': subBabId,
         'is_checked': isChecked,
       });
-      
+
       if (kDebugMode) {
-        print('Progress saved: bab=$babId, sub_bab=$subBabId, checked=$isChecked');
+        print(
+          'Progress saved: bab=$babId, sub_bab=$subBabId, checked=$isChecked',
+        );
       }
     } catch (e) {
       if (kDebugMode) {
@@ -511,33 +497,35 @@ class MateriPageState extends State<MateriPage> {
     try {
       final String? teacherId = widget.teacher['id'];
       if (teacherId == null || _selectedMataPelajaran == null) return;
-      
+
       // Prepare batch items
       final List<Map<String, dynamic>> progressItems = [];
-      
+
       // Add bab itself
       progressItems.add({
         'bab_id': babId,
         'sub_bab_id': null,
         'is_checked': isChecked,
       });
-      
+
       // Add all sub-babs of this bab
-      for (var subBab in _subBabMateriList.where((sb) => sb['bab_id'] == babId)) {
+      for (var subBab in _subBabMateriList.where(
+        (sb) => sb['bab_id'] == babId,
+      )) {
         progressItems.add({
           'bab_id': babId,
           'sub_bab_id': subBab['id'],
           'is_checked': isChecked,
         });
       }
-      
+
       // Batch save
       await ApiSubjectService.batchSaveMateriProgress({
         'guru_id': teacherId,
         'mata_pelajaran_id': _selectedMataPelajaran,
         'progress_items': progressItems,
       });
-      
+
       if (kDebugMode) {
         print('Batch progress saved: ${progressItems.length} items');
       }
@@ -877,56 +865,23 @@ class MateriPageState extends State<MateriPage> {
           SizedBox(height: 12),
 
           // Tombol Generate RPP jika ada yang dicentang
-          if (totalChecked > 0) ...[
-            Row(
-              children: [
-                // Tombol Generate (untuk yang baru / belum di-generate)
-                Expanded(
-                  flex: _getCheckedNotGeneratedCount() > 0 ? 3 : 0,
-                  child: _getCheckedNotGeneratedCount() > 0
-                    ? ElevatedButton.icon(
-                        onPressed: () => _navigateToGenerateRPP(allowRegenerate: false),
-                        icon: Icon(Icons.auto_awesome, size: 18),
-                        label: Text(
-                          'Generate (${_getCheckedNotGeneratedCount()})',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFF10B981),
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      )
-                    : SizedBox.shrink(),
+          if (totalChecked > 0 && _getCheckedNotGeneratedCount() > 0) ...[
+            // Tombol Generate (untuk yang baru / belum di-generate)
+            ElevatedButton.icon(
+              onPressed: _navigateToGenerateRPP,
+              icon: Icon(Icons.auto_awesome, size: 18),
+              label: Text(
+                'Generate RPP (${_getCheckedNotGeneratedCount()})',
+                style: TextStyle(fontSize: 14),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                if (_getCheckedNotGeneratedCount() > 0) SizedBox(width: 8),
-                // Tombol Regenerate (untuk semua yang checked)
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _navigateToGenerateRPP(allowRegenerate: true),
-                    icon: Icon(Icons.refresh, size: 18),
-                    label: Text(
-                      languageProvider.getTranslatedText({
-                        'en': 'Regenerate',
-                        'id': 'Regenerate',
-                      }),
-                      style: TextStyle(fontSize: 13),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Color(0xFF8B5CF6),
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
             SizedBox(height: 12),
           ],
@@ -1135,7 +1090,7 @@ class MateriPageState extends State<MateriPage> {
                                 onChanged: (value) {
                                   _handleBabCheck(bab['id'], value);
                                 },
-                                activeColor: _generatedBab[bab['id']] == true 
+                                activeColor: _generatedBab[bab['id']] == true
                                     ? Color(0xFF8B5CF6)
                                     : Color(0xFF10B981),
                               ),
@@ -1148,7 +1103,7 @@ class MateriPageState extends State<MateriPage> {
                             ],
                           ),
                         ),
-                        
+
                         // Sub Bab List (Expandable)
                         if (isExpanded) ...[
                           Divider(height: 1),
@@ -1219,7 +1174,7 @@ class MateriPageState extends State<MateriPage> {
                     onChanged: (value) {
                       _handleSubBabCheck(subBab['id'], bab['id'], value);
                     },
-                    activeColor: _generatedSubBab[subBab['id']] == true 
+                    activeColor: _generatedSubBab[subBab['id']] == true
                         ? Color(0xFF8B5CF6)
                         : Color(0xFF10B981),
                   ),
@@ -1250,9 +1205,10 @@ class MateriPageState extends State<MateriPage> {
         .length;
     return babChecked + subBabChecked;
   }
-  
+
   int _getCheckedNotGeneratedCount() {
-    return _getCheckedNotGeneratedBab().length + _getCheckedNotGeneratedSubBab().length;
+    return _getCheckedNotGeneratedBab().length +
+        _getCheckedNotGeneratedSubBab().length;
   }
 }
 
