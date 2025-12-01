@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:manajemensekolah/components/empty_state.dart';
 import 'package:manajemensekolah/components/filter_sheet.dart';
 import 'package:manajemensekolah/components/loading_screen.dart';
@@ -3713,6 +3714,22 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
           ),
         );
       }
+    } else {
+      // Validation failed - show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            languageProvider.getTranslatedText({
+              'en':
+                  'Please check your input. Grades must be numbers between 0-100.',
+              'id':
+                  'Periksa input Anda. Nilai harus berupa angka antara 0-100.',
+            }),
+          ),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -3879,14 +3896,40 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                         child: TextFormField(
                           controller: _tableControllers[nilaiKey],
                           focusNode: _tableFocusNodes[nilaiKey],
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
                           textAlign: TextAlign.center,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d*'),
+                            ),
+                          ],
                           decoration: InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
                             hintText: '-',
                             hintStyle: TextStyle(color: Colors.grey.shade400),
+                            errorStyle: TextStyle(fontSize: 10),
                           ),
+                          validator: (value) {
+                            if (value != null && value.isNotEmpty) {
+                              final numValue = double.tryParse(value);
+                              if (numValue == null) {
+                                return languageProvider.getTranslatedText({
+                                  'en': 'Numbers only',
+                                  'id': 'Hanya angka',
+                                });
+                              }
+                              if (numValue < 0 || numValue > 100) {
+                                return languageProvider.getTranslatedText({
+                                  'en': '0-100',
+                                  'id': '0-100',
+                                });
+                              }
+                            }
+                            return null;
+                          },
                           onChanged: (value) {
                             setState(() {
                               _nilaiSiswaMap[siswa.id]?['nilai'] = value;
