@@ -53,6 +53,26 @@ class PresenceParentPageState extends State<PresenceParentPage> {
       // Load data absensi
       final absensiData = await ApiService.getAbsensi(siswaId: widget.siswaId);
 
+      // Find the most recent month with data
+      DateTime? latestMonth;
+      if (absensiData.isNotEmpty) {
+        // Parse all dates and find the most recent one
+        for (var absen in absensiData) {
+          final absenDate = _parseLocalDate(absen['tanggal']);
+          if (latestMonth == null || absenDate.isAfter(latestMonth)) {
+            latestMonth = absenDate;
+          }
+        }
+
+        // Set selected month to the month of the most recent attendance record
+        if (latestMonth != null) {
+          _selectedMonth = DateTime(latestMonth.year, latestMonth.month, 1);
+          print(
+            '🎯 Auto-selected month with latest data: ${_selectedMonth.month}/${_selectedMonth.year}',
+          );
+        }
+      }
+
       setState(() {
         _siswa = siswa;
         _absensiData = absensiData;
@@ -78,14 +98,29 @@ class PresenceParentPageState extends State<PresenceParentPage> {
     final monthStart = DateTime(_selectedMonth.year, _selectedMonth.month, 1);
     final monthEnd = DateTime(_selectedMonth.year, _selectedMonth.month + 1, 0);
 
+    print('📅 Selected month: ${_selectedMonth.month}/${_selectedMonth.year}');
+    print('📅 Month range: $monthStart to $monthEnd');
+    print('📊 Total absensi records: ${_absensiData.length}');
+
+    int matchCount = 0;
     for (var absen in _absensiData) {
       final absenDate = _parseLocalDate(absen['tanggal']);
-      if (absenDate.isAfter(monthStart.subtract(const Duration(days: 1))) &&
-          absenDate.isBefore(monthEnd.add(const Duration(days: 1)))) {
+      final matches =
+          absenDate.isAfter(monthStart.subtract(const Duration(days: 1))) &&
+          absenDate.isBefore(monthEnd.add(const Duration(days: 1)));
+
+      print(
+        '  📌 Record date: ${absen['tanggal']} -> parsed: $absenDate -> matches: $matches',
+      );
+
+      if (matches) {
+        matchCount++;
         final status = absen['status'] ?? 'alpha';
         _monthlySummary[status] = (_monthlySummary[status] ?? 0) + 1;
       }
     }
+    print('✅ Records matching current month: $matchCount');
+    print('📈 Summary: $_monthlySummary');
   }
 
   Future<void> _selectMonth(BuildContext context) async {
@@ -354,7 +389,10 @@ class PresenceParentPageState extends State<PresenceParentPage> {
                   top: 12,
                   right: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: statusColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
@@ -431,7 +469,10 @@ class PresenceParentPageState extends State<PresenceParentPage> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                DateFormat('dd MMMM yyyy', 'id_ID').format(tanggal),
+                                DateFormat(
+                                  'dd MMMM yyyy',
+                                  'id_ID',
+                                ).format(tanggal),
                                 style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,

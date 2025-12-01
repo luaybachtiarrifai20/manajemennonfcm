@@ -441,7 +441,10 @@ class ApiService {
   }
 
   // RPP methods
-  static Future<List<dynamic>> getRPP({String? teacherId, String? status}) async {
+  static Future<List<dynamic>> getRPP({
+    String? teacherId,
+    String? status,
+  }) async {
     String url = '$baseUrl/rpp?';
     if (teacherId != null) url += 'guru_id=$teacherId&';
     if (status != null) url += 'status=$status&';
@@ -472,7 +475,8 @@ class ApiService {
       'limit': limit.toString(),
     };
 
-    if (teacherId != null && teacherId.isNotEmpty) queryParams['guru_id'] = teacherId;
+    if (teacherId != null && teacherId.isNotEmpty)
+      queryParams['guru_id'] = teacherId;
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
     if (subjectId != null && subjectId.isNotEmpty) {
@@ -664,13 +668,41 @@ class ApiService {
     if (siswaId != null) url += 'siswa_id=$siswaId&';
     if (classId != null) url += 'kelas_id=$classId&';
 
+    if (kDebugMode) {
+      print('📍 Calling getAbsensi: $url');
+    }
+
     final response = await http.get(
       Uri.parse(url),
       headers: await _getHeaders(),
     );
 
     final result = _handleResponse(response);
-    return result is List ? result : [];
+
+    if (kDebugMode) {
+      print('📦 Absensi response type: ${result.runtimeType}');
+      if (result is Map) {
+        print('📦 Response has data field: ${result.containsKey('data')}');
+        if (result.containsKey('data')) {
+          print('📦 Data is List: ${result['data'] is List}');
+          print('📦 Data length: ${(result['data'] as List?)?.length ?? 0}');
+        }
+      } else if (result is List) {
+        print('📦 Direct array, length: ${result.length}');
+      }
+    }
+
+    // Handle both formats: direct array or {success, data, pagination}
+    if (result is Map && result['data'] is List) {
+      return result['data'];
+    } else if (result is List) {
+      return result;
+    } else {
+      if (kDebugMode) {
+        print('⚠️ Unexpected response format for absensi');
+      }
+      return [];
+    }
   }
 
   // Paginated absensi (returns map with data + pagination)
