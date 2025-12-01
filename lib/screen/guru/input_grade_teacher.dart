@@ -3574,6 +3574,11 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
   final Map<String, TextEditingController> _tableControllers = {};
   final Map<String, FocusNode> _tableFocusNodes = {};
 
+  // State untuk tracking apakah jenis nilai dan tanggal sudah di-set
+  bool _isConfigurationSet = false;
+  String? _confirmedJenisNilai;
+  DateTime? _confirmedDate;
+
   @override
   void initState() {
     super.initState();
@@ -3765,7 +3770,9 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                 height: 50,
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
-                  border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade300),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -3851,7 +3858,10 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                             ),
                             Text(
                               siswa.nis,
-                              style: TextStyle(fontSize: 10, color: Colors.grey),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
                             ),
                           ],
                         ),
@@ -3878,7 +3888,9 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                             hintStyle: TextStyle(color: Colors.grey.shade400),
                           ),
                           onChanged: (value) {
-                            _nilaiSiswaMap[siswa.id]?['nilai'] = value;
+                            setState(() {
+                              _nilaiSiswaMap[siswa.id]?['nilai'] = value;
+                            });
                           },
                         ),
                       ),
@@ -3913,10 +3925,243 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                     ],
                   ),
                 );
-              }).toList(),
+              }),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // Build header untuk mode add setelah di-set (mirip dengan edit mode)
+  Widget _buildAddHeader(LanguageProvider languageProvider) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      color: Colors.orange.shade50,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Left side: Jenis Nilai with edit icon
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _isConfigurationSet = false;
+              });
+            },
+            child: Row(
+              children: [
+                Text(
+                  _getJenisNilaiLabel(
+                    _confirmedJenisNilai ?? '',
+                    languageProvider,
+                  ),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.edit, size: 16, color: _getPrimaryColor()),
+              ],
+            ),
+          ),
+          // Right side: Date in Indonesian format
+          Text(
+            _formatDateIndonesian(_confirmedDate!),
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Format date to Indonesian format (e.g., "05 Januari 2025")
+  String _formatDateIndonesian(DateTime date) {
+    final months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+
+    final day = date.day.toString().padLeft(2, '0');
+    final month = months[date.month - 1];
+    final year = date.year.toString();
+
+    return '$day $month $year';
+  }
+
+  // Build configuration panel (selection stage)
+  Widget _buildConfigurationPanel(LanguageProvider languageProvider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey.shade200, width: 1),
+        ),
+      ),
+      child: Column(
+        children: [
+          // Subject Info
+          Row(
+            children: [
+              Icon(Icons.menu_book, color: _getPrimaryColor(), size: 40),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${widget.subject['nama']}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: _getPrimaryColor(),
+                      ),
+                    ),
+                    if (widget.subject['kode'] != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '${languageProvider.getTranslatedText({'en': 'Code', 'id': 'Kode'})}: ${widget.subject['kode']}',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Pilih Jenis Nilai
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: DropdownButtonFormField<String>(
+              initialValue: _selectedJenisNilai,
+              decoration: InputDecoration(
+                border: InputBorder.none,
+                prefixIcon: Icon(Icons.assignment, color: _getPrimaryColor()),
+                hintText: languageProvider.getTranslatedText({
+                  'en': 'Select grade type',
+                  'id': 'Pilih jenis nilai',
+                }),
+              ),
+              items: _jenisNilaiList.map((String jenis) {
+                return DropdownMenuItem<String>(
+                  value: jenis,
+                  child: Text(_getJenisNilaiLabel(jenis, languageProvider)),
+                );
+              }).toList(),
+              onChanged: (String? newValue) {
+                setState(() {
+                  _selectedJenisNilai = newValue;
+                });
+              },
+              validator: (value) {
+                if (value == null) {
+                  return languageProvider.getTranslatedText({
+                    'en': 'Please select grade type',
+                    'id': 'Pilih jenis nilai terlebih dahulu',
+                  });
+                }
+                return null;
+              },
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Pilih Tanggal
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 2,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, color: _getPrimaryColor()),
+                const SizedBox(width: 12),
+                Text(
+                  languageProvider.getTranslatedText({
+                    'en': 'Date:',
+                    'id': 'Tanggal:',
+                  }),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => _selectDate(context),
+                  child: Text(
+                    '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                    style: TextStyle(fontSize: 16, color: _getPrimaryColor()),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Tombol Set
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: (_selectedJenisNilai != null)
+                  ? () {
+                      setState(() {
+                        _isConfigurationSet = true;
+                        _confirmedJenisNilai = _selectedJenisNilai;
+                        _confirmedDate = _selectedDate;
+                      });
+                    }
+                  : null,
+              icon: Icon(Icons.check),
+              label: Text(
+                languageProvider.getTranslatedText({
+                  'en': 'Set',
+                  'id': 'Tetapkan',
+                }),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _getPrimaryColor(),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -3962,163 +4207,14 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
             key: _formKey,
             child: Column(
               children: [
-                // Header Info
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade200, width: 1),
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.menu_book,
-                            color: _getPrimaryColor(),
-                            size: 40,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mata Pelajaran'})}: ${widget.subject['nama']}',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: _getPrimaryColor(),
-                                  ),
-                                ),
-                                if (widget.subject['kode'] != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 4.0),
-                                    child: Text(
-                                      '${languageProvider.getTranslatedText({'en': 'Code', 'id': 'Kode'})}: ${widget.subject['kode']}',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Pilih Jenis Nilai
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedJenisNilai,
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            prefixIcon: Icon(
-                              Icons.assignment,
-                              color: _getPrimaryColor(),
-                            ),
-                            hintText: languageProvider.getTranslatedText({
-                              'en': 'Select grade type',
-                              'id': 'Pilih jenis nilai',
-                            }),
-                          ),
-                          items: _jenisNilaiList.map((String jenis) {
-                            return DropdownMenuItem<String>(
-                              value: jenis,
-                              child: Text(
-                                _getJenisNilaiLabel(jenis, languageProvider),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (String? newValue) {
-                            setState(() {
-                              _selectedJenisNilai = newValue;
-                            });
-                          },
-                          validator: (value) {
-                            if (value == null) {
-                              return languageProvider.getTranslatedText({
-                                'en': 'Please select grade type',
-                                'id': 'Pilih jenis nilai terlebih dahulu',
-                              });
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      // Pilih Tanggal
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.grey.shade300),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              color: _getPrimaryColor(),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              languageProvider.getTranslatedText({
-                                'en': 'Date:',
-                                'id': 'Tanggal:',
-                              }),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: () => _selectDate(context),
-                              child: Text(
-                                '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: _getPrimaryColor(),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                // Conditional header based on state
+                if (!_isConfigurationSet)
+                  _buildConfigurationPanel(languageProvider)
+                else
+                  _buildAddHeader(languageProvider),
 
-                // Header List Siswa
-                if (_selectedJenisNilai != null) ...[
+                // Student List Section - only show after configuration is set
+                if (_isConfigurationSet) ...[
                   const SizedBox(height: 16),
                   Padding(
                     padding: const EdgeInsets.symmetric(
@@ -4182,25 +4278,21 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                       ),
                     ),
                   ),
-                ],
-
-                // Table Input untuk Siswa
-                if (_selectedJenisNilai != null) ...[
                   const SizedBox(height: 16),
                   Expanded(child: _buildInputTable(languageProvider)),
                 ] else ...[
                   const Expanded(
                     child: EmptyState(
-                      title: 'Select grade type',
+                      title: 'Select grade type and date',
                       subtitle:
-                          'Please select grade type first to see student list',
+                          'Please select grade type and date first then click Set',
                       icon: Icons.assignment,
                     ),
                   ),
                 ],
 
-                // Tombol Simpan
-                if (_selectedJenisNilai != null) ...[
+                // Tombol Finish - only show after configuration is set
+                if (_isConfigurationSet) ...[
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -4222,8 +4314,8 @@ class GradeInputFormNewState extends State<GradeInputFormNew> {
                       ),
                       child: Text(
                         languageProvider.getTranslatedText({
-                          'en': 'Save All Grades',
-                          'id': 'Simpan Semua Nilai',
+                          'en': 'Finish',
+                          'id': 'Selesai',
                         }),
                         style: TextStyle(
                           fontSize: 16,
