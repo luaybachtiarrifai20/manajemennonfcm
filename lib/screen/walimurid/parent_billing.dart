@@ -1,4 +1,5 @@
 // tagihan_wali.dart
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -26,15 +27,20 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
   bool _isLoading = true;
   String _errorMessage = '';
 
-  // Search dan filter
+  // Pagination
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 1;
+  final int _perPage = 10;
+  bool _hasMoreData = true;
+  bool _isLoadingMore = false;
+  Map<String, dynamic>? _paginationMeta;
+  Timer? _searchDebounce;
+
+  // Search and Enhanced Filters
   final TextEditingController _searchController = TextEditingController();
-  final List<String> _filterOptions = [
-    'Semua',
-    'Belum Bayar',
-    'Pending',
-    'Lunas',
-  ];
-  String _selectedFilter = 'Semua';
+  String? _selectedStatusFilter; // 'unpaid', 'pending', 'verified'
+  String? _selectedPeriodeFilter; // 'bulanan', 'tahunan'
+  bool _hasActiveFilter = false;
 
   // Animations
   late AnimationController _animationController;
@@ -59,13 +65,23 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
 
+    // Listen to scroll for infinite scroll
+    _scrollController.addListener(_onScroll);
+
+    // Listen to search changes with debounce
+    _searchController.addListener(_onSearchChanged);
+
     _loadData();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
+    _searchDebounce?.cancel();
     super.dispose();
   }
 
@@ -100,6 +116,362 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
     } catch (error) {
       print('Error loading tagihan: $error');
     }
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      if (!_isLoadingMore && _hasMoreData) {
+        _loadMoreTagihan();
+      }
+    }
+  }
+
+  void _onSearchChanged() {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(Duration(milliseconds: 500), () {
+      setState(() {
+        _currentPage = 1;
+      });
+      _loadData();
+    });
+  }
+
+  Future<void> _loadMoreTagihan() async {
+    if (_isLoadingMore || !_hasMoreData) return;
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    try {
+      _currentPage++;
+      // For now, since backend might not support pagination,
+      // we'll just mark hasMoreData as false
+      setState(() {
+        _hasMoreData = false;
+        _isLoadingMore = false;
+      });
+    } catch (e) {
+      print('Error loading more tagihan: $e');
+      setState(() {
+        _isLoadingMore = false;
+      });
+    }
+  }
+
+  void _checkActiveFilter() {
+    setState(() {
+      _hasActiveFilter =
+          _selectedStatusFilter != null || _selectedPeriodeFilter != null;
+    });
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _selectedStatusFilter = null;
+      _selectedPeriodeFilter = null;
+      _hasActiveFilter = false;
+    });
+    _loadData();
+  }
+
+  List<Map<String, dynamic>> _buildFilterChips(
+    LanguageProvider languageProvider,
+  ) {
+    List<Map<String, dynamic>> filterChips = [];
+
+    if (_selectedStatusFilter != null) {
+      String statusText;
+      switch (_selectedStatusFilter) {
+        case 'unpaid':
+          statusText = languageProvider.getTranslatedText({
+            'en': 'Unpaid',
+            'id': 'Belum Bayar',
+          });
+          break;
+        case 'pending':
+          statusText = languageProvider.getTranslatedText({
+            'en': 'Pending',
+            'id': 'Pending',
+          });
+          break;
+        case 'verified':
+          statusText = languageProvider.getTranslatedText({
+            'en': 'Verified',
+            'id': 'Lunas',
+          });
+          break;
+        default:
+          statusText = _selectedStatusFilter!;
+      }
+      filterChips.add({
+        'label':
+            '${languageProvider.getTranslatedText({'en': 'Status', 'id': 'Status'})}: $statusText',
+        'onRemove': () {
+          setState(() {
+            _selectedStatusFilter = null;
+          });
+          _checkActiveFilter();
+          _loadData();
+        },
+      });
+    }
+
+    if (_selectedPeriodeFilter != null) {
+      final periodeText = _selectedPeriodeFilter == 'bulanan'
+          ? languageProvider.getTranslatedText({
+              'en': 'Monthly',
+              'id': 'Bulanan',
+            })
+          : languageProvider.getTranslatedText({
+              'en': 'Yearly',
+              'id': 'Tahunan',
+            });
+      filterChips.add({
+        'label':
+            '${languageProvider.getTranslatedText({'en': 'Period', 'id': 'Periode'})}: $periodeText',
+        'onRemove': () {
+          setState(() {
+            _selectedPeriodeFilter = null;
+          });
+          _checkActiveFilter();
+          _loadData();
+        },
+      });
+    }
+
+    return filterChips;
+  }
+
+  void _showFilterSheet() {
+    final languageProvider = context.read<LanguageProvider>();
+
+    // Temporary state for bottom sheet
+    String? tempSelectedStatus = _selectedStatusFilter;
+    String? tempSelectedPeriode = _selectedPeriodeFilter;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Container(
+          height: MediaQuery.of(context).size.height * 0.6,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Filter',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        setModalState(() {
+                          tempSelectedStatus = null;
+                          tempSelectedPeriode = null;
+                        });
+                      },
+                      child: Text(
+                        'Reset',
+                        style: TextStyle(color: _getPrimaryColor()),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Filter Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Status Filter
+                      SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Status Pembayaran',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Wrap(
+                              alignment: WrapAlignment.start,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children:
+                                  [
+                                    {'value': 'unpaid', 'label': 'Belum Bayar'},
+                                    {'value': 'pending', 'label': 'Pending'},
+                                    {'value': 'verified', 'label': 'Lunas'},
+                                  ].map((item) {
+                                    final isSelected =
+                                        tempSelectedStatus == item['value'];
+                                    return FilterChip(
+                                      label: Text(item['label']!),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        setModalState(() {
+                                          tempSelectedStatus = selected
+                                              ? item['value']
+                                              : null;
+                                        });
+                                      },
+                                      backgroundColor: Colors.grey.shade100,
+                                      selectedColor: _getPrimaryColor()
+                                          .withOpacity(0.2),
+                                      checkmarkColor: _getPrimaryColor(),
+                                      labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? _getPrimaryColor()
+                                            : Colors.grey.shade700,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 24),
+
+                      // Divider
+                      Container(
+                        height: 1,
+                        color: Colors.grey.shade300,
+                        margin: EdgeInsets.symmetric(vertical: 8),
+                      ),
+
+                      // Periode Filter
+                      SizedBox(
+                        width: double.infinity,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Periode Pembayaran',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            SizedBox(height: 12),
+                            Wrap(
+                              alignment: WrapAlignment.start,
+                              spacing: 8,
+                              runSpacing: 8,
+                              children:
+                                  [
+                                    {'value': 'bulanan', 'label': 'Bulanan'},
+                                    {'value': 'tahunan', 'label': 'Tahunan'},
+                                  ].map((item) {
+                                    final isSelected =
+                                        tempSelectedPeriode == item['value'];
+                                    return FilterChip(
+                                      label: Text(item['label']!),
+                                      selected: isSelected,
+                                      onSelected: (selected) {
+                                        setModalState(() {
+                                          tempSelectedPeriode = selected
+                                              ? item['value']
+                                              : null;
+                                        });
+                                      },
+                                      backgroundColor: Colors.grey.shade100,
+                                      selectedColor: _getPrimaryColor()
+                                          .withOpacity(0.2),
+                                      checkmarkColor: _getPrimaryColor(),
+                                      labelStyle: TextStyle(
+                                        color: isSelected
+                                            ? _getPrimaryColor()
+                                            : Colors.grey.shade700,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                      ),
+                                    );
+                                  }).toList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // Apply Button
+              Container(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: _getPrimaryColor()),
+                        ),
+                        child: Text(
+                          'Batal',
+                          style: TextStyle(color: _getPrimaryColor()),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedStatusFilter = tempSelectedStatus;
+                            _selectedPeriodeFilter = tempSelectedPeriode;
+                          });
+                          _checkActiveFilter();
+                          Navigator.pop(context);
+                          _loadData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _getPrimaryColor(),
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: Text(
+                          'Terapkan',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // Dalam tagihan_wali.dart - Perbaiki _pickImage
@@ -261,15 +633,22 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
           nama.contains(searchTerm) ||
           deskripsi.contains(searchTerm);
 
-      final matchesFilter =
-          _selectedFilter == 'Semua' ||
-          (_selectedFilter == 'Belum Bayar' && item['status'] == 'unpaid') ||
-          (_selectedFilter == 'Pending' && item['status'] == 'pending') ||
-          (_selectedFilter == 'Lunas' &&
+      // Status filter matching
+      final matchesStatus =
+          _selectedStatusFilter == null ||
+          (_selectedStatusFilter == 'unpaid' && item['status'] == 'unpaid') ||
+          (_selectedStatusFilter == 'pending' &&
+              item['pembayaran_status'] == 'pending') ||
+          (_selectedStatusFilter == 'verified' &&
               (item['status'] == 'verified' ||
                   item['pembayaran_status'] == 'verified'));
 
-      return matchesSearch && matchesFilter;
+      // Period filter matching
+      final matchesPeriode =
+          _selectedPeriodeFilter == null ||
+          item['periode']?.toString().toLowerCase() == _selectedPeriodeFilter;
+
+      return matchesSearch && matchesStatus && matchesPeriode;
     }).toList();
   }
 
@@ -780,16 +1159,11 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
                     top: 12,
                     right: 12,
                     child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: statusColor.withOpacity(0.3),
-                        ),
+                        border: Border.all(color: statusColor.withOpacity(0.3)),
                       ),
                       child: Text(
                         status,
@@ -836,109 +1210,131 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
                           ),
                         ),
 
-                  SizedBox(height: 8),
-
-                  if (tagihan['jenis_pembayaran_deskripsi'] != null &&
-                      tagihan['jenis_pembayaran_deskripsi'].isNotEmpty)
-                    Text(
-                      tagihan['jenis_pembayaran_deskripsi'],
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-
-                  SizedBox(height: 8),
-
-                  Row(
-                    children: [
-                      Icon(Icons.person, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        tagihan['siswa_nama'] ?? '-',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                      SizedBox(width: 12),
-                      Icon(Icons.school, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        tagihan['kelas_nama'] ?? '-',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-
-                  SizedBox(height: 4),
-
-                  Row(
-                    children: [
-                      Icon(Icons.calendar_today, size: 12, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        'Jatuh Tempo: ${tagihan['jatuh_tempo']?.split('T')[0] ?? '-'}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-
-                  if (tagihan['pembayaran_status'] == 'rejected' &&
-                      tagihan['admin_notes'] != null)
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
                         SizedBox(height: 8),
-                        Container(
-                          padding: EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.shade100),
+
+                        if (tagihan['jenis_pembayaran_deskripsi'] != null &&
+                            tagihan['jenis_pembayaran_deskripsi'].isNotEmpty)
+                          Text(
+                            tagihan['jenis_pembayaran_deskripsi'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: Row(
+
+                        SizedBox(height: 8),
+
+                        Row(
+                          children: [
+                            Icon(Icons.person, size: 12, color: Colors.grey),
+                            SizedBox(width: 4),
+                            Text(
+                              tagihan['siswa_nama'] ?? '-',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                            SizedBox(width: 12),
+                            Icon(Icons.school, size: 12, color: Colors.grey),
+                            SizedBox(width: 4),
+                            Text(
+                              tagihan['kelas_nama'] ?? '-',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: 4),
+
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today,
+                              size: 12,
+                              color: Colors.grey,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Jatuh Tempo: ${tagihan['jatuh_tempo']?.split('T')[0] ?? '-'}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        if (tagihan['pembayaran_status'] == 'rejected' &&
+                            tagihan['admin_notes'] != null)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Icon(Icons.info, size: 12, color: Colors.red),
-                              SizedBox(width: 4),
-                              Expanded(
-                                child: Text(
-                                  'Catatan: ${tagihan['admin_notes']}',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.red.shade700,
+                              SizedBox(height: 8),
+                              Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade50,
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: Colors.red.shade100,
                                   ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.info,
+                                      size: 12,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        'Catatan: ${tagihan['admin_notes']}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.red.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ],
-                    ),
 
-                  SizedBox(height: 12),
+                        SizedBox(height: 12),
 
-                  if (tagihan['status'] == 'unpaid' ||
-                      tagihan['pembayaran_status'] == 'rejected')
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: () => _showUploadBuktiDialog(tagihan),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _getPrimaryColor(),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        if (tagihan['status'] == 'unpaid' ||
+                            tagihan['pembayaran_status'] == 'rejected')
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: ElevatedButton(
+                              onPressed: () => _showUploadBuktiDialog(tagihan),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: _getPrimaryColor(),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                              ),
+                              child: Text(
+                                'Bayar Sekarang',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
                           ),
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                        ),
-                        child: Text(
-                          'Bayar Sekarang',
-                          style: TextStyle(color: Colors.white, fontSize: 12),
-                        ),
-                      ),
-                    ),
                       ],
                     ),
                   ),
@@ -1030,20 +1426,30 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
             ],
           ),
           SizedBox(height: 12),
-          EnhancedSearchBar(
-            controller: _searchController,
-            hintText: 'Cari tagihan...',
-            onChanged: (value) {
-              setState(() {});
-            },
-            filterOptions: _filterOptions,
-            selectedFilter: _selectedFilter,
-            onFilterChanged: (filter) {
-              setState(() {
-                _selectedFilter = filter;
-              });
-            },
-            showFilter: true,
+          Row(
+            children: [
+              Expanded(
+                child: EnhancedSearchBar(
+                  controller: _searchController,
+                  hintText: 'Cari tagihan...',
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                  showFilter: false,
+                ),
+              ),
+              SizedBox(width: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.tune, color: Colors.white),
+                  onPressed: _showFilterSheet,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1069,19 +1475,84 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
           body: Column(
             children: [
               _buildHeader(languageProvider),
-              if (filteredTagihan.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: Row(
+              if (_hasActiveFilter)
+                Container(
+                  height: 50,
+                  margin: EdgeInsets.only(top: 8),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.symmetric(horizontal: 16),
                     children: [
-                      Text(
-                        '${filteredTagihan.length} tagihan ditemukan',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                      ),
+                      ..._buildFilterChips(languageProvider).map((filter) {
+                        return Container(
+                          margin: EdgeInsets.only(right: 8),
+                          child: Chip(
+                            label: Text(
+                              filter['label'],
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: _getPrimaryColor(),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            deleteIcon: Icon(
+                              Icons.close,
+                              size: 16,
+                              color: _getPrimaryColor(),
+                            ),
+                            onDeleted: filter['onRemove'],
+                            backgroundColor: Colors.white,
+                            side: BorderSide(
+                              color: _getPrimaryColor().withOpacity(0.3),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                        );
+                      }),
+                      if (_hasActiveFilter)
+                        Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: InkWell(
+                            onTap: _clearAllFilters,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.clear_all,
+                                    size: 16,
+                                    color: Colors.red,
+                                  ),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'Reset',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.red,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
-              SizedBox(height: 4),
               Expanded(
                 child: RefreshIndicator(
                   onRefresh: _loadData,
@@ -1093,7 +1564,7 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
                               title: 'Tidak ada tagihan',
                               subtitle:
                                   _searchController.text.isEmpty &&
-                                      _selectedFilter == 'Semua'
+                                      !_hasActiveFilter
                                   ? 'Semua tagihan telah lunas'
                                   : 'Tidak ditemukan hasil pencarian',
                               icon: Icons.receipt,
@@ -1101,8 +1572,23 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
                           ],
                         )
                       : ListView.builder(
-                          itemCount: filteredTagihan.length,
+                          controller: _scrollController,
+                          padding: EdgeInsets.only(top: 8, bottom: 16),
+                          itemCount:
+                              filteredTagihan.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index == filteredTagihan.length) {
+                              return Container(
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                                alignment: Alignment.center,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    _getPrimaryColor(),
+                                  ),
+                                ),
+                              );
+                            }
                             return _buildTagihanCard(
                               filteredTagihan[index],
                               index,
