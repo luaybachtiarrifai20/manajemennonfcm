@@ -12,7 +12,11 @@ class RppScreen extends StatefulWidget {
   final String teacherId;
   final String teacherName;
 
-  const RppScreen({super.key, required this.teacherId, required this.teacherName});
+  const RppScreen({
+    super.key,
+    required this.teacherId,
+    required this.teacherName,
+  });
 
   @override
   RppScreenState createState() => RppScreenState();
@@ -348,8 +352,11 @@ class RppScreenState extends State<RppScreen>
   void _editRpp(Map<String, dynamic> rpp) {
     showDialog(
       context: context,
-      builder: (context) =>
-          RppFormDialog(teacherId: widget.teacherId, onSaved: _loadRpp, rppData: rpp),
+      builder: (context) => RppFormDialog(
+        teacherId: widget.teacherId,
+        onSaved: _loadRpp,
+        rppData: rpp,
+      ),
     );
   }
 
@@ -1101,10 +1108,22 @@ class _RppFormDialogState extends State<RppFormDialog> {
         '/guru/${widget.teacherId}/mata-pelajaran',
       );
       setState(() {
-        _mataPelajaranList = result is List ? result : [];
+        // Backend returns {success: true, data: [...], pagination: {...}}
+        if (result is Map && result['data'] is List) {
+          _mataPelajaranList = result['data'];
+        } else if (result is List) {
+          _mataPelajaranList = result;
+        } else {
+          _mataPelajaranList = [];
+        }
       });
+      if (kDebugMode) {
+        print('Loaded ${_mataPelajaranList.length} mata pelajaran');
+      }
     } catch (e) {
-      print('Error loading mata pelajaran by guru: $e');
+      if (kDebugMode) {
+        print('Error loading mata pelajaran by guru: $e');
+      }
       _loadAllMataPelajaran();
     }
   }
@@ -1114,10 +1133,19 @@ class _RppFormDialogState extends State<RppFormDialog> {
       final apiService = ApiService();
       final result = await apiService.get('/mata-pelajaran');
       setState(() {
-        _mataPelajaranList = result is List ? result : [];
+        // Backend might return {success: true, data: [...]} or direct array
+        if (result is Map && result['data'] is List) {
+          _mataPelajaranList = result['data'];
+        } else if (result is List) {
+          _mataPelajaranList = result;
+        } else {
+          _mataPelajaranList = [];
+        }
       });
     } catch (e) {
-      print('Error loading all mata pelajaran: $e');
+      if (kDebugMode) {
+        print('Error loading all mata pelajaran: $e');
+      }
     }
   }
 
@@ -1128,8 +1156,20 @@ class _RppFormDialogState extends State<RppFormDialog> {
         '/kelas-by-mata-pelajaran?mata_pelajaran_id=$mataPelajaranId',
       );
       setState(() {
-        _kelasList = result is List ? result : [];
+        // Backend might return {success: true, data: [...]} or direct array
+        if (result is Map && result['data'] is List) {
+          _kelasList = result['data'];
+        } else if (result is List) {
+          _kelasList = result;
+        } else {
+          _kelasList = [];
+        }
       });
+      if (kDebugMode) {
+        print(
+          'Loaded ${_kelasList.length} kelas for mata pelajaran $mataPelajaranId',
+        );
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error loading kelas by mata pelajaran: $e');
