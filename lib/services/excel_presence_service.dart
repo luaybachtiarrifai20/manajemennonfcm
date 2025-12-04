@@ -1,12 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
-import 'package:manajemensekolah/services/api_services.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:manajemensekolah/utils/language_utils.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 class ExcelPresenceService {
   // static const String baseUrl = ApiService.baseUrl;
@@ -30,10 +31,8 @@ class ExcelPresenceService {
 
       // Kirim request ke backend
       final response = await http.post(
-        Uri.parse('$baseUrl/export-presence'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        Uri.parse('$baseUrl/attendance/export'),
+        headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'presenceData': presenceData, 'filters': filters}),
       );
 
@@ -113,7 +112,7 @@ class ExcelPresenceService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/validate-presence'),
+        Uri.parse('$baseUrl/attendance/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'presenceData': presenceData}),
       );
@@ -148,33 +147,31 @@ class ExcelPresenceService {
         validatedPresence['nis'] = presence['nis'];
       }
 
-      if (presence['siswa_nama'] == null ||
-          presence['siswa_nama'].toString().isEmpty) {
+      if (presence['student_name'] == null ||
+          presence['student_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Nama siswa tidak boleh kosong');
       } else {
-        validatedPresence['siswa_nama'] = presence['siswa_nama'];
+        validatedPresence['student_name'] = presence['student_name'];
       }
 
-      if (presence['kelas_nama'] == null ||
-          presence['kelas_nama'].toString().isEmpty) {
+      if (presence['class_name'] == null ||
+          presence['class_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Kelas tidak boleh kosong');
       } else {
-        validatedPresence['kelas_nama'] = presence['kelas_nama'];
+        validatedPresence['class_name'] = presence['class_name'];
       }
 
-      if (presence['mata_pelajaran_nama'] == null ||
-          presence['mata_pelajaran_nama'].toString().isEmpty) {
+      if (presence['subject_name'] == null ||
+          presence['subject_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Mata pelajaran tidak boleh kosong');
       } else {
-        validatedPresence['mata_pelajaran_nama'] =
-            presence['mata_pelajaran_nama'];
+        validatedPresence['subject_name'] = presence['subject_name'];
       }
 
-      if (presence['tanggal'] == null ||
-          presence['tanggal'].toString().isEmpty) {
+      if (presence['date'] == null || presence['date'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Tanggal tidak boleh kosong');
       } else {
-        validatedPresence['tanggal'] = presence['tanggal'];
+        validatedPresence['date'] = presence['date'];
       }
 
       if (presence['status'] == null || presence['status'].toString().isEmpty) {
@@ -192,9 +189,9 @@ class ExcelPresenceService {
       }
 
       // Field optional
-      validatedPresence['keterangan'] = presence['keterangan'] ?? '';
-      validatedPresence['guru_nama'] = presence['guru_nama'] ?? '';
-      validatedPresence['jam_pelajaran'] = presence['jam_pelajaran'] ?? '';
+      validatedPresence['notes'] = presence['notes'] ?? '';
+      validatedPresence['teacher_name'] = presence['teacher_name'] ?? '';
+      validatedPresence['lesson_hour'] = presence['lesson_hour'] ?? '';
 
       if (errors.isEmpty) {
         validatedData.add(validatedPresence);

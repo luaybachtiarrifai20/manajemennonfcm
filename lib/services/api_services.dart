@@ -125,7 +125,7 @@ class ApiService {
       final semuaNilai = await get('/nilai');
       if (semuaNilai is List) {
         return semuaNilai.where((nilai) {
-          return nilai['mata_pelajaran_id'] == mataPelajaranId;
+          return nilai['subject_id'] == mataPelajaranId;
         }).toList();
       }
       return [];
@@ -299,7 +299,7 @@ class ApiService {
       final Map<String, dynamic> body = {'email': email, 'password': password};
 
       if (schoolId != null) {
-        body['sekolah_id'] = schoolId;
+        body['school_id'] = schoolId;
       }
 
       if (role != null) {
@@ -402,7 +402,7 @@ class ApiService {
     final response = await http.post(
       Uri.parse('$baseUrl/switch-school'),
       headers: await _getHeaders(),
-      body: json.encode({'sekolah_id': schoolId}),
+      body: json.encode({'school_id': schoolId}),
     );
 
     return _handleResponse(response);
@@ -415,11 +415,11 @@ class ApiService {
     String? mataPelajaranId,
     String? jenis,
   }) async {
-    String url = '$baseUrl/nilai?';
-    if (siswaId != null) url += 'siswa_id=$siswaId&';
-    if (guruId != null) url += 'guru_id=$guruId&';
-    if (mataPelajaranId != null) url += 'mata_pelajaran_id=$mataPelajaranId&';
-    if (jenis != null) url += 'jenis=$jenis&';
+    String url = '$baseUrl/grade?';
+    if (siswaId != null) url += 'student_id=$siswaId&';
+    if (guruId != null) url += 'teacher_id=$guruId&';
+    if (mataPelajaranId != null) url += 'subject_id=$mataPelajaranId&';
+    if (jenis != null) url += 'grade_type=$jenis&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -432,7 +432,7 @@ class ApiService {
 
   static Future<dynamic> tambahNilai(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/nilai'),
+      Uri.parse('$baseUrl/grade'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -446,7 +446,7 @@ class ApiService {
     String? status,
   }) async {
     String url = '$baseUrl/rpp?';
-    if (teacherId != null) url += 'guru_id=$teacherId&';
+    if (teacherId != null) url += 'teacher_id=$teacherId&';
     if (status != null) url += 'status=$status&';
 
     final response = await http.get(
@@ -476,14 +476,14 @@ class ApiService {
     };
 
     if (teacherId != null && teacherId.isNotEmpty)
-      queryParams['guru_id'] = teacherId;
+      queryParams['teacher_id'] = teacherId;
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
     if (search != null && search.isNotEmpty) queryParams['search'] = search;
     if (subjectId != null && subjectId.isNotEmpty) {
-      queryParams['mata_pelajaran_id'] = subjectId;
+      queryParams['subject_id'] = subjectId;
     }
     if (classId != null && classId.isNotEmpty) {
-      queryParams['kelas_id'] = classId;
+      queryParams['class_id'] = classId;
     }
     if (semester != null && semester.isNotEmpty) {
       queryParams['semester'] = semester;
@@ -533,16 +533,16 @@ class ApiService {
 
     if (status != null && status.isNotEmpty) queryParams['status'] = status;
     if (siswaId != null && siswaId.isNotEmpty) {
-      queryParams['siswa_id'] = siswaId;
+      queryParams['student_id'] = siswaId;
     }
     if (jenisPembayaranId != null && jenisPembayaranId.isNotEmpty) {
-      queryParams['jenis_pembayaran_id'] = jenisPembayaranId;
+      queryParams['payment_type_id'] = jenisPembayaranId;
     }
 
     final queryString = Uri(queryParameters: queryParams).query;
 
     final response = await http.get(
-      Uri.parse('$baseUrl/tagihan?$queryString'),
+      Uri.parse('$baseUrl/bill?$queryString'),
       headers: await _getHeaders(),
     );
 
@@ -661,12 +661,12 @@ class ApiService {
     String? siswaId,
     String? classId,
   }) async {
-    String url = '$baseUrl/absensi?';
-    if (guruId != null) url += 'guru_id=$guruId&';
-    if (tanggal != null) url += 'tanggal=$tanggal&';
-    if (mataPelajaranId != null) url += 'mata_pelajaran_id=$mataPelajaranId&';
-    if (siswaId != null) url += 'siswa_id=$siswaId&';
-    if (classId != null) url += 'kelas_id=$classId&';
+    String url = '$baseUrl/attendance?';
+    if (guruId != null) url += 'teacher_id=$guruId&';
+    if (tanggal != null) url += 'date=$tanggal&';
+    if (mataPelajaranId != null) url += 'subject_id=$mataPelajaranId&';
+    if (siswaId != null) url += 'student_id=$siswaId&';
+    if (classId != null) url += 'class_id=$classId&';
 
     if (kDebugMode) {
       print('📍 Calling getAbsensi: $url');
@@ -720,16 +720,16 @@ class ApiService {
         'page': page.toString(),
         'limit': limit.toString(),
       };
-      if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
-      if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
+      if (guruId != null && guruId.isNotEmpty) params['teacher_id'] = guruId;
+      if (tanggal != null && tanggal.isNotEmpty) params['date'] = tanggal;
       if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
-        params['mata_pelajaran_id'] = mataPelajaranId;
+        params['subject_id'] = mataPelajaranId;
       }
-      if (siswaId != null && siswaId.isNotEmpty) params['siswa_id'] = siswaId;
-      if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
+      if (siswaId != null && siswaId.isNotEmpty) params['student_id'] = siswaId;
+      if (classId != null && classId.isNotEmpty) params['class_id'] = classId;
 
       final uri = Uri.parse(
-        '$baseUrl/absensi',
+        '$baseUrl/attendance',
       ).replace(queryParameters: params);
       final response = await http.get(uri, headers: await _getHeaders());
       final result = _handleResponse(response);
@@ -760,8 +760,8 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getAbsensiSummary({String? guruId}) async {
-    String url = '$baseUrl/absensi-summary?';
-    if (guruId != null) url += 'guru_id=$guruId&';
+    String url = '$baseUrl/attendance-summary?';
+    if (guruId != null) url += 'teacher_id=$guruId&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -789,21 +789,21 @@ class ApiService {
         'limit': limit.toString(),
       };
 
-      if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
+      if (guruId != null && guruId.isNotEmpty) params['teacher_id'] = guruId;
       if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
-        params['mata_pelajaran_id'] = mataPelajaranId;
+        params['subject_id'] = mataPelajaranId;
       }
-      if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
-      if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
+      if (classId != null && classId.isNotEmpty) params['class_id'] = classId;
+      if (tanggal != null && tanggal.isNotEmpty) params['date'] = tanggal;
       if (tanggalStart != null && tanggalStart.isNotEmpty) {
-        params['tanggal_start'] = tanggalStart;
+        params['start_date'] = tanggalStart;
       }
       if (tanggalEnd != null && tanggalEnd.isNotEmpty) {
-        params['tanggal_end'] = tanggalEnd;
+        params['end_date'] = tanggalEnd;
       }
 
       final uri = Uri.parse(
-        '$baseUrl/absensi/summary',
+        '$baseUrl/attendance/summary',
       ).replace(queryParameters: params);
 
       final response = await http.get(uri, headers: await _getHeaders());
@@ -832,7 +832,7 @@ class ApiService {
 
   static Future<dynamic> tambahAbsensi(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/absensi'),
+      Uri.parse('$baseUrl/attendance'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -863,9 +863,7 @@ class ApiService {
   // Get kelas by mata pelajaran
   Future<List<dynamic>> getKelasByMataPelajaran(String mataPelajaranId) async {
     try {
-      final result = await get(
-        '/kelas-by-mata-pelajaran?mata_pelajaran_id=$mataPelajaranId',
-      );
+      final result = await get('/class-by-subject?subject_id=$mataPelajaranId');
 
       // Handle Map format (pagination or error response)
       if (result is Map<String, dynamic>) {
@@ -888,13 +886,13 @@ class ApiService {
   Future<dynamic> createNilai(Map<String, dynamic> data) async {
     // Sanitize data - ubah undefined menjadi null
     final sanitizedData = _sanitizeData(data);
-    return await post('/nilai', sanitizedData);
+    return await post('/grade', sanitizedData);
   }
 
   Future<dynamic> updateNilai(String id, Map<String, dynamic> data) async {
     // Sanitize data - ubah undefined menjadi null
     final sanitizedData = _sanitizeData(data);
-    return await put('/nilai/$id', sanitizedData);
+    return await put('/grade/$id', sanitizedData);
   }
 
   Map<String, dynamic> _sanitizeData(Map<String, dynamic> data) {
@@ -913,7 +911,7 @@ class ApiService {
   // Get mata pelajaran with kelas data
   Future<List<dynamic>> getMataPelajaranWithKelas() async {
     try {
-      final result = await get('/mata-pelajaran-with-kelas');
+      final result = await get('/subject-with-class');
       return result is List ? result : [];
     } catch (e) {
       print('Error getting mata pelajaran with kelas: $e');
@@ -1009,7 +1007,7 @@ class ApiService {
   // Manual payment entry by admin (for offline/cash payments)
   Future<dynamic> inputPembayaranManual(Map<String, dynamic> data) async {
     try {
-      return await post('/pembayaran/manual', data);
+      return await post('/payment/manual', data);
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error input pembayaran manual: $e');

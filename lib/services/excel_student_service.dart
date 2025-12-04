@@ -1,10 +1,11 @@
 import 'dart:io';
+
+import 'package:flutter/material.dart';
+import 'package:manajemensekolah/utils/language_utils.dart';
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart';
-import 'package:manajemensekolah/utils/language_utils.dart';
-import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:open_file/open_file.dart';
 
 class ExcelService {
   // Export data siswa ke Excel
@@ -13,7 +14,7 @@ class ExcelService {
     required BuildContext context,
   }) async {
     final languageProvider = context.read<LanguageProvider>();
-    
+
     try {
       // Create a new Excel document
       final Workbook workbook = Workbook();
@@ -22,14 +23,14 @@ class ExcelService {
 
       // Add header row
       sheet.getRangeByIndex(1, 1).setText('NIS');
-      sheet.getRangeByIndex(1, 2).setText('Nama');
-      sheet.getRangeByIndex(1, 3).setText('Kelas');
-      sheet.getRangeByIndex(1, 4).setText('Jenis Kelamin');
-      sheet.getRangeByIndex(1, 5).setText('Tanggal Lahir');
-      sheet.getRangeByIndex(1, 6).setText('Alamat');
-      sheet.getRangeByIndex(1, 7).setText('Nama Wali');
-      sheet.getRangeByIndex(1, 8).setText('Email Wali');
-      sheet.getRangeByIndex(1, 9).setText('No. Telepon');
+      sheet.getRangeByIndex(1, 2).setText('Name');
+      sheet.getRangeByIndex(1, 3).setText('Class');
+      sheet.getRangeByIndex(1, 4).setText('Gender');
+      sheet.getRangeByIndex(1, 5).setText('Date of Birth');
+      sheet.getRangeByIndex(1, 6).setText('Address');
+      sheet.getRangeByIndex(1, 7).setText('Parent Name');
+      sheet.getRangeByIndex(1, 8).setText('Parent Email');
+      sheet.getRangeByIndex(1, 9).setText('Phone Number');
       sheet.getRangeByIndex(1, 10).setText('Status');
 
       // Style header row
@@ -44,19 +45,34 @@ class ExcelService {
         final rowIndex = i + 2;
 
         sheet.getRangeByIndex(rowIndex, 1).setText(student['nis'] ?? '');
-        sheet.getRangeByIndex(rowIndex, 2).setText(student['nama'] ?? '');
-        sheet.getRangeByIndex(rowIndex, 3).setText(student['kelas_nama'] ?? '');
-        sheet.getRangeByIndex(rowIndex, 4).setText(_getGenderText(student['jenis_kelamin'], languageProvider));
-        sheet.getRangeByIndex(rowIndex, 5).setText(_formatDateForExport(student['tanggal_lahir']));
-        sheet.getRangeByIndex(rowIndex, 6).setText(student['alamat'] ?? '');
-        sheet.getRangeByIndex(rowIndex, 7).setText(student['nama_wali'] ?? '');
-        sheet.getRangeByIndex(rowIndex, 8).setText(student['email_wali'] ?? student['parent_email'] ?? '');
-        sheet.getRangeByIndex(rowIndex, 9).setText(student['no_telepon'] ?? '');
+        sheet.getRangeByIndex(rowIndex, 2).setText(student['name'] ?? '');
+        sheet.getRangeByIndex(rowIndex, 3).setText(student['class_name'] ?? '');
+        sheet
+            .getRangeByIndex(rowIndex, 4)
+            .setText(_getGenderText(student['gender'], languageProvider));
+        sheet
+            .getRangeByIndex(rowIndex, 5)
+            .setText(_formatDateForExport(student['date_of_birth']));
+        sheet.getRangeByIndex(rowIndex, 6).setText(student['address'] ?? '');
+        sheet
+            .getRangeByIndex(rowIndex, 7)
+            .setText(student['parent_name'] ?? '');
+        sheet
+            .getRangeByIndex(rowIndex, 8)
+            .setText(student['parent_email'] ?? '');
+        sheet
+            .getRangeByIndex(rowIndex, 9)
+            .setText(student['phone_number'] ?? '');
         sheet.getRangeByIndex(rowIndex, 10).setText('Active');
 
         // Alternate row colors for better readability
         if (i % 2 == 0) {
-          final Range rowRange = sheet.getRangeByIndex(rowIndex, 1, rowIndex, 10);
+          final Range rowRange = sheet.getRangeByIndex(
+            rowIndex,
+            1,
+            rowIndex,
+            10,
+          );
           rowRange.cellStyle.backColor = '#F8F9FA';
         }
       }
@@ -72,7 +88,8 @@ class ExcelService {
 
       // Get directory
       final Directory directory = await getApplicationDocumentsDirectory();
-      final String path = '${directory.path}/Data_Siswa_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+      final String path =
+          '${directory.path}/Data_Siswa_${DateTime.now().millisecondsSinceEpoch}.xlsx';
       final File file = File(path);
       await file.writeAsBytes(bytes, flush: true);
 
@@ -108,7 +125,7 @@ class ExcelService {
   // Download template Excel
   static Future<void> downloadTemplate(BuildContext context) async {
     final languageProvider = context.read<LanguageProvider>();
-    
+
     try {
       // Create a new Excel document
       final Workbook workbook = Workbook();
@@ -117,14 +134,14 @@ class ExcelService {
 
       // Add header row
       sheet.getRangeByIndex(1, 1).setText('NIS*');
-      sheet.getRangeByIndex(1, 2).setText('Nama*');
-      sheet.getRangeByIndex(1, 3).setText('Kelas*');
-      sheet.getRangeByIndex(1, 4).setText('Jenis Kelamin*');
-      sheet.getRangeByIndex(1, 5).setText('Tanggal Lahir*');
-      sheet.getRangeByIndex(1, 6).setText('Alamat*');
-      sheet.getRangeByIndex(1, 7).setText('Nama Wali*');
-      sheet.getRangeByIndex(1, 8).setText('Email Wali');
-      sheet.getRangeByIndex(1, 9).setText('No. Telepon*');
+      sheet.getRangeByIndex(1, 2).setText('Name*');
+      sheet.getRangeByIndex(1, 3).setText('Class*');
+      sheet.getRangeByIndex(1, 4).setText('Gender*');
+      sheet.getRangeByIndex(1, 5).setText('Date of Birth*');
+      sheet.getRangeByIndex(1, 6).setText('Address*');
+      sheet.getRangeByIndex(1, 7).setText('Parent Name*');
+      sheet.getRangeByIndex(1, 8).setText('Parent Email');
+      sheet.getRangeByIndex(1, 9).setText('Phone Number*');
 
       // Style header row
       final Range headerRange = sheet.getRangeByName('A1:I1');
@@ -146,7 +163,9 @@ class ExcelService {
       // Add notes
       sheet.getRangeByIndex(4, 1).setText('* Wajib diisi');
       sheet.getRangeByIndex(5, 1).setText('Format tanggal: YYYY-MM-DD');
-      sheet.getRangeByIndex(6, 1).setText('Jenis Kelamin: Laki-laki / Perempuan');
+      sheet
+          .getRangeByIndex(6, 1)
+          .setText('Jenis Kelamin: Laki-laki / Perempuan');
 
       // Auto fit columns
       for (int i = 1; i <= 9; i++) {
@@ -195,9 +214,10 @@ class ExcelService {
   // Download template CSV sebagai alternatif
   static Future<void> downloadTemplateCSV(BuildContext context) async {
     final languageProvider = context.read<LanguageProvider>();
-    
+
     try {
-      final String csvContent = '''NIS*,Nama*,Kelas*,Jenis Kelamin*,Tanggal Lahir*,Alamat*,Nama Wali*,Email Wali,No. Telepon*
+      final String csvContent =
+          '''NIS*,Name*,Class*,Gender*,Date of Birth*,Address*,Parent Name*,Parent Email,Phone Number*
 12345,John Doe,10 IPA 1,Laki-laki,2005-01-15,Jl. Contoh No. 123,Jane Doe,jane@example.com,08123456789
 *Wajib diisi,Format tanggal: YYYY-MM-DD,Jenis Kelamin: Laki-laki / Perempuan''';
 
@@ -237,7 +257,10 @@ class ExcelService {
   }
 
   // Helper methods
-  static String _getGenderText(String? gender, LanguageProvider languageProvider) {
+  static String _getGenderText(
+    String? gender,
+    LanguageProvider languageProvider,
+  ) {
     switch (gender) {
       case 'L':
         return languageProvider.getTranslatedText({
@@ -264,19 +287,22 @@ class ExcelService {
     }
   }
 
-  static String _parseGender(String? genderText, LanguageProvider languageProvider) {
+  static String _parseGender(
+    String? genderText,
+    LanguageProvider languageProvider,
+  ) {
     if (genderText == null) return 'L';
-    
-    final maleOptions = [
-      'L', 'Laki-laki', 'Male', 'Laki', 'Pria'
-    ];
-    final femaleOptions = [
-      'P', 'Perempuan', 'Female', 'Wanita'
-    ];
 
-    if (maleOptions.any((option) => genderText.toLowerCase().contains(option.toLowerCase()))) {
+    final maleOptions = ['L', 'Laki-laki', 'Male', 'Laki', 'Pria'];
+    final femaleOptions = ['P', 'Perempuan', 'Female', 'Wanita'];
+
+    if (maleOptions.any(
+      (option) => genderText.toLowerCase().contains(option.toLowerCase()),
+    )) {
       return 'L';
-    } else if (femaleOptions.any((option) => genderText.toLowerCase().contains(option.toLowerCase()))) {
+    } else if (femaleOptions.any(
+      (option) => genderText.toLowerCase().contains(option.toLowerCase()),
+    )) {
       return 'P';
     } else {
       return 'L'; // Default to Male
@@ -285,7 +311,7 @@ class ExcelService {
 
   static String _parseDate(String? dateText) {
     if (dateText == null || dateText.isEmpty) return '';
-    
+
     try {
       // Try to parse various date formats
       final date = DateTime.parse(dateText);

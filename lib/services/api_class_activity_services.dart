@@ -25,19 +25,19 @@ class ApiClassActivityService {
     };
 
     if (guruId != null && guruId.isNotEmpty) {
-      queryParams['guru_id'] = guruId;
+      queryParams['teacher_id'] = guruId;
     }
     if (classId != null && classId.isNotEmpty) {
-      queryParams['kelas_id'] = classId;
+      queryParams['class_id'] = classId;
     }
     if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
-      queryParams['mata_pelajaran_id'] = mataPelajaranId;
+      queryParams['subject_id'] = mataPelajaranId;
     }
     if (target != null && target.isNotEmpty) {
       queryParams['target'] = target;
     }
     if (tanggal != null && tanggal.isNotEmpty) {
-      queryParams['tanggal'] = tanggal;
+      queryParams['date'] = tanggal;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -47,7 +47,7 @@ class ApiClassActivityService {
     String queryString = Uri(queryParameters: queryParams).query;
 
     final response = await http.get(
-      Uri.parse('$baseUrl/kegiatan?$queryString'),
+      Uri.parse('$baseUrl/class-activity?$queryString'),
       headers: await _getHeaders(),
     );
 
@@ -134,7 +134,7 @@ class ApiClassActivityService {
       final headers = await _getHeaders();
 
       final response = await http.get(
-        Uri.parse('$baseUrl/kegiatan/guru/$guruId'),
+        Uri.parse('$baseUrl/class-activity/teacher/$guruId'),
         headers: headers,
       );
 
@@ -168,10 +168,10 @@ class ApiClassActivityService {
     try {
       final headers = await _getHeaders();
 
-      final params = {if (siswaId != null) 'siswa_id': siswaId};
+      final params = {if (siswaId != null) 'student_id': siswaId};
 
       final uri = Uri.parse(
-        '$baseUrl/kegiatan/kelas/$classId',
+        '$baseUrl/class-activity/class/$classId',
       ).replace(queryParameters: params.isNotEmpty ? params : null);
 
       final response = await http.get(uri, headers: headers);
@@ -198,7 +198,7 @@ class ApiClassActivityService {
       final headers = await _getHeaders();
 
       final response = await http.post(
-        Uri.parse('$baseUrl/kegiatan'),
+        Uri.parse('$baseUrl/class-activity'),
         headers: headers,
         body: json.encode(data),
       );
@@ -221,7 +221,7 @@ class ApiClassActivityService {
       final headers = await _getHeaders();
 
       final response = await http.put(
-        Uri.parse('$baseUrl/kegiatan/$id'),
+        Uri.parse('$baseUrl/class-activity/$id'),
         headers: headers,
         body: json.encode(data),
       );
@@ -241,7 +241,7 @@ class ApiClassActivityService {
       final headers = await _getHeaders();
 
       final response = await http.delete(
-        Uri.parse('$baseUrl/kegiatan/$id'),
+        Uri.parse('$baseUrl/class-activity/$id'),
         headers: headers,
       );
 
@@ -264,12 +264,12 @@ class ApiClassActivityService {
       final headers = await _getHeaders();
 
       final params = {
-        if (hari != null && hari != 'Semua Hari') 'hari': hari,
-        if (tahunAjaran != null) 'tahun_ajaran': tahunAjaran,
+        if (hari != null && hari != 'Semua Hari') 'day': hari,
+        if (tahunAjaran != null) 'academic_year': tahunAjaran,
       };
 
       final uri = Uri.parse(
-        '$baseUrl/jadwal/guru/$guruId',
+        '$baseUrl/schedule/teacher/$guruId',
       ).replace(queryParameters: params.isNotEmpty ? params : null);
 
       final response = await http.get(uri, headers: headers);
@@ -296,7 +296,7 @@ class ApiClassActivityService {
       final headers = await _getHeaders();
 
       final response = await http.get(
-        Uri.parse('$baseUrl/siswa/kelas/$classId'),
+        Uri.parse('$baseUrl/student/class/$classId'),
         headers: headers,
       );
 
@@ -347,17 +347,17 @@ class ApiClassActivityService {
   }) async {
     try {
       final params = <String, String>{};
-      if (guruId != null && guruId.isNotEmpty) params['guru_id'] = guruId;
-      if (classId != null && classId.isNotEmpty) params['kelas_id'] = classId;
-      if (tanggal != null && tanggal.isNotEmpty) params['tanggal'] = tanggal;
-      if (bulan != null && bulan.isNotEmpty) params['bulan'] = bulan;
-      if (tahun != null && tahun.isNotEmpty) params['tahun'] = tahun;
+      if (guruId != null && guruId.isNotEmpty) params['teacher_id'] = guruId;
+      if (classId != null && classId.isNotEmpty) params['class_id'] = classId;
+      if (tanggal != null && tanggal.isNotEmpty) params['date'] = tanggal;
+      if (bulan != null && bulan.isNotEmpty) params['month'] = bulan;
+      if (tahun != null && tahun.isNotEmpty) params['year'] = tahun;
       if (mataPelajaranId != null && mataPelajaranId.isNotEmpty) {
-        params['mata_pelajaran_id'] = mataPelajaranId;
+        params['subject_id'] = mataPelajaranId;
       }
 
       final uri = Uri.parse(
-        '$baseUrl/kegiatan/filter-options',
+        '$baseUrl/class-activity/filter-options',
       ).replace(queryParameters: params.isNotEmpty ? params : null);
 
       final response = await http.get(uri, headers: await _getHeaders());

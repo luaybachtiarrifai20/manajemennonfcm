@@ -511,12 +511,12 @@ class TeachingScheduleManagementScreenState
 
     // Fill the structure with actual schedules
     for (var schedule in _getFilteredSchedules()) {
-      final dayName = schedule['hari_nama'] ?? '';
-      final className = schedule['kelas_nama'] ?? '';
+      final dayName = schedule['day_name'] ?? '';
+      final className = schedule['class_name'] ?? '';
       final timeSlot =
-          '${schedule['jam_mulai'] ?? ''}-${schedule['jam_selesai'] ?? ''}';
-      final subjectName = schedule['mata_pelajaran_nama'] ?? '';
-      final teacherName = schedule['guru_nama'] ?? '';
+          '${schedule['start_time'] ?? ''}-${schedule['end_time'] ?? ''}';
+      final subjectName = schedule['subject_name'] ?? '';
+      final teacherName = schedule['teacher_name'] ?? '';
 
       if (dayClassScheduleMap.containsKey(dayName) &&
           dayClassScheduleMap[dayName]!.containsKey(className)) {

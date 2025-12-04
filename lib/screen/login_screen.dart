@@ -576,10 +576,10 @@ class LoginScreenState extends State<LoginScreen> {
                 margin: EdgeInsets.symmetric(vertical: 8, horizontal: 0),
                 child: ListTile(
                   leading: Icon(Icons.school, color: Colors.blue),
-                  title: Text(sekolah['nama_sekolah']),
-                  subtitle: Text(sekolah['alamat'] ?? ''),
+                  title: Text(sekolah['school_name']),
+                  subtitle: Text(sekolah['address'] ?? ''),
                   trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                  onTap: () => _selectSchool(sekolah['sekolah_id']),
+                  onTap: () => _selectSchool(sekolah['school_id']),
                 ),
               );
             },

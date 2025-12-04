@@ -640,7 +640,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
       Set<String> gradeLevelsSet = {};
 
       for (var subject in data) {
-        final kelasNames = subject['kelas_names']?.toString() ?? '';
+        final kelasNames = subject['class_names']?.toString() ?? '';
         if (kelasNames.isNotEmpty) {
           final names = kelasNames
               .split(',')
@@ -651,7 +651,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
 
         // Extract grade levels
         final kelasGradeLevels =
-            subject['kelas_grade_levels']?.toString() ?? '';
+            subject['class_grade_levels']?.toString() ?? '';
         if (kelasGradeLevels.isNotEmpty) {
           final levels = kelasGradeLevels
               .split(',')
@@ -715,7 +715,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
       Set<String> gradeLevelsSet = Set.from(_availableGradeLevels);
 
       for (var subject in data) {
-        final kelasNames = subject['kelas_names']?.toString() ?? '';
+        final kelasNames = subject['class_names']?.toString() ?? '';
         if (kelasNames.isNotEmpty) {
           final names = kelasNames
               .split(',')

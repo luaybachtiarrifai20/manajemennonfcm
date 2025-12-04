@@ -36,7 +36,7 @@ class ExcelClassService {
 
       // Kirim request ke backend
       final response = await http.post(
-        Uri.parse('$baseUrl/export-classes'),
+        Uri.parse('$baseUrl/class/export'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'classes': validatedData}),
       );
@@ -92,7 +92,7 @@ class ExcelClassService {
       // Kirim request ke backend
       final headers = await _getHeaders();
       final response = await http.get(
-        Uri.parse('$baseUrl/kelas/template'),
+        Uri.parse('$baseUrl/class/template'),
         headers: headers,
       );
 
@@ -158,9 +158,7 @@ class ExcelClassService {
 
     try {
       // Kirim request ke backend
-      final response = await http.get(
-        Uri.parse('$baseUrl/download-class-template-csv'),
-      );
+      final response = await http.get(Uri.parse('$baseUrl/class/template/csv'));
 
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
@@ -212,7 +210,7 @@ class ExcelClassService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/validate-classes'),
+        Uri.parse('$baseUrl/class/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'classes': classes}),
       );
@@ -239,10 +237,10 @@ class ExcelClassService {
       final Map<String, dynamic> validatedClass = {};
 
       // Validasi field required
-      if (classItem['nama'] == null || classItem['nama'].toString().isEmpty) {
+      if (classItem['name'] == null || classItem['name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Nama kelas tidak boleh kosong');
       } else {
-        validatedClass['nama'] = classItem['nama'];
+        validatedClass['name'] = classItem['name'];
       }
 
       if (classItem['grade_level'] == null) {
@@ -257,8 +255,9 @@ class ExcelClassService {
       }
 
       // Field optional
-      validatedClass['wali_kelas_nama'] = classItem['wali_kelas_nama'] ?? '';
-      validatedClass['jumlah_siswa'] = classItem['jumlah_siswa'] ?? 0;
+      validatedClass['homeroom_teacher_name'] =
+          classItem['homeroom_teacher_name'] ?? '';
+      validatedClass['student_count'] = classItem['student_count'] ?? 0;
 
       if (errors.isEmpty) {
         validatedData.add(validatedClass);

@@ -29,11 +29,11 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
 
   // Pagination
   final ScrollController _scrollController = ScrollController();
-  int _currentPage = 1;
-  final int _perPage = 10;
+  // int _currentPage = 1; // Unused
+  // final int _perPage = 10; // Unused
   bool _hasMoreData = true;
   bool _isLoadingMore = false;
-  Map<String, dynamic>? _paginationMeta;
+  // Map<String, dynamic>? _paginationMeta; // Unused
   Timer? _searchDebounce;
 
   // Search and Enhanced Filters
@@ -109,7 +109,7 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
 
   Future<void> _loadTagihan() async {
     try {
-      final response = await _apiService.get('/tagihan/wali');
+      final response = await _apiService.get('/bill/parent');
       setState(() {
         _tagihanList = response is List ? response : [];
       });
@@ -131,7 +131,7 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
     _searchDebounce?.cancel();
     _searchDebounce = Timer(Duration(milliseconds: 500), () {
       setState(() {
-        _currentPage = 1;
+        // _currentPage = 1;
       });
       _loadData();
     });
@@ -145,7 +145,7 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
     });
 
     try {
-      _currentPage++;
+      // _currentPage++;
       // For now, since backend might not support pagination,
       // we'll just mark hasMoreData as false
       setState(() {
@@ -245,7 +245,7 @@ class ParentBillingScreenState extends State<ParentBillingScreen>
   }
 
   void _showFilterSheet() {
-    final languageProvider = context.read<LanguageProvider>();
+    // final languageProvider = context.read<LanguageProvider>();
 
     // Temporary state for bottom sheet
     String? tempSelectedStatus = _selectedStatusFilter;

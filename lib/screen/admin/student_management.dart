@@ -368,13 +368,13 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
     if (_selectedClassIds.isNotEmpty) {
       for (var classId in _selectedClassIds) {
-        final kelas = _classList.firstWhere(
+        final className = _classList.firstWhere(
           (k) => k['id'].toString() == classId,
-          orElse: () => {'nama': classId},
+          orElse: () => {'name': classId},
         );
         filterChips.add({
           'label':
-              '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['nama']}',
+              '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${className['name'] ?? className['nama'] ?? 'Unknown'}',
           'onRemove': () {
             setState(() {
               _selectedClassIds.remove(classId);
@@ -387,7 +387,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
     }
 
     if (_selectedGenderFilter != null) {
-      final genderText = _selectedGenderFilter == 'L'
+      final genderText = _selectedGenderFilter == 'M'
           ? languageProvider.getTranslatedText({
               'en': 'Male',
               'id': 'Laki-laki',
@@ -566,7 +566,9 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                             );
 
                             return FilterChip(
-                              label: Text(kelas['nama'] ?? 'Unknown'),
+                              label: Text(
+                                kelas['name'] ?? kelas['nama'] ?? 'Unknown',
+                              ),
                               selected: isSelected,
                               onSelected: (selected) {
                                 setModalState(() {
@@ -633,11 +635,11 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 'en': 'Male',
                                 'id': 'Laki-laki',
                               }),
-                              value: 'L',
+                              value: 'M',
                               selectedValue: tempSelectedGender,
                               onSelected: () {
                                 setModalState(() {
-                                  tempSelectedGender = 'L';
+                                  tempSelectedGender = 'M';
                                 });
                               },
                             ),
@@ -646,11 +648,11 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 'en': 'Female',
                                 'id': 'Perempuan',
                               }),
-                              value: 'P',
+                              value: 'F',
                               selectedValue: tempSelectedGender,
                               onSelected: () {
                                 setModalState(() {
-                                  tempSelectedGender = 'P';
+                                  tempSelectedGender = 'F';
                                 });
                               },
                             ),
@@ -781,29 +783,31 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
   }
 
   void _showStudentDialog({Map<String, dynamic>? student}) {
-    final nameController = TextEditingController(text: student?['nama'] ?? '');
-    final nisController = TextEditingController(text: student?['nis'] ?? '');
+    final nameController = TextEditingController(text: student?['name'] ?? '');
+    final nisController = TextEditingController(
+      text: student?['student_number'] ?? '',
+    );
     final addressController = TextEditingController(
-      text: student?['alamat'] ?? '',
+      text: student?['address'] ?? '',
     );
     final birthDateController = TextEditingController(
-      text: student != null && student['tanggal_lahir'] != null
-          ? student['tanggal_lahir'].toString().substring(0, 10)
+      text: student != null && student['date_of_birth'] != null
+          ? student['date_of_birth'].toString().substring(0, 10)
           : '',
     );
     final parentNameController = TextEditingController(
-      text: student?['nama_wali'] ?? '',
+      text: student?['guardian_name'] ?? '',
     );
     final phoneController = TextEditingController(
-      text: student?['no_telepon'] ?? '',
+      text: student?['phone_number'] ?? '',
     );
 
     final emailParentController = TextEditingController(
-      text: student?['email_wali'] ?? '',
+      text: student?['guardian_email'] ?? student?['parent_email'] ?? '',
     );
 
-    String? selectedClassId = student?['kelas_id'];
-    String? selectedGender = student?['jenis_kelamin'];
+    String? selectedClassId = student?['class_id'];
+    String? selectedGender = student?['gender'];
 
     final isEdit = student != null;
 
@@ -903,7 +907,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                 return DropdownMenuItem<String>(
                                   value: classItem['id'].toString(),
                                   child: Text(
-                                    classItem['nama'] ?? 'Unknown Class',
+                                    classItem['name'] ?? 'Unknown Class',
                                   ),
                                 );
                               })
@@ -944,7 +948,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                           icon: Icons.transgender,
                           items: [
                             DropdownMenuItem(
-                              value: 'L',
+                              value: 'M',
                               child: Text(
                                 languageProvider.getTranslatedText({
                                   'en': 'Male',
@@ -953,7 +957,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                               ),
                             ),
                             DropdownMenuItem(
-                              value: 'P',
+                              value: 'F',
                               child: Text(
                                 languageProvider.getTranslatedText({
                                   'en': 'Female',
@@ -1079,15 +1083,15 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
                               try {
                                 final data = {
-                                  'nama': name,
-                                  'nis': nis,
-                                  'kelas_id': selectedClassId,
-                                  'alamat': address,
-                                  'tanggal_lahir': birthDate,
-                                  'jenis_kelamin': selectedGender,
-                                  'nama_wali': nameParent,
-                                  'no_telepon': noPhone,
-                                  'email_wali': emailParent,
+                                  'name': name,
+                                  'student_number': nis,
+                                  'class_id': selectedClassId,
+                                  'address': address,
+                                  'date_of_birth': birthDate,
+                                  'gender': selectedGender,
+                                  'guardian_name': nameParent,
+                                  'phone_number': noPhone,
+                                  'guardian_email': emailParent,
                                 };
 
                                 if (isEdit) {
@@ -1342,7 +1346,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                     ),
                     SizedBox(height: 12),
                     Text(
-                      student['nama'] ?? 'No Name',
+                      student['name'] ?? 'No Name',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1383,7 +1387,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         'id': 'Jenis Kelamin',
                       }),
                       value: _getGenderText(
-                        student['jenis_kelamin'],
+                        student['gender'],
                         languageProvider,
                       ),
                     ),
@@ -1393,7 +1397,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         'en': 'Birth Date',
                         'id': 'Tanggal Lahir',
                       }),
-                      value: _formatDate(student['tanggal_lahir']),
+                      value: _formatDate(student['date_of_birth']),
                     ),
                     _buildDetailItem(
                       icon: Icons.location_on,
@@ -1401,7 +1405,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         'en': 'Address',
                         'id': 'Alamat',
                       }),
-                      value: student['alamat'] ?? 'No Address',
+                      value: student['address'] ?? 'No Address',
                       isMultiline: true,
                     ),
 
@@ -1425,7 +1429,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         'en': 'Parent Name',
                         'id': 'Nama Wali',
                       }),
-                      value: student['nama_wali'] ?? 'No Parent Name',
+                      value: student['guardian_name'] ?? 'No Parent Name',
                     ),
                     _buildDetailItem(
                       icon: Icons.phone,
@@ -1433,7 +1437,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                         'en': 'Phone Number',
                         'id': 'No. Telepon',
                       }),
-                      value: student['no_telepon'] ?? 'No Phone',
+                      value: student['phone_number'] ?? 'No Phone',
                     ),
                     _buildDetailItem(
                       icon: Icons.email,
@@ -1443,7 +1447,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                       }),
                       value:
                           student['parent_email'] ??
-                          student['email_wali'] ??
+                          student['guardian_email'] ??
                           'No Email',
                     ),
 
@@ -1560,12 +1564,12 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
 
   String _getGenderText(String? gender, LanguageProvider languageProvider) {
     switch (gender) {
-      case 'L':
+      case 'M':
         return languageProvider.getTranslatedText({
           'en': 'Male',
           'id': 'Laki-laki',
         });
-      case 'P':
+      case 'F':
         return languageProvider.getTranslatedText({
           'en': 'Female',
           'id': 'Perempuan',
@@ -1668,7 +1672,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      student['nama'] ?? 'No Name',
+                                      student['name'] ?? 'No Name',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1809,7 +1813,7 @@ class StudentManagementScreenState extends State<StudentManagementScreen>
                                     SizedBox(height: 1),
                                     Text(
                                       _getGenderText(
-                                        student['jenis_kelamin'],
+                                        student['gender'],
                                         languageProvider,
                                       ),
                                       style: TextStyle(

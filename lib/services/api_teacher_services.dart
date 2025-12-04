@@ -36,7 +36,7 @@ class ApiTeacherService {
   static Future<String> downloadTemplate() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/download-teacher-template'),
+        Uri.parse('$baseUrl/teacher/template'),
         headers: await _getHeaders(),
       );
 
@@ -75,7 +75,7 @@ class ApiTeacherService {
   static Future<Map<String, dynamic>> getTeacherFilterOptions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/guru/filter-options'),
+        Uri.parse('$baseUrl/teacher/filter-options'),
         headers: await _getHeaders(),
       );
 
@@ -100,7 +100,7 @@ class ApiTeacherService {
   static Future<Map<String, dynamic>?> getGuruByUserId(String userId) async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/guru?user_id=$userId'),
+        Uri.parse('$baseUrl/teacher?user_id=$userId'),
         headers: await _getHeaders(),
       );
 
@@ -134,10 +134,10 @@ class ApiTeacherService {
     };
 
     if (classId != null && classId.isNotEmpty) {
-      queryParams['kelas_id'] = classId;
+      queryParams['class_id'] = classId;
     }
     if (gender != null && gender.isNotEmpty) {
-      queryParams['jenis_kelamin'] = gender;
+      queryParams['gender'] = gender;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -148,11 +148,11 @@ class ApiTeacherService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/guru?$queryString'),
+        Uri.parse('$baseUrl/teacher?$queryString'),
         headers: await _getHeaders(),
       );
 
-      print('GET /guru?$queryString - Status: ${response.statusCode}');
+      print('GET /teacher?$queryString - Status: ${response.statusCode}');
 
       final result = _handleResponse(response);
 
@@ -181,7 +181,7 @@ class ApiTeacherService {
 
   // Existing methods tetap dipertahankan...
   Future<List<dynamic>> getTeacher() async {
-    final result = await ApiService().get('/guru');
+    final result = await ApiService().get('/teacher');
 
     // Handle new pagination format
     if (result is Map<String, dynamic>) {
@@ -193,7 +193,7 @@ class ApiTeacherService {
   }
 
   Future<dynamic> getTeacherById(String id) async {
-    return await ApiService().get('/guru/$id');
+    return await ApiService().get('/teacher/$id');
   }
 
   // Add teacher with new structure
@@ -201,23 +201,23 @@ class ApiTeacherService {
   // Optional fields: nip, subject_ids (List<String>), class_ids (List<String>),
   //                  wali_kelas_id (String), status_kepegawaian ("tetap" or "tidak_tetap")
   Future<dynamic> addTeacher(Map<String, dynamic> data) async {
-    return await ApiService().post('/guru', data);
+    return await ApiService().post('/teacher', data);
   }
 
   // Update teacher with new structure
   // All fields same as addTeacher
   // Note: id parameter is guru.id (not user_id)
   Future<void> updateTeacher(String id, Map<String, dynamic> data) async {
-    await ApiService().put('/guru/$id', data);
+    await ApiService().put('/teacher/$id', data);
   }
 
   Future<void> deleteTeacher(String id) async {
-    await ApiService().delete('/guru/$id');
+    await ApiService().delete('/teacher/$id');
   }
 
   Future<List<dynamic>> getSubjectByTeacher(String guruId) async {
     try {
-      final result = await ApiService().get('/guru/$guruId/mata-pelajaran');
+      final result = await ApiService().get('/teacher/$guruId/subjects');
 
       // Backend returns {success: true, data: [...], pagination: {...}}
       if (result is Map<String, dynamic> && result['data'] != null) {
@@ -259,12 +259,12 @@ class ApiTeacherService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/guru/$guruId/mata-pelajaran?$queryString'),
+        Uri.parse('$baseUrl/teacher/$guruId/subjects?$queryString'),
         headers: await _getHeaders(),
       );
 
       print(
-        'GET /guru/$guruId/mata-pelajaran?$queryString - Status: ${response.statusCode}',
+        'GET /teacher/$guruId/subjects?$queryString - Status: ${response.statusCode}',
       );
 
       final result = _handleResponse(response);
@@ -297,8 +297,8 @@ class ApiTeacherService {
     String mataPelajaranId,
   ) async {
     try {
-      final result = await ApiService().post('/guru/$guruId/mata-pelajaran', {
-        'mata_pelajaran_id': mataPelajaranId,
+      final result = await ApiService().post('/teacher/$guruId/subjects', {
+        'subject_id': mataPelajaranId,
       });
       return result;
     } catch (e) {
@@ -312,9 +312,7 @@ class ApiTeacherService {
     String mataPelajaranId,
   ) async {
     try {
-      await ApiService().delete(
-        '/guru/$guruId/mata-pelajaran/$mataPelajaranId',
-      );
+      await ApiService().delete('/teacher/$guruId/subjects/$mataPelajaranId');
     } catch (e) {
       print('Error removing mata pelajaran from guru: $e');
       rethrow;
@@ -325,7 +323,7 @@ class ApiTeacherService {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('${ApiService.baseUrl}/import-teachers'),
+        Uri.parse('${ApiService.baseUrl}/teacher/import'),
       );
 
       // Add authorization header
@@ -357,7 +355,7 @@ class ApiTeacherService {
   // Download teacher template
   Future<void> downloadTeacherTemplate() async {
     try {
-      final response = await ApiService().get('/guru/template');
+      final response = await ApiService().get('/teacher/template');
 
       // Handle response untuk download file
       // Implementasi download file sesuai kebutuhan

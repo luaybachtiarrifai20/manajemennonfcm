@@ -751,19 +751,19 @@ class AnnouncementManagementScreenState
 
   void _showAddEditDialog({Map<String, dynamic>? announcementData}) {
     final judulController = TextEditingController(
-      text: announcementData?['judul'] ?? '',
+      text: announcementData?['title'] ?? '',
     );
     final kontenController = TextEditingController(
-      text: announcementData?['konten'] ?? '',
+      text: announcementData?['content'] ?? '',
     );
     String? selectedClassId = announcementData?['kelas_id'];
-    String? selectedRole = announcementData?['role_target'] ?? 'all';
-    String? selectedPrioritas = announcementData?['prioritas'] ?? 'biasa';
-    DateTime? tanggalAwal = announcementData?['tanggal_awal'] != null
-        ? DateTime.parse(announcementData!['tanggal_awal'])
+    String? selectedRole = announcementData?['target_role'] ?? 'all';
+    String? selectedPrioritas = announcementData?['priority'] ?? 'biasa';
+    DateTime? tanggalAwal = announcementData?['start_date'] != null
+        ? DateTime.parse(announcementData!['start_date'])
         : null;
-    DateTime? tanggalAkhir = announcementData?['tanggal_akhir'] != null
-        ? DateTime.parse(announcementData!['tanggal_akhir'])
+    DateTime? tanggalAkhir = announcementData?['end_date'] != null
+        ? DateTime.parse(announcementData!['end_date'])
         : null;
 
     final isEdit = announcementData != null;
@@ -965,21 +965,20 @@ class AnnouncementManagementScreenState
 
                                   try {
                                     final data = {
-                                      'judul': judul,
-                                      'konten': konten,
-                                      'role_target': selectedRole,
-                                      'prioritas': selectedPrioritas,
-                                      'tanggal_awal': tanggalAwal
-                                          ?.toIso8601String()
-                                          .split('T')[0],
-                                      'tanggal_akhir': tanggalAkhir
-                                          ?.toIso8601String()
-                                          .split('T')[0],
+                                      'title': judulController.text,
+                                      'content': kontenController.text,
+                                      'class_id': selectedClassId,
+                                      'target_role': selectedRole,
+                                      'priority': selectedPrioritas,
+                                      'start_date': tanggalAwal
+                                          ?.toIso8601String(),
+                                      'end_date': tanggalAkhir
+                                          ?.toIso8601String(),
                                     };
 
                                     if (isEdit) {
                                       await _apiService.put(
-                                        '/pengumuman/${announcementData['id']}',
+                                        '/announcement/${announcementData['id']}',
                                         data,
                                       );
                                       if (context.mounted) {
@@ -1002,7 +1001,7 @@ class AnnouncementManagementScreenState
                                       }
                                     } else {
                                       await _apiService.post(
-                                        '/pengumuman',
+                                        '/announcement',
                                         data,
                                       );
                                       if (context.mounted) {
@@ -1289,7 +1288,7 @@ class AnnouncementManagementScreenState
 
     if (confirmed == true) {
       try {
-        await _apiService.delete('/pengumuman/${announcementData['id']}');
+        await _apiService.delete('/announcement/${announcementData['id']}');
         await _loadData();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1402,7 +1401,7 @@ class AnnouncementManagementScreenState
                     ),
 
                     // Priority badge
-                    if (announcementData['prioritas'] == 'penting')
+                    if (announcementData['priority'] == 'penting')
                       Positioned(
                         top: 12,
                         right: 12,
@@ -1454,7 +1453,7 @@ class AnnouncementManagementScreenState
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      announcementData['judul'] ?? 'No Title',
+                                      announcementData['title'] ?? 'No Title',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1515,7 +1514,7 @@ class AnnouncementManagementScreenState
                                     ),
                                     SizedBox(height: 1),
                                     Text(
-                                      announcementData['konten'] ?? '',
+                                      announcementData['content'] ?? '',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -1566,7 +1565,7 @@ class AnnouncementManagementScreenState
                                     ),
                                     SizedBox(height: 1),
                                     Text(
-                                      announcementData['pembuat_nama'] ??
+                                      announcementData['creator_name'] ??
                                           'Unknown',
                                       style: TextStyle(
                                         fontSize: 14,
@@ -1762,7 +1761,7 @@ class AnnouncementManagementScreenState
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            announcementData['judul'] ?? 'No Title',
+                            announcementData['title'] ?? 'No Title',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1791,7 +1790,7 @@ class AnnouncementManagementScreenState
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Priority badge
-                    if (announcementData['prioritas'] == 'penting')
+                    if (announcementData['priority'] == 'penting')
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
@@ -1826,7 +1825,7 @@ class AnnouncementManagementScreenState
 
                     // Content text
                     Text(
-                      announcementData['konten'] ?? '',
+                      announcementData['content'] ?? '',
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.6,
@@ -1970,8 +1969,8 @@ class AnnouncementManagementScreenState
     Map<String, dynamic> announcementData,
     LanguageProvider languageProvider,
   ) {
-    final roleTarget = announcementData['role_target'] ?? 'all';
-    final classNama = announcementData['kelas_nama'];
+    final roleTarget = announcementData['target_role'] ?? 'all';
+    final classNama = announcementData['class_name'];
 
     if (roleTarget == 'all' && classNama == null) {
       return languageProvider.getTranslatedText({
@@ -2231,8 +2230,9 @@ class AnnouncementManagementScreenState
                                         backgroundColor: Colors.white
                                             .withValues(alpha: 0.2),
                                         side: BorderSide(
-                                          color: Colors.white
-                                              .withValues(alpha: 0.3),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.3,
+                                          ),
                                           width: 1,
                                         ),
                                         shape: RoundedRectangleBorder(

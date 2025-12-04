@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -40,7 +41,8 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
         android: AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',
-          channelDescription: 'This channel is used for important notifications.',
+          channelDescription:
+              'This channel is used for important notifications.',
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
@@ -80,15 +82,16 @@ class FCMService {
       }
 
       // Request permission
-      NotificationSettings settings = await _firebaseMessaging.requestPermission(
-        alert: true,
-        announcement: false,
-        badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
-        sound: true,
-      );
+      NotificationSettings settings = await _firebaseMessaging
+          .requestPermission(
+            alert: true,
+            announcement: false,
+            badge: true,
+            carPlay: false,
+            criticalAlert: false,
+            provisional: false,
+            sound: true,
+          );
 
       if (kDebugMode) {
         print('✅ Permission status: ${settings.authorizationStatus}');
@@ -119,7 +122,7 @@ class FCMService {
           _fcmToken = newToken;
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('fcm_token', newToken);
-          
+
           // Send updated token to backend
           await sendTokenToBackend(newToken);
         });
@@ -128,7 +131,9 @@ class FCMService {
         _setupMessageHandlers();
 
         // Set background message handler
-        FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+        FirebaseMessaging.onBackgroundMessage(
+          _firebaseMessagingBackgroundHandler,
+        );
 
         if (kDebugMode) {
           print('✅ FCM Service initialized successfully');
@@ -152,10 +157,10 @@ class FCMService {
 
     const DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
 
     const InitializationSettings settings = InitializationSettings(
       android: androidSettings,
@@ -177,7 +182,8 @@ class FCMService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
@@ -229,7 +235,8 @@ class FCMService {
           android: AndroidNotificationDetails(
             'high_importance_channel',
             'High Importance Notifications',
-            channelDescription: 'This channel is used for important notifications.',
+            channelDescription:
+                'This channel is used for important notifications.',
             importance: Importance.high,
             priority: Priority.high,
             icon: android?.smallIcon ?? '@mipmap/ic_launcher',
@@ -267,37 +274,39 @@ class FCMService {
 
     // You can navigate to specific screens based on notification type
     final type = data['type'];
-    
+
     if (type == 'absensi') {
       // Navigate to presence screen
       // This will be handled by the app's navigation system
       if (kDebugMode) {
-        print('Navigate to absensi screen for siswa: ${data['siswa_id']}');
+        print('Navigate to absensi screen for siswa: ${data['student_id']}');
       }
     } else if (type == 'class_activity') {
       // Navigate to class activity screen
       // This will be handled by the app's navigation system
       if (kDebugMode) {
-        print('Navigate to class activity for kegiatan: ${data['kegiatan_id']}');
-        print('Student: ${data['siswa_nama']}, Subject: ${data['mata_pelajaran']}');
+        print(
+          'Navigate to class activity for kegiatan: ${data['activity_id']}',
+        );
+        print('Student: ${data['student_name']}, Subject: ${data['subject']}');
       }
     } else if (type == 'pengumuman') {
       // Navigate to announcement screen
       // This will be handled by the app's navigation system
       if (kDebugMode) {
-        print('Navigate to pengumuman: ${data['pengumuman_id']}');
-        print('Title: ${data['judul']}, Priority: ${data['prioritas']}');
-        print('Target: ${data['role_target']}, Class: ${data['kelas_nama']}');
+        print('Navigate to pengumuman: ${data['announcement_id']}');
+        print('Title: ${data['title']}, Priority: ${data['priority']}');
+        print('Target: ${data['target_role']}, Class: ${data['class_name']}');
       }
     } else if (type == 'tagihan') {
       // Navigate to tagihan (billing) screen
       // This will be handled by the app's navigation system
       if (kDebugMode) {
-        print('Navigate to tagihan: ${data['tagihan_id']}');
-        print('Siswa: ${data['siswa_nama']}');
-        print('Jenis: ${data['jenis_pembayaran_nama']}');
-        print('Jumlah: Rp ${data['jumlah']}');
-        print('Jatuh Tempo: ${data['jatuh_tempo']}');
+        print('Navigate to tagihan: ${data['bill_id']}');
+        print('Siswa: ${data['student_name']}');
+        print('Jenis: ${data['payment_type_name']}');
+        print('Jumlah: Rp ${data['amount']}');
+        print('Jatuh Tempo: ${data['due_date']}');
       }
     }
   }
@@ -310,11 +319,11 @@ class FCMService {
       }
 
       await ApiService.sendFCMToken(token, 'mobile');
-      
+
       if (kDebugMode) {
         print('✅ FCM token sent to backend successfully');
       }
-      
+
       return true;
     } catch (e) {
       if (kDebugMode) {
@@ -333,7 +342,7 @@ class FCMService {
         }
 
         await ApiService.deleteFCMToken(_fcmToken!);
-        
+
         if (kDebugMode) {
           print('✅ FCM token deleted from backend');
         }
@@ -377,26 +386,26 @@ class FCMService {
       if (kDebugMode) {
         print('🔄 Force refreshing FCM token...');
       }
-      
+
       // Delete the old token
       await _firebaseMessaging.deleteToken();
-      
+
       // Get new token
       _fcmToken = await _firebaseMessaging.getToken();
-      
+
       if (kDebugMode) {
         print('📱 New FCM Token: $_fcmToken');
       }
-      
+
       // Save new token locally
       if (_fcmToken != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('fcm_token', _fcmToken!);
-        
+
         // Send to backend
         await sendTokenToBackend(_fcmToken!);
       }
-      
+
       return _fcmToken;
     } catch (e) {
       if (kDebugMode) {

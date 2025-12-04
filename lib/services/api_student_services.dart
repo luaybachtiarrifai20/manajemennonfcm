@@ -49,7 +49,7 @@ class ApiStudentService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/siswa/import'),
+        Uri.parse('$baseUrl/student/import'),
       );
 
       // Add headers
@@ -95,7 +95,7 @@ class ApiStudentService {
   static Future<String> downloadTemplate() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/siswa/template'),
+        Uri.parse('$baseUrl/student/template'),
         headers: await _getHeaders(),
       );
 
@@ -132,7 +132,7 @@ class ApiStudentService {
 
   static Future<Map<String, dynamic>?> getParentUser(String studentId) async {
     try {
-      final response = await ApiService().get('users?siswa_id=$studentId');
+      final response = await ApiService().get('users?student_id=$studentId');
       if (response != null && response is List && response.isNotEmpty) {
         return response.first;
       }
@@ -147,7 +147,7 @@ class ApiStudentService {
 
   static Future<List<dynamic>> getStudent() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/siswa'),
+      Uri.parse('$baseUrl/student'),
       headers: await _getHeaders(),
     );
 
@@ -163,7 +163,7 @@ class ApiStudentService {
   static Future<Map<String, dynamic>> getStudentFilterOptions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/siswa/filter-options'),
+        Uri.parse('$baseUrl/student/filter-options'),
         headers: await _getHeaders(),
       );
 
@@ -210,13 +210,13 @@ class ApiStudentService {
     };
 
     if (classId != null && classId.isNotEmpty) {
-      queryParams['kelas_id'] = classId;
+      queryParams['class_id'] = classId;
     }
     if (gradeLevel != null && gradeLevel.isNotEmpty) {
       queryParams['grade_level'] = gradeLevel;
     }
     if (gender != null && gender.isNotEmpty) {
-      queryParams['jenis_kelamin'] = gender;
+      queryParams['gender'] = gender;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -225,7 +225,7 @@ class ApiStudentService {
     String queryString = Uri(queryParameters: queryParams).query;
 
     final response = await http.get(
-      Uri.parse('$baseUrl/siswa?$queryString'),
+      Uri.parse('$baseUrl/student?$queryString'),
       headers: await _getHeaders(),
     );
 
@@ -251,7 +251,7 @@ class ApiStudentService {
 
   static Future<dynamic> addStudent(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/siswa'),
+      Uri.parse('$baseUrl/student'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -263,7 +263,7 @@ class ApiStudentService {
     Map<String, dynamic> data,
   ) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/siswa/$id'),
+      Uri.parse('$baseUrl/student/$id'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -272,7 +272,7 @@ class ApiStudentService {
 
   static Future<void> deleteStudent(String id) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/siswa/$id'),
+      Uri.parse('$baseUrl/student/$id'),
       headers: await _getHeaders(),
     );
     _handleResponse(response);
@@ -282,7 +282,7 @@ class ApiStudentService {
     try {
       final semuaSiswa = await getStudent();
       return semuaSiswa.where((siswa) {
-        return siswa['kelas_id'] == classId;
+        return siswa['class_id'] == classId;
       }).toList();
     } catch (e) {
       if (kDebugMode) {

@@ -17,8 +17,8 @@ class ApiAnnouncementService {
           : raw;
       if (kDebugMode) {
         print(
-        '${label ?? 'HTTP Response'} - Status: ${response.statusCode} - Body: $safe',
-      );
+          '${label ?? 'HTTP Response'} - Status: ${response.statusCode} - Body: $safe',
+        );
       }
     } catch (e) {
       if (kDebugMode) {
@@ -64,7 +64,9 @@ class ApiAnnouncementService {
             ? '${raw.substring(0, 1000)}... [truncated]'
             : raw;
         if (kDebugMode) {
-          print('❌ Invalid JSON response (status ${response.statusCode}): $safe');
+          print(
+            '❌ Invalid JSON response (status ${response.statusCode}): $safe',
+          );
         }
       } catch (_) {}
 
@@ -98,12 +100,12 @@ class ApiAnnouncementService {
   static Future<Map<String, dynamic>> getAnnouncementFilterOptions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/pengumuman/filter-options'),
+        Uri.parse('$baseUrl/announcement/filter-options'),
         headers: await _getHeaders(),
       );
 
       // Debug print response body
-      _debugResponse(response, label: 'GET /pengumuman/filter-options');
+      _debugResponse(response, label: 'GET /announcement/filter-options');
 
       final result = _handleResponse(response);
 
@@ -144,10 +146,10 @@ class ApiAnnouncementService {
     };
 
     if (prioritas != null && prioritas.isNotEmpty) {
-      queryParams['prioritas'] = prioritas;
+      queryParams['priority'] = prioritas;
     }
     if (roleTarget != null && roleTarget.isNotEmpty) {
-      queryParams['role_target'] = roleTarget;
+      queryParams['target_role'] = roleTarget;
     }
     if (status != null && status.isNotEmpty) {
       queryParams['status'] = status;
@@ -161,12 +163,12 @@ class ApiAnnouncementService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/pengumuman?$queryString'),
+        Uri.parse('$baseUrl/announcement?$queryString'),
         headers: await _getHeaders(),
       );
 
       // Debug response body (truncated)
-      _debugResponse(response, label: 'GET /pengumuman?$queryString');
+      _debugResponse(response, label: 'GET /announcement?$queryString');
 
       final result = _handleResponse(response);
 
@@ -198,7 +200,7 @@ class ApiAnnouncementService {
   // Legacy method (keep for backward compatibility)
   // Now handles paginated response from backend
   static Future<List<dynamic>> getAnnouncements() async {
-    final result = await ApiService().get('/pengumuman');
+    final result = await ApiService().get('/announcement');
 
     // Debug legacy result shape
     try {
@@ -212,7 +214,9 @@ class ApiAnnouncementService {
         }
       } else {
         if (kDebugMode) {
-          print('Legacy getAnnouncements: unexpected type ${result.runtimeType}');
+          print(
+            'Legacy getAnnouncements: unexpected type ${result.runtimeType}',
+          );
         }
       }
     } catch (e) {

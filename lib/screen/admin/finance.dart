@@ -498,19 +498,19 @@ class FinanceScreenState extends State<FinanceScreen>
   Future<void> _loadKelasData() async {
     try {
       // Load data kelas
-      final kelasResponse = await _apiService.get('/kelas');
+      final kelasResponse = await _apiService.get('/class');
       setState(() {
         _kelasList = kelasResponse is List ? kelasResponse : [];
       });
 
       // Load data siswa
-      final siswaResponse = await _apiService.get('/siswa');
+      final siswaResponse = await _apiService.get('/student');
       final List<dynamic> allSiswa = siswaResponse is List ? siswaResponse : [];
 
       // Kelompokkan siswa berdasarkan kelas
       Map<String, List<dynamic>> siswaByKelas = {};
       for (var siswa in allSiswa) {
-        final classId = siswa['kelas_id']?.toString();
+        final classId = siswa['class_id']?.toString();
         if (classId != null) {
           if (!siswaByKelas.containsKey(classId)) {
             siswaByKelas[classId] = [];
@@ -539,7 +539,7 @@ class FinanceScreenState extends State<FinanceScreen>
         final siswaId = siswa['id']?.toString();
         if (siswaId != null) {
           final tagihanResponse = await _apiService.get(
-            '/tagihan?siswa_id=$siswaId',
+            '/bill?student_id=$siswaId',
           );
           final List<dynamic> tagihanSiswa = tagihanResponse is List
               ? tagihanResponse
@@ -828,8 +828,8 @@ class FinanceScreenState extends State<FinanceScreen>
 
         // Filter siswa berdasarkan search
         final filteredSiswa = siswaList.where((siswa) {
-          final nama = siswa['nama']?.toString().toLowerCase() ?? '';
-          final nis = siswa['nis']?.toString().toLowerCase() ?? '';
+          final nama = siswa['name']?.toString().toLowerCase() ?? '';
+          final nis = siswa['student_number']?.toString().toLowerCase() ?? '';
           return searchTerm.isEmpty ||
               nama.contains(searchTerm) ||
               nis.contains(searchTerm);
@@ -860,7 +860,7 @@ class FinanceScreenState extends State<FinanceScreen>
               },
             ),
             title: Text(
-              kelas['nama'] ?? 'Kelas',
+              kelas['name'] ?? 'Kelas',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 color: isKelasSelected ? _getPrimaryColor() : Colors.black,
@@ -958,9 +958,9 @@ class FinanceScreenState extends State<FinanceScreen>
             }
           });
         },
-        title: Text(siswa['nama'] ?? 'Siswa', style: TextStyle(fontSize: 14)),
+        title: Text(siswa['name'] ?? 'Siswa', style: TextStyle(fontSize: 14)),
         subtitle: Text(
-          'NIS: ${siswa['nis'] ?? '-'}',
+          'NIS: ${siswa['student_number'] ?? '-'}',
           style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
         dense: true,
@@ -1133,7 +1133,7 @@ class FinanceScreenState extends State<FinanceScreen>
               child: Icon(Icons.class_, color: _getPrimaryColor()),
             ),
             title: Text(
-              kelas['nama'] ?? 'Kelas',
+              kelas['name'] ?? 'Kelas',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             subtitle: Text(
@@ -1229,16 +1229,16 @@ class FinanceScreenState extends State<FinanceScreen>
         leading: CircleAvatar(
           backgroundColor: _getPrimaryColor().withOpacity(0.1),
           child: Text(
-            siswa['nama']?.toString().substring(0, 1).toUpperCase() ?? 'S',
+            siswa['name']?.toString().substring(0, 1).toUpperCase() ?? 'S',
             style: TextStyle(color: _getPrimaryColor(), fontSize: 12),
           ),
         ),
         title: Text(
-          siswa['nama'] ?? 'Siswa',
+          siswa['name'] ?? 'Siswa',
           style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
         ),
         subtitle: Text(
-          'NIS: ${siswa['nis'] ?? '-'}',
+          'NIS: ${siswa['student_number'] ?? '-'}',
           style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
         ),
         trailing: _buildSiswaSummary(tagihanList),
@@ -1382,7 +1382,7 @@ class FinanceScreenState extends State<FinanceScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        tagihan['jenis_pembayaran_nama'] ?? 'Tagihan',
+                        tagihan['payment_type_name'] ?? 'Tagihan',
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
@@ -1486,15 +1486,15 @@ class FinanceScreenState extends State<FinanceScreen>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Jenis: ${tagihan['jenis_pembayaran_nama'] ?? '-'}',
+                        'Jenis: ${tagihan['payment_type_name'] ?? '-'}',
                         style: TextStyle(fontSize: 11),
                       ),
                       Text(
-                        'Siswa: ${tagihan['siswa_nama'] ?? '-'}',
+                        'Siswa: ${tagihan['student_name'] ?? '-'}',
                         style: TextStyle(fontSize: 11),
                       ),
                       Text(
-                        'Kelas: ${tagihan['kelas_nama'] ?? '-'}',
+                        'Kelas: ${tagihan['class_name'] ?? '-'}',
                         style: TextStyle(fontSize: 11),
                       ),
                     ],
@@ -1675,7 +1675,7 @@ class FinanceScreenState extends State<FinanceScreen>
 
   Future<void> _loadJenisPembayaran() async {
     try {
-      final response = await _apiService.get('/jenis-pembayaran');
+      final response = await _apiService.get('/payment-type');
       setState(() {
         _jenisPembayaranList = response is List ? response : [];
       });
@@ -1745,7 +1745,7 @@ class FinanceScreenState extends State<FinanceScreen>
 
   Future<void> _loadPembayaranPending() async {
     try {
-      final response = await _apiService.get('/pembayaran/pending');
+      final response = await _apiService.get('/payment/pending');
       setState(() {
         _pembayaranPendingList = response is List ? response : [];
       });
@@ -1756,7 +1756,7 @@ class FinanceScreenState extends State<FinanceScreen>
 
   Future<void> _loadDashboardData() async {
     try {
-      final response = await _apiService.get('/dashboard-keuangan');
+      final response = await _apiService.get('/finance-dashboard');
       setState(() {
         _dashboardData = (response as Map).cast<String, dynamic>();
       });
@@ -2178,22 +2178,19 @@ class FinanceScreenState extends State<FinanceScreen>
 
                               try {
                                 final data = {
-                                  'nama': namaController.text,
-                                  'deskripsi': deskripsiController.text,
-                                  'jumlah': double.parse(jumlahController.text),
-                                  'periode': periodeController.text,
+                                  'name': namaController.text,
+                                  'description': deskripsiController.text,
+                                  'amount': double.parse(jumlahController.text),
+                                  'period': periodeController.text,
                                   'status': status,
-                                  'tujuan': tujuanData,
+                                  'target': tujuanData,
                                 };
 
                                 if (jenisPembayaran == null) {
-                                  await _apiService.post(
-                                    '/jenis-pembayaran',
-                                    data,
-                                  );
+                                  await _apiService.post('/payment-type', data);
                                 } else {
                                   await _apiService.put(
-                                    '/jenis-pembayaran/${jenisPembayaran['id']}',
+                                    '/payment-type/${jenisPembayaran['id']}',
                                     data,
                                   );
                                 }
@@ -2347,7 +2344,7 @@ class FinanceScreenState extends State<FinanceScreen>
 
     if (confirmed == true) {
       try {
-        await _apiService.delete('/jenis-pembayaran/${jenisPembayaran['id']}');
+        await _apiService.delete('/payment-type/${jenisPembayaran['id']}');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -2566,7 +2563,7 @@ class FinanceScreenState extends State<FinanceScreen>
                             onPressed: () async {
                               try {
                                 await _apiService.put(
-                                  '/pembayaran/${pembayaran['id']}/verify',
+                                  '/payment/${pembayaran['id']}/verify',
                                   {
                                     'status': status,
                                     'admin_notes':
@@ -3812,7 +3809,7 @@ class FinanceScreenState extends State<FinanceScreen>
 
   Future<void> _generateTagihan() async {
     try {
-      await _apiService.post('/generate-tagihan', {});
+      await _apiService.post('/generate-bill', {});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

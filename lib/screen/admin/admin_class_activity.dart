@@ -197,10 +197,10 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
   List<dynamic> _getFilteredTeachers() {
     final searchTerm = _searchController.text.toLowerCase();
     return _teacherList.where((teacher) {
-      final teacherName = teacher['nama']?.toString().toLowerCase() ?? '';
+      final teacherName = teacher['name']?.toString().toLowerCase() ?? '';
       final teacherEmail = teacher['email']?.toString().toLowerCase() ?? '';
       final teacherSubject =
-          teacher['mata_pelajaran_nama']?.toString().toLowerCase() ?? '';
+          teacher['subject_name']?.toString().toLowerCase() ?? '';
 
       return searchTerm.isEmpty ||
           teacherName.contains(searchTerm) ||
@@ -212,11 +212,11 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
   List<dynamic> _getFilteredActivities() {
     final searchTerm = _searchController.text.toLowerCase();
     return _activityList.where((activity) {
-      final title = activity['judul']?.toString().toLowerCase() ?? '';
-      final subject =
-          activity['mata_pelajaran_nama']?.toString().toLowerCase() ?? '';
-      final className = activity['kelas_nama']?.toString().toLowerCase() ?? '';
-      final description = activity['deskripsi']?.toString().toLowerCase() ?? '';
+      final title = activity['title']?.toString().toLowerCase() ?? '';
+      final subject = activity['subject_name']?.toString().toLowerCase() ?? '';
+      final className = activity['class_name']?.toString().toLowerCase() ?? '';
+      final description =
+          activity['description']?.toString().toLowerCase() ?? '';
 
       return searchTerm.isEmpty ||
           title.contains(searchTerm) ||
@@ -227,10 +227,10 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
   }
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher, int index) {
-    final teacherName = teacher['nama']?.toString() ?? 'Nama tidak tersedia';
+    final teacherName = teacher['name']?.toString() ?? 'Nama tidak tersedia';
     final teacherEmail = teacher['email']?.toString() ?? '';
     final teacherSubject =
-        teacher['mata_pelajaran_nama']?.toString() ?? 'Mata Pelajaran';
+        teacher['subject_name']?.toString() ?? 'Mata Pelajaran';
 
     return AnimatedBuilder(
       animation: _animationController,
@@ -453,8 +453,8 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
   }
 
   Widget _buildActivityCard(Map<String, dynamic> activity, int index) {
-    final isAssignment = activity['jenis'] == 'tugas';
-    final isSpecificTarget = activity['target'] == 'khusus';
+    final isAssignment = activity['type'] == 'assignment';
+    final isSpecificTarget = activity['target'] == 'specific';
 
     return AnimatedBuilder(
       animation: _animationController,
@@ -544,7 +544,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    activity['judul'] ?? 'Judul Kegiatan',
+                                    activity['title'] ?? 'Judul Kegiatan',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -555,7 +555,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    '${activity['mata_pelajaran_nama']} • ${activity['kelas_nama']}',
+                                    '${activity['subject_name']} • ${activity['class_name']}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey.shade600,
@@ -623,7 +623,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                                   ),
                                   SizedBox(height: 1),
                                   Text(
-                                    '${activity['hari']} • ${_formatDate(activity['tanggal'])}',
+                                    '${activity['day']} • ${_formatDate(activity['date'])}',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -668,7 +668,8 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                                   ),
                                   SizedBox(height: 1),
                                   Text(
-                                    activity['guru_nama'] ?? 'Tidak Diketahui',
+                                    activity['teacher_name'] ??
+                                        'Tidak Diketahui',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -682,8 +683,8 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                         ),
 
                         // Informasi deskripsi
-                        if (activity['deskripsi'] != null &&
-                            activity['deskripsi'].isNotEmpty) ...[
+                        if (activity['description'] != null &&
+                            activity['description'].isNotEmpty) ...[
                           SizedBox(height: 8),
                           Row(
                             children: [
@@ -715,7 +716,7 @@ class AdminClassActivityScreenState extends State<AdminClassActivityScreen>
                                     ),
                                     SizedBox(height: 1),
                                     Text(
-                                      activity['deskripsi'],
+                                      activity['description'],
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.black,

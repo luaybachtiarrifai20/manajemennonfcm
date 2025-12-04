@@ -289,11 +289,13 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                             selected: isSelected,
                             onSelected: (selected) {
                               setModalState(() {
-                                tempSelectedClass = selected ? gradeLevel : null;
+                                tempSelectedClass = selected
+                                    ? gradeLevel
+                                    : null;
                               });
                             },
                             backgroundColor: Colors.grey.shade100,
-                            selectedColor: _getPrimaryColor().withValues(alpha: 0.2),
+                            selectedColor: _getPrimaryColor().withOpacity(0.2),
                             checkmarkColor: _getPrimaryColor(),
                             labelStyle: TextStyle(
                               color: isSelected
@@ -317,7 +319,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.2),
+                      color: Colors.grey.withOpacity(0.2),
                       blurRadius: 4,
                       offset: Offset(0, -2),
                     ),
@@ -509,7 +511,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
   void _showAddEditDialog({Map<String, dynamic>? classData}) {
     final nameController = TextEditingController(
-      text: classData?['nama'] ?? '',
+      text: classData?['name'] ?? '',
     );
 
     final isEdit = classData != null;
@@ -519,7 +521,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         ? classData['grade_level']?.toString()
         : null;
     String? selectedHomeroomTeacherId = classData != null
-        ? classData['wali_kelas_id']?.toString()
+        ? classData['homeroom_teacher_id']?.toString()
         : null;
 
     showDialog(
@@ -554,7 +556,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                               width: 40,
                               height: 40,
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
+                                color: Colors.white.withOpacity(0.2),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Icon(
@@ -670,11 +672,12 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
                                   try {
                                     final data = {
-                                      'nama': nama,
+                                      'name': nama,
                                       'grade_level': int.parse(
                                         selectedGradeLevel!,
                                       ),
-                                      'wali_kelas_id': selectedHomeroomTeacherId,
+                                      'homeroom_teacher_id':
+                                          selectedHomeroomTeacherId,
                                     };
 
                                     if (isEdit) {
@@ -874,7 +877,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
           ..._teachers.map((teacher) {
             return DropdownMenuItem<String>(
               value: teacher['id']?.toString(),
-              child: Text(teacher['nama'] ?? 'Unknown'),
+              child: Text(teacher['name'] ?? 'Unknown'),
             );
           }),
         ],
@@ -975,7 +978,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.3),
+                      color: Colors.grey.withOpacity(0.3),
                       blurRadius: 5,
                       offset: Offset(0, 4),
                     ),
@@ -1008,7 +1011,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.1),
+                          color: Colors.grey.withOpacity(0.1),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1028,7 +1031,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      classData['nama'] ?? 'No Name',
+                                      classData['name'] ?? 'Class Name',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1057,14 +1060,14 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withValues(alpha: 0.1),
+                                  color: _getPrimaryColor().withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                   border: Border.all(
-                                    color: _getPrimaryColor().withValues(alpha: 0.3),
+                                    color: _getPrimaryColor().withOpacity(0.3),
                                   ),
                                 ),
                                 child: Text(
-                                  '${classData['jumlah_siswa'] ?? 0} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
+                                  '${classData['student_count'] ?? 0} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
                                   style: TextStyle(
                                     color: _getPrimaryColor(),
                                     fontSize: 10,
@@ -1084,7 +1087,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                 width: 32,
                                 height: 32,
                                 decoration: BoxDecoration(
-                                  color: _getPrimaryColor().withValues(alpha: 0.1),
+                                  color: _getPrimaryColor().withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
@@ -1111,7 +1114,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                                     ),
                                     SizedBox(height: 1),
                                     Text(
-                                      classData['wali_kelas_nama'] ??
+                                      classData['homeroom_teacher_name'] ??
                                           languageProvider.getTranslatedText({
                                             'en': 'Not Assigned',
                                             'id': 'Belum Ditugaskan',

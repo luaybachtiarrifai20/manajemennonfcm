@@ -575,7 +575,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    rpp['judul'] ?? 'No Title',
+                                    rpp['title'] ?? 'No Title',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -586,7 +586,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    '${rpp['mata_pelajaran_nama'] ?? 'No Subject'}',
+                                    '${rpp['subject_name'] ?? 'No Subject'}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey[600],
@@ -660,7 +660,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                                   ),
                                   SizedBox(height: 1),
                                   Text(
-                                    rpp['kelas_nama'] ?? 'No Class',
+                                    rpp['class_name'] ?? 'No Class',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -705,7 +705,7 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                                   ),
                                   SizedBox(height: 1),
                                   Text(
-                                    rpp['guru_nama'] ?? 'No Teacher',
+                                    rpp['teacher_name'] ?? 'No Teacher',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,

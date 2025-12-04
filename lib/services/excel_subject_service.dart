@@ -26,7 +26,7 @@ class ExcelSubjectService {
 
       // Kirim request ke backend
       final response = await http.post(
-        Uri.parse('$baseUrl/export-subjects'),
+        Uri.parse('$baseUrl/subject/export'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'subjects': validatedData}),
       );
@@ -80,9 +80,7 @@ class ExcelSubjectService {
 
     try {
       // Kirim request ke backend
-      final response = await http.get(
-        Uri.parse('$baseUrl/download-subject-template'),
-      );
+      final response = await http.get(Uri.parse('$baseUrl/subject/template'));
 
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
@@ -133,7 +131,7 @@ class ExcelSubjectService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/validate-subjects'),
+        Uri.parse('$baseUrl/subject/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'subjects': subjects}),
       );
@@ -167,21 +165,21 @@ class ExcelSubjectService {
       }
 
       // Validasi field required
-      if (subject['kode'] == null || subject['kode'].toString().isEmpty) {
+      if (subject['code'] == null || subject['code'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Kode mata pelajaran tidak boleh kosong');
       } else {
-        validatedSubject['kode'] = subject['kode'];
+        validatedSubject['code'] = subject['code'];
       }
 
-      if (subject['nama'] == null || subject['nama'].toString().isEmpty) {
+      if (subject['name'] == null || subject['name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Nama mata pelajaran tidak boleh kosong');
       } else {
-        validatedSubject['nama'] = subject['nama'];
+        validatedSubject['name'] = subject['name'];
       }
 
       // Field optional
-      validatedSubject['deskripsi'] = subject['deskripsi'] ?? '';
-      validatedSubject['kelas_names'] = _getClassNames(subject);
+      validatedSubject['description'] = subject['description'] ?? '';
+      validatedSubject['class_names'] = _getClassNames(subject);
 
       if (errors.isEmpty) {
         validatedData.add(validatedSubject);
@@ -197,13 +195,13 @@ class ExcelSubjectService {
 
   // Helper methods
   static String _getClassNames(Map<String, dynamic> subject) {
-    if (subject['kelas_names'] != null) {
-      return subject['kelas_names'];
+    if (subject['class_names'] != null) {
+      return subject['class_names'];
     }
 
-    final kelasList = subject['kelas_list'] ?? [];
+    final kelasList = subject['class_list'] ?? [];
     if (kelasList is List) {
-      return kelasList.map((kelas) => kelas['nama'] ?? '').join(', ');
+      return kelasList.map((kelas) => kelas['name'] ?? '').join(', ');
     }
 
     return '';

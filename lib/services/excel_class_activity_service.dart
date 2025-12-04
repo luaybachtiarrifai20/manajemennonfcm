@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/material.dart';
 import 'package:manajemensekolah/services/api_class_activity_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
-import 'package:provider/provider.dart';
 import 'package:manajemensekolah/utils/language_utils.dart';
-import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 class ExcelClassActivityService {
   // static const String baseUrl = ApiService.baseUrl;
@@ -27,7 +28,9 @@ class ExcelClassActivityService {
       final validatedData = await _validateAndPrepareData(formattedData);
 
       // Gunakan ApiService yang sudah ada
-      final response = await ApiClassActivityService.exportClassActivities(validatedData);
+      final response = await ApiClassActivityService.exportClassActivities(
+        validatedData,
+      );
 
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
@@ -86,36 +89,36 @@ class ExcelClassActivityService {
       final Map<String, dynamic> preparedActivity = {};
 
       // Field required dengan default value jika kosong
-      preparedActivity['judul'] =
-          activity['judul']?.toString() ?? 'Tidak Ada Judul';
-      preparedActivity['mata_pelajaran_nama'] =
-          activity['mata_pelajaran_nama']?.toString() ??
-          'Tidak Ada Mata Pelajaran';
-      preparedActivity['kelas_nama'] =
-          activity['kelas_nama']?.toString() ?? 'Tidak Ada Kelas';
-      preparedActivity['guru_nama'] =
-          activity['guru_nama']?.toString() ?? 'Tidak Ada Guru';
-      preparedActivity['jenis'] = activity['jenis']?.toString() ?? 'tugas';
+      preparedActivity['title'] =
+          activity['title']?.toString() ?? 'Tidak Ada Judul';
+      preparedActivity['subject_name'] =
+          activity['subject_name']?.toString() ?? 'Tidak Ada Mata Pelajaran';
+      preparedActivity['class_name'] =
+          activity['class_name']?.toString() ?? 'Tidak Ada Kelas';
+      preparedActivity['teacher_name'] =
+          activity['teacher_name']?.toString() ?? 'Tidak Ada Guru';
+      preparedActivity['type'] = activity['type']?.toString() ?? 'tugas';
       preparedActivity['target'] = activity['target']?.toString() ?? 'umum';
 
       // Handle tanggal - convert ke format string jika perlu
-      if (activity['tanggal'] != null) {
-        if (activity['tanggal'] is DateTime) {
-          preparedActivity['tanggal'] = (activity['tanggal'] as DateTime)
+      if (activity['date'] != null) {
+        if (activity['date'] is DateTime) {
+          preparedActivity['date'] = (activity['date'] as DateTime)
               .toIso8601String();
         } else {
-          preparedActivity['tanggal'] = activity['tanggal'].toString();
+          preparedActivity['date'] = activity['date'].toString();
         }
       } else {
-        preparedActivity['tanggal'] = DateTime.now().toIso8601String();
+        preparedActivity['date'] = DateTime.now().toIso8601String();
       }
 
       // Field optional
-      preparedActivity['deskripsi'] = activity['deskripsi'] ?? '';
-      preparedActivity['hari'] = activity['hari'] ?? '';
-      preparedActivity['batas_waktu'] = activity['batas_waktu'] ?? '';
-      preparedActivity['judul_bab'] = activity['judul_bab'] ?? '';
-      preparedActivity['judul_sub_bab'] = activity['judul_sub_bab'] ?? '';
+      preparedActivity['description'] = activity['description'] ?? '';
+      preparedActivity['day'] = activity['day'] ?? '';
+      preparedActivity['deadline'] = activity['deadline'] ?? '';
+      preparedActivity['chapter_title'] = activity['chapter_title'] ?? '';
+      preparedActivity['sub_chapter_title'] =
+          activity['sub_chapter_title'] ?? '';
 
       preparedData.add(preparedActivity);
     }
@@ -129,18 +132,18 @@ class ExcelClassActivityService {
   ) {
     return rawActivities.map((activity) {
       return {
-        'judul': activity['judul'] ?? '',
-        'mata_pelajaran_nama': activity['mata_pelajaran_nama'] ?? '',
-        'kelas_nama': activity['kelas_nama'] ?? '',
-        'guru_nama': activity['guru_nama'] ?? '',
-        'jenis': activity['jenis'] ?? '',
+        'title': activity['title'] ?? '',
+        'subject_name': activity['subject_name'] ?? '',
+        'class_name': activity['class_name'] ?? '',
+        'teacher_name': activity['teacher_name'] ?? '',
+        'type': activity['type'] ?? '',
         'target': activity['target'] ?? '',
-        'deskripsi': activity['deskripsi'] ?? '',
-        'tanggal': activity['tanggal'] ?? '',
-        'hari': activity['hari'] ?? '',
-        'batas_waktu': activity['batas_waktu'] ?? '',
-        'judul_bab': activity['judul_bab'] ?? '',
-        'judul_sub_bab': activity['judul_sub_bab'] ?? '',
+        'description': activity['description'] ?? '',
+        'date': activity['date'] ?? '',
+        'day': activity['day'] ?? '',
+        'deadline': activity['deadline'] ?? '',
+        'chapter_title': activity['chapter_title'] ?? '',
+        'sub_chapter_title': activity['sub_chapter_title'] ?? '',
       };
     }).toList();
   }

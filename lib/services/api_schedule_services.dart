@@ -36,7 +36,7 @@ class ApiScheduleService {
   // Get Hari
   static Future<List<dynamic>> getHari() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/hari'),
+      Uri.parse('$baseUrl/day'),
       headers: await _getHeaders(),
     );
 
@@ -58,7 +58,7 @@ class ApiScheduleService {
   // Get Jam Pelajaran
   static Future<List<dynamic>> getJamPelajaran() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/jam-pelajaran'),
+      Uri.parse('$baseUrl/lesson-hour'),
       headers: await _getHeaders(),
     );
 
@@ -69,7 +69,7 @@ class ApiScheduleService {
   // Add Jam Pelajaran
   static Future<dynamic> addJamPelajaran(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/jam-pelajaran'),
+      Uri.parse('$baseUrl/lesson-hour'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -81,7 +81,7 @@ class ApiScheduleService {
   static Future<Map<String, dynamic>> getScheduleFilterOptions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/jadwal-mengajar/filter-options'),
+        Uri.parse('$baseUrl/teaching-schedule/filter-options'),
         headers: await _getHeaders(),
       );
 
@@ -122,19 +122,19 @@ class ApiScheduleService {
     };
 
     if (guruId != null && guruId.isNotEmpty) {
-      queryParams['guru_id'] = guruId;
+      queryParams['teacher_id'] = guruId;
     }
     if (classId != null && classId.isNotEmpty) {
-      queryParams['kelas_id'] = classId;
+      queryParams['class_id'] = classId;
     }
     if (hariId != null && hariId.isNotEmpty) {
-      queryParams['hari_id'] = hariId;
+      queryParams['day_id'] = hariId;
     }
     if (semesterId != null && semesterId.isNotEmpty) {
       queryParams['semester_id'] = semesterId;
     }
     if (tahunAjaran != null && tahunAjaran.isNotEmpty) {
-      queryParams['tahun_ajaran'] = tahunAjaran;
+      queryParams['academic_year'] = tahunAjaran;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -145,13 +145,13 @@ class ApiScheduleService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/jadwal-mengajar?$queryString'),
+        Uri.parse('$baseUrl/teaching-schedule?$queryString'),
         headers: await _getHeaders(),
       );
 
       if (kDebugMode) {
         print(
-          'GET /jadwal-mengajar?$queryString - Status: ${response.statusCode}',
+          'GET /teaching-schedule?$queryString - Status: ${response.statusCode}',
         );
       }
 
@@ -190,12 +190,12 @@ class ApiScheduleService {
     String? semesterId,
     String? tahunAjaran,
   }) async {
-    String url = '$baseUrl/jadwal-mengajar?';
-    if (guruId != null) url += 'guru_id=$guruId&';
-    if (classId != null) url += 'kelas_id=$classId&';
-    if (hariId != null) url += 'hari_id=$hariId&';
+    String url = '$baseUrl/teaching-schedule?';
+    if (guruId != null) url += 'teacher_id=$guruId&';
+    if (classId != null) url += 'class_id=$classId&';
+    if (hariId != null) url += 'day_id=$hariId&';
     if (semesterId != null) url += 'semester_id=$semesterId&';
-    if (tahunAjaran != null) url += 'tahun_ajaran=$tahunAjaran&';
+    if (tahunAjaran != null) url += 'academic_year=$tahunAjaran&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -208,7 +208,7 @@ class ApiScheduleService {
 
   static Future<dynamic> addSchedule(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/jadwal-mengajar'),
+      Uri.parse('$baseUrl/teaching-schedule'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -221,7 +221,7 @@ class ApiScheduleService {
     Map<String, dynamic> data,
   ) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/jadwal-mengajar/$id'),
+      Uri.parse('$baseUrl/teaching-schedule/$id'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -231,7 +231,7 @@ class ApiScheduleService {
 
   static Future<void> deleteSchedule(String id) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/jadwal-mengajar/$id'),
+      Uri.parse('$baseUrl/teaching-schedule/$id'),
       headers: await _getHeaders(),
     );
 
@@ -244,10 +244,10 @@ class ApiScheduleService {
     String? semesterId,
     String? classId,
   }) async {
-    String url = '$baseUrl/jam-pelajaran-filter?';
-    if (hariId != null) url += 'hari_id=$hariId&';
+    String url = '$baseUrl/lesson-hour-filter?';
+    if (hariId != null) url += 'day_id=$hariId&';
     if (semesterId != null) url += 'semester_id=$semesterId&';
-    if (classId != null) url += 'kelas_id=$classId&';
+    if (classId != null) url += 'class_id=$classId&';
 
     final response = await http.get(
       Uri.parse(url),
@@ -268,12 +268,12 @@ class ApiScheduleService {
     String? excludeScheduleId, // Untuk edit, exclude jadwal yang sedang diedit
   }) async {
     try {
-      String url = '$baseUrl/jadwal-mengajar/conflicts?';
-      url += 'hari_id=$hariId&';
-      url += 'kelas_id=$classId&';
+      String url = '$baseUrl/teaching-schedule/conflicts?';
+      url += 'day_id=$hariId&';
+      url += 'class_id=$classId&';
       url += 'semester_id=$semesterId&';
-      url += 'tahun_ajaran=$tahunAjaran&';
-      url += 'jam_pelajaran_id=$jamPelajaranId&';
+      url += 'academic_year=$tahunAjaran&';
+      url += 'lesson_hour_id=$jamPelajaranId&';
 
       if (excludeScheduleId != null) {
         url += 'exclude_id=$excludeScheduleId&';
@@ -304,10 +304,10 @@ class ApiScheduleService {
     String? tahunAjaran,
   }) async {
     try {
-      String url = '$baseUrl/jadwal-mengajar/guru/$guruId?';
-      if (hariId != null && hariId.isNotEmpty) url += 'hari_id=$hariId&';
+      String url = '$baseUrl/teaching-schedule/teacher/$guruId?';
+      if (hariId != null && hariId.isNotEmpty) url += 'day_id=$hariId&';
       if (semesterId != null) url += 'semester_id=$semesterId&';
-      if (tahunAjaran != null) url += 'tahun_ajaran=$tahunAjaran&';
+      if (tahunAjaran != null) url += 'academic_year=$tahunAjaran&';
 
       final response = await http.get(
         Uri.parse(url),
@@ -331,10 +331,10 @@ class ApiScheduleService {
     String? tahunAjaran,
   }) async {
     try {
-      String url = '$baseUrl/jadwal-mengajar/current?';
-      if (hariId != null && hariId.isNotEmpty) url += 'hari_id=$hariId&';
+      String url = '$baseUrl/teaching-schedule/current?';
+      if (hariId != null && hariId.isNotEmpty) url += 'day_id=$hariId&';
       if (semesterId != null) url += 'semester_id=$semesterId&';
-      if (tahunAjaran != null) url += 'tahun_ajaran=$tahunAjaran&';
+      if (tahunAjaran != null) url += 'academic_year=$tahunAjaran&';
 
       final response = await http.get(
         Uri.parse(url),
@@ -359,11 +359,11 @@ class ApiScheduleService {
     String? tahunAjaran,
   }) async {
     try {
-      String url = '$baseUrl/jadwal-mengajar/filtered?';
-      url += 'guru_id=$guruId&';
+      String url = '$baseUrl/teaching-schedule/filtered?';
+      url += 'teacher_id=$guruId&';
 
       if (hari != null && hari != 'Semua Hari') {
-        url += 'hari=$hari&';
+        url += 'day=$hari&';
       }
 
       if (semester != null && semester != 'Semua Semester') {
@@ -371,7 +371,7 @@ class ApiScheduleService {
       }
 
       if (tahunAjaran != null) {
-        url += 'tahun_ajaran=$tahunAjaran&';
+        url += 'academic_year=$tahunAjaran&';
       }
 
       final response = await http.get(
@@ -395,7 +395,7 @@ class ApiScheduleService {
   static Future<String> downloadScheduleTemplate() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/jadwal-mengajar/template'),
+        Uri.parse('$baseUrl/teaching-schedule/template'),
         headers: await _getHeaders(),
       );
 
@@ -423,7 +423,7 @@ class ApiScheduleService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/jadwal-mengajar/import'),
+        Uri.parse('$baseUrl/teaching-schedule/import'),
       );
 
       // Add headers
@@ -465,7 +465,7 @@ class ApiScheduleService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/debug/excel-jadwal-mengajar'),
+        Uri.parse('$baseUrl/debug/excel-teaching-schedule'),
       );
 
       // Add headers
@@ -505,12 +505,12 @@ class ApiScheduleService {
     String? tahunAjaran,
   }) async {
     try {
-      String url = '$baseUrl/jadwal-mengajar/export?';
-      if (guruId != null) url += 'guru_id=$guruId&';
-      if (classId != null) url += 'kelas_id=$classId&';
-      if (hariId != null) url += 'hari_id=$hariId&';
+      String url = '$baseUrl/teaching-schedule/export?';
+      if (guruId != null) url += 'teacher_id=$guruId&';
+      if (classId != null) url += 'class_id=$classId&';
+      if (hariId != null) url += 'day_id=$hariId&';
       if (semesterId != null) url += 'semester_id=$semesterId&';
-      if (tahunAjaran != null) url += 'tahun_ajaran=$tahunAjaran&';
+      if (tahunAjaran != null) url += 'academic_year=$tahunAjaran&';
 
       final response = await http.get(
         Uri.parse(url),

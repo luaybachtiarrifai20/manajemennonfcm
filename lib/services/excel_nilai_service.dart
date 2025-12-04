@@ -1,12 +1,13 @@
-import 'dart:io';
 import 'dart:convert';
-import 'package:manajemensekolah/services/api_services.dart';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:manajemensekolah/utils/language_utils.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 class ExcelNilaiService {
   // static const String baseUrl = ApiService.baseUrl;
@@ -26,19 +27,17 @@ class ExcelNilaiService {
 
       // Kirim request ke backend
       final response = await http.post(
-        Uri.parse('$baseUrl/export-nilai'),
+        Uri.parse('$baseUrl/grade/export'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'nilaiData': validatedData,
-          'filters': filters
-        }),
+        body: jsonEncode({'nilaiData': validatedData, 'filters': filters}),
       );
 
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
         final Directory directory = await getApplicationDocumentsDirectory();
-        final String filePath = '${directory.path}/Data_Nilai_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-        
+        final String filePath =
+            '${directory.path}/Data_Nilai_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
         // Simpan file yang didownload
         final File file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
@@ -77,9 +76,7 @@ class ExcelNilaiService {
   }
 
   // Helper method untuk validasi data sebelum export
-  static List<Map<String, dynamic>> validateNilaiData(
-    List<dynamic> nilaiData,
-  ) {
+  static List<Map<String, dynamic>> validateNilaiData(List<dynamic> nilaiData) {
     final List<Map<String, dynamic>> validatedData = [];
     final List<String> errors = [];
 
@@ -94,45 +91,48 @@ class ExcelNilaiService {
         validatedNilai['nis'] = nilai['nis'];
       }
 
-      if (nilai['nama_siswa'] == null || nilai['nama_siswa'].toString().isEmpty) {
+      if (nilai['student_name'] == null ||
+          nilai['student_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Nama siswa tidak boleh kosong');
       } else {
-        validatedNilai['nama_siswa'] = nilai['nama_siswa'];
+        validatedNilai['student_name'] = nilai['student_name'];
       }
 
-      if (nilai['kelas_nama'] == null || nilai['kelas_nama'].toString().isEmpty) {
+      if (nilai['class_name'] == null ||
+          nilai['class_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Kelas tidak boleh kosong');
       } else {
-        validatedNilai['kelas_nama'] = nilai['kelas_nama'];
+        validatedNilai['class_name'] = nilai['class_name'];
       }
 
-      if (nilai['mata_pelajaran_nama'] == null || nilai['mata_pelajaran_nama'].toString().isEmpty) {
+      if (nilai['subject_name'] == null ||
+          nilai['subject_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Mata pelajaran tidak boleh kosong');
       } else {
-        validatedNilai['mata_pelajaran_nama'] = nilai['mata_pelajaran_nama'];
+        validatedNilai['subject_name'] = nilai['subject_name'];
       }
 
-      if (nilai['jenis'] == null || nilai['jenis'].toString().isEmpty) {
+      if (nilai['type'] == null || nilai['type'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Jenis nilai tidak boleh kosong');
       } else {
-        validatedNilai['jenis'] = nilai['jenis'];
+        validatedNilai['type'] = nilai['type'];
       }
 
-      if (nilai['nilai'] == null) {
+      if (nilai['grade'] == null) {
         errors.add('Baris ${i + 1}: Nilai tidak boleh kosong');
       } else {
-        final nilaiValue = double.tryParse(nilai['nilai'].toString());
+        final nilaiValue = double.tryParse(nilai['grade'].toString());
         if (nilaiValue == null || nilaiValue < 0 || nilaiValue > 100) {
           errors.add('Baris ${i + 1}: Nilai harus antara 0-100');
         } else {
-          validatedNilai['nilai'] = nilaiValue;
+          validatedNilai['grade'] = nilaiValue;
         }
       }
 
       // Field optional
-      validatedNilai['deskripsi'] = nilai['deskripsi'] ?? '';
-      validatedNilai['tanggal'] = nilai['tanggal'] ?? '';
-      validatedNilai['guru_nama'] = nilai['guru_nama'] ?? '';
+      validatedNilai['description'] = nilai['description'] ?? '';
+      validatedNilai['date'] = nilai['date'] ?? '';
+      validatedNilai['teacher_name'] = nilai['teacher_name'] ?? '';
 
       if (errors.isEmpty) {
         validatedData.add(validatedNilai);
@@ -147,7 +147,10 @@ class ExcelNilaiService {
   }
 
   // Helper method untuk mendapatkan label jenis nilai
-  static String getJenisNilaiLabel(String jenis, LanguageProvider languageProvider) {
+  static String getJenisNilaiLabel(
+    String jenis,
+    LanguageProvider languageProvider,
+  ) {
     switch (jenis) {
       case 'harian':
         return languageProvider.getTranslatedText({
@@ -170,10 +173,7 @@ class ExcelNilaiService {
           'id': 'UTS',
         });
       case 'uas':
-        return languageProvider.getTranslatedText({
-          'en': 'Final',
-          'id': 'UAS',
-        });
+        return languageProvider.getTranslatedText({'en': 'Final', 'id': 'UAS'});
       default:
         return jenis;
     }

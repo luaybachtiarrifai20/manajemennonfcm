@@ -31,7 +31,7 @@ class ExcelTeacherService {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/export-teachers'),
+        Uri.parse('$baseUrl/teacher/export'),
         headers: await _getHeaders(),
         body: jsonEncode({'teachers': teachers}),
       );
@@ -85,7 +85,7 @@ class ExcelTeacherService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/download-teacher-template'),
+        Uri.parse('$baseUrl/teacher/template/download'),
         headers: await _getHeaders(),
       );
 

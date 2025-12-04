@@ -1,14 +1,16 @@
-import 'dart:io';
 import 'dart:convert';
-import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'package:manajemensekolah/utils/language_utils.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:manajemensekolah/services/api_services.dart';
+import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:provider/provider.dart';
 
 class ExcelRppService {
-  static const String baseUrl = 'http://localhost:3000/api'; // Ganti dengan URL backend Anda
+  static String get baseUrl => ApiService.baseUrl;
 
   // Export data RPP ke Excel melalui backend
   static Future<void> exportRppToExcel({
@@ -23,7 +25,7 @@ class ExcelRppService {
 
       // Kirim request ke backend
       final response = await http.post(
-        Uri.parse('$baseUrl/export-rpp'),
+        Uri.parse('$baseUrl/rpp/export'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'rppList': validatedData}),
       );
@@ -31,8 +33,9 @@ class ExcelRppService {
       if (response.statusCode == 200) {
         // Get directory untuk menyimpan file
         final Directory directory = await getApplicationDocumentsDirectory();
-        final String filePath = '${directory.path}/Data_RPP_${DateTime.now().millisecondsSinceEpoch}.xlsx';
-        
+        final String filePath =
+            '${directory.path}/Data_RPP_${DateTime.now().millisecondsSinceEpoch}.xlsx';
+
         // Simpan file yang didownload
         final File file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);
@@ -76,7 +79,7 @@ class ExcelRppService {
   ) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/validate-rpp'),
+        Uri.parse('$baseUrl/rpp/validate'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'rppData': rppData}),
       );
@@ -94,9 +97,7 @@ class ExcelRppService {
   }
 
   // Helper method untuk validasi data sebelum export (local fallback)
-  static List<Map<String, dynamic>> validateRppData(
-    List<dynamic> rppList,
-  ) {
+  static List<Map<String, dynamic>> validateRppData(List<dynamic> rppList) {
     final List<Map<String, dynamic>> validatedData = [];
     final List<String> errors = [];
 
@@ -105,39 +106,40 @@ class ExcelRppService {
       final Map<String, dynamic> validatedRpp = {};
 
       // Validasi field required untuk export
-      if (rpp['judul'] == null || rpp['judul'].toString().isEmpty) {
+      if (rpp['title'] == null || rpp['title'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Judul RPP tidak boleh kosong');
       } else {
-        validatedRpp['judul'] = rpp['judul'];
+        validatedRpp['title'] = rpp['title'];
       }
 
-      if (rpp['mata_pelajaran_nama'] == null || rpp['mata_pelajaran_nama'].toString().isEmpty) {
+      if (rpp['subject_name'] == null ||
+          rpp['subject_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Mata pelajaran tidak boleh kosong');
       } else {
-        validatedRpp['mata_pelajaran_nama'] = rpp['mata_pelajaran_nama'];
+        validatedRpp['subject_name'] = rpp['subject_name'];
       }
 
-      if (rpp['kelas_nama'] == null || rpp['kelas_nama'].toString().isEmpty) {
+      if (rpp['class_name'] == null || rpp['class_name'].toString().isEmpty) {
         errors.add('Baris ${i + 1}: Kelas tidak boleh kosong');
       } else {
-        validatedRpp['kelas_nama'] = rpp['kelas_nama'];
+        validatedRpp['class_name'] = rpp['class_name'];
       }
 
       // Field lainnya
-      validatedRpp['guru_nama'] = rpp['guru_nama'] ?? '';
+      validatedRpp['teacher_name'] = rpp['teacher_name'] ?? '';
       validatedRpp['semester'] = rpp['semester'] ?? '';
-      validatedRpp['tahun_ajaran'] = rpp['tahun_ajaran'] ?? '';
+      validatedRpp['academic_year'] = rpp['academic_year'] ?? '';
       validatedRpp['status'] = rpp['status'] ?? '';
       validatedRpp['created_at'] = rpp['created_at'] ?? '';
-      validatedRpp['catatan_admin'] = rpp['catatan_admin'] ?? '';
-      validatedRpp['kompetensi_dasar'] = rpp['kompetensi_dasar'] ?? '';
-      validatedRpp['tujuan_pembelajaran'] = rpp['tujuan_pembelajaran'] ?? '';
-      validatedRpp['materi_pembelajaran'] = rpp['materi_pembelajaran'] ?? '';
-      validatedRpp['metode_pembelajaran'] = rpp['metode_pembelajaran'] ?? '';
-      validatedRpp['media_pembelajaran'] = rpp['media_pembelajaran'] ?? '';
-      validatedRpp['sumber_belajar'] = rpp['sumber_belajar'] ?? '';
-      validatedRpp['langkah_pembelajaran'] = rpp['langkah_pembelajaran'] ?? '';
-      validatedRpp['penilaian'] = rpp['penilaian'] ?? '';
+      validatedRpp['admin_notes'] = rpp['admin_notes'] ?? '';
+      validatedRpp['basic_competency'] = rpp['basic_competency'] ?? '';
+      validatedRpp['learning_objectives'] = rpp['learning_objectives'] ?? '';
+      validatedRpp['learning_materials'] = rpp['learning_materials'] ?? '';
+      validatedRpp['learning_methods'] = rpp['learning_methods'] ?? '';
+      validatedRpp['learning_media'] = rpp['learning_media'] ?? '';
+      validatedRpp['learning_sources'] = rpp['learning_sources'] ?? '';
+      validatedRpp['learning_steps'] = rpp['learning_steps'] ?? '';
+      validatedRpp['assessment'] = rpp['assessment'] ?? '';
 
       if (errors.isEmpty) {
         validatedData.add(validatedRpp);
@@ -152,7 +154,10 @@ class ExcelRppService {
   }
 
   // Helper methods
-  static String _getStatusText(String? status, LanguageProvider languageProvider) {
+  static String _getStatusText(
+    String? status,
+    LanguageProvider languageProvider,
+  ) {
     switch (status) {
       case 'Disetujui':
         return languageProvider.getTranslatedText({

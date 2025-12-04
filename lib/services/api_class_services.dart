@@ -37,7 +37,7 @@ class ApiClassService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/kelas/import'),
+        Uri.parse('$baseUrl/class/import'),
       );
 
       // Add headers
@@ -78,7 +78,7 @@ class ApiClassService {
   static Future<String> downloadTemplate() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/kelas/template'),
+        Uri.parse('$baseUrl/class/template'),
         headers: await _getHeaders(),
       );
 
@@ -117,7 +117,7 @@ class ApiClassService {
   static Future<Map<String, dynamic>> getClassFilterOptions() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/kelas/filter-options'),
+        Uri.parse('$baseUrl/class/filter-options'),
         headers: await _getHeaders(),
       );
 
@@ -156,7 +156,7 @@ class ApiClassService {
       queryParams['grade_level'] = gradeLevel;
     }
     if (waliclassId != null && waliclassId.isNotEmpty) {
-      queryParams['wali_kelas_id'] = waliclassId;
+      queryParams['homeroom_teacher_id'] = waliclassId;
     }
     if (search != null && search.isNotEmpty) {
       queryParams['search'] = search;
@@ -167,11 +167,11 @@ class ApiClassService {
 
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/kelas?$queryString'),
+        Uri.parse('$baseUrl/class?$queryString'),
         headers: await _getHeaders(),
       );
 
-      print('GET /kelas?$queryString - Status: ${response.statusCode}');
+      print('GET /class?$queryString - Status: ${response.statusCode}');
 
       final result = _handleResponse(response);
 
@@ -201,7 +201,7 @@ class ApiClassService {
   // Existing methods...
   Future<List<dynamic>> getClass() async {
     try {
-      final result = await ApiService().get('/kelas');
+      final result = await ApiService().get('/class');
 
       // Handle new pagination format
       if (result is Map<String, dynamic>) {
@@ -219,7 +219,7 @@ class ApiClassService {
   // Get class by ID
   Future<dynamic> getClassById(String id) async {
     try {
-      final result = await ApiService().get('/kelas/$id');
+      final result = await ApiService().get('/class/$id');
       return result;
     } catch (e) {
       print('Error getting class by ID: $e');
@@ -240,7 +240,7 @@ class ApiClassService {
       }
 
       print('Adding class with data: $data');
-      final result = await ApiService().post('/kelas', data);
+      final result = await ApiService().post('/class', data);
       print('Add class result: $result');
       return result;
     } catch (e) {
@@ -262,7 +262,7 @@ class ApiClassService {
       }
 
       print('Updating class $id with data: $data');
-      final result = await ApiService().put('/kelas/$id', data);
+      final result = await ApiService().put('/class/$id', data);
       print('Update class result: $result');
       return result;
     } catch (e) {
@@ -274,7 +274,7 @@ class ApiClassService {
   // Delete class
   Future<void> deleteClass(String id) async {
     try {
-      await ApiService().delete('/kelas/$id');
+      await ApiService().delete('/class/$id');
     } catch (e) {
       print('Error deleting class: $e');
       throw Exception('Gagal menghapus kelas: $e');
@@ -284,7 +284,7 @@ class ApiClassService {
   // Get students by class ID
   Future<List<dynamic>> getStudentsByClassId(String classId) async {
     try {
-      final result = await ApiService().get('/siswa/kelas/$classId');
+      final result = await ApiService().get('/student/class/$classId');
 
       // Handle Map format (pagination or error response)
       if (result is Map<String, dynamic>) {

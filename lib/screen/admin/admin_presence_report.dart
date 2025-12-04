@@ -189,7 +189,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         );
         filterChips.add({
           'label':
-              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mapel'})}: ${subject['nama']}',
+              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mapel'})}: ${subject['name']}',
           'onRemove': () {
             setState(() {
               _selectedSubjectIds.remove(subjectId);
@@ -210,7 +210,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
         );
         filterChips.add({
           'label':
-              '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['nama']}',
+              '${languageProvider.getTranslatedText({'en': 'Class', 'id': 'Kelas'})}: ${kelas['name']}',
           'onRemove': () {
             setState(() {
               _selectedClassIds.remove(classId);
@@ -303,15 +303,15 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
 
       final List<AttendanceSummary> newItems = data.map((item) {
         return AttendanceSummary(
-          subjectId: item['mata_pelajaran_id']?.toString() ?? '',
-          subjectName: item['mata_pelajaran_nama'] ?? 'Unknown',
-          date: AppDateUtils.parseApiDate(item['tanggal']) ?? DateTime.now(),
+          subjectId: item['subject_id']?.toString() ?? '',
+          subjectName: item['subject_name'] ?? 'Unknown',
+          date: AppDateUtils.parseApiDate(item['date']) ?? DateTime.now(),
           totalStudents:
               int.tryParse(item['total_students']?.toString() ?? '0') ?? 0,
           present: int.tryParse(item['present']?.toString() ?? '0') ?? 0,
           absent: int.tryParse(item['absent']?.toString() ?? '0') ?? 0,
-          classId: item['kelas_id']?.toString() ?? '',
-          className: item['kelas_nama'] ?? 'Unknown',
+          classId: item['class_id']?.toString() ?? '',
+          className: item['class_name'] ?? 'Unknown',
         );
       }).toList();
 
@@ -501,7 +501,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                         runSpacing: 8,
                         children: _subjectList.map<Widget>((subject) {
                           final subjectId = subject['id'].toString();
-                          final subjectName = subject['nama'] ?? 'Subject';
+                          final subjectName = subject['name'] ?? 'Subject';
                           final isSelected = tempSelectedSubjects.contains(
                             subjectId,
                           );
@@ -550,7 +550,7 @@ class _AdminPresenceReportScreenState extends State<AdminPresenceReportScreen>
                         runSpacing: 8,
                         children: _classList.map<Widget>((classItem) {
                           final classId = classItem['id'].toString();
-                          final className = classItem['nama'] ?? 'Class';
+                          final className = classItem['name'] ?? 'Class';
                           final isSelected = tempSelectedClasses.contains(
                             classId,
                           );

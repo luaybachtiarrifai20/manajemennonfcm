@@ -18,10 +18,10 @@ import 'package:manajemensekolah/screen/guru/materi_screen.dart';
 import 'package:manajemensekolah/screen/guru/presence_teacher.dart';
 import 'package:manajemensekolah/screen/guru/rpp_screen.dart';
 import 'package:manajemensekolah/screen/guru/teaching_schedule.dart';
-import 'package:manajemensekolah/screen/walimurid/parent_class_activity.dart';
 import 'package:manajemensekolah/screen/walimurid/announcement_screen.dart';
-import 'package:manajemensekolah/screen/walimurid/presence_parent.dart';
 import 'package:manajemensekolah/screen/walimurid/parent_billing.dart';
+import 'package:manajemensekolah/screen/walimurid/parent_class_activity.dart';
+import 'package:manajemensekolah/screen/walimurid/presence_parent.dart';
 import 'package:manajemensekolah/services/api_class_services.dart';
 import 'package:manajemensekolah/services/api_schedule_services.dart';
 import 'package:manajemensekolah/services/api_services.dart';
@@ -281,7 +281,9 @@ class _DashboardState extends State<Dashboard>
           print('👤 Loading stats untuk wali: ${userData['id']}');
         }
 
-        final studentsData = await _getStudentDataForParent(userData['id'] ?? '');
+        final studentsData = await _getStudentDataForParent(
+          userData['id'] ?? '',
+        );
         if (kDebugMode) {
           print('👶 Data siswa untuk wali: ${studentsData.length}');
         }
@@ -584,7 +586,7 @@ class _DashboardState extends State<Dashboard>
 
   Future<void> _switchSchool(Map<String, dynamic> school) async {
     try {
-      final response = await ApiService.switchSchool(school['sekolah_id']);
+      final response = await ApiService.switchSchool(school['school_id']);
 
       // Update token dan user data
       final prefs = await SharedPreferences.getInstance();
@@ -592,7 +594,7 @@ class _DashboardState extends State<Dashboard>
 
       // Update user data dengan sekolah baru
       final updatedUserData = Map<String, dynamic>.from(_userData);
-      updatedUserData['sekolah_id'] = school['sekolah_id'];
+      updatedUserData['school_id'] = school['school_id'];
       updatedUserData['nama_sekolah'] = school['nama_sekolah'];
       updatedUserData['sekolah_alamat'] = school['alamat'];
       updatedUserData['sekolah_telepon'] = school['telepon'];
@@ -1481,12 +1483,16 @@ class _DashboardState extends State<Dashboard>
                                 margin: EdgeInsets.only(bottom: 8),
                                 decoration: BoxDecoration(
                                   color: isCurrent
-                                      ? _getPrimaryColor().withValues(alpha: 0.1)
+                                      ? _getPrimaryColor().withValues(
+                                          alpha: 0.1,
+                                        )
                                       : Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color: isCurrent
-                                        ? _getPrimaryColor().withValues(alpha: 0.3)
+                                        ? _getPrimaryColor().withValues(
+                                            alpha: 0.3,
+                                          )
                                         : Colors.transparent,
                                   ),
                                 ),
@@ -1536,10 +1542,14 @@ class _DashboardState extends State<Dashboard>
                               width: double.infinity,
                               padding: EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: _getPrimaryColor().withValues(alpha: 0.1),
+                                color: _getPrimaryColor().withValues(
+                                  alpha: 0.1,
+                                ),
                                 borderRadius: BorderRadius.circular(15),
                                 border: Border.all(
-                                  color: _getPrimaryColor().withValues(alpha: 0.3),
+                                  color: _getPrimaryColor().withValues(
+                                    alpha: 0.3,
+                                  ),
                                 ),
                               ),
                               child: Row(
@@ -1691,7 +1701,7 @@ class _DashboardState extends State<Dashboard>
               else
                 ..._accessibleSchools.map((school) {
                   final isCurrent =
-                      school['sekolah_id'] == _userData['sekolah_id'];
+                      school['school_id'] == _userData['school_id'];
                   return Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -1795,7 +1805,7 @@ class _DashboardState extends State<Dashboard>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha:0.8)],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha: 0.8)],
     );
   }
 
@@ -1803,7 +1813,7 @@ class _DashboardState extends State<Dashboard>
     return LinearGradient(
       begin: Alignment.topLeft,
       end: Alignment.bottomRight,
-      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha:0.7)],
+      colors: [_getPrimaryColor(), _getPrimaryColor().withValues(alpha: 0.7)],
     );
   }
 
@@ -1949,7 +1959,9 @@ class _DashboardState extends State<Dashboard>
           if (!context.mounted) return;
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => GradePage(teacher: teacherData)),
+            MaterialPageRoute(
+              builder: (context) => GradePage(teacher: teacherData),
+            ),
           );
         },
         'roles': ['admin', 'guru'],
@@ -2101,7 +2113,9 @@ class _DashboardState extends State<Dashboard>
             print('👤 Parent data: $userData');
           }
 
-          final studentsData = await _getStudentDataForParent(userData['id'] ?? '');
+          final studentsData = await _getStudentDataForParent(
+            userData['id'] ?? '',
+          );
 
           if (studentsData.isEmpty) {
             if (context.mounted) {
@@ -2225,7 +2239,9 @@ void _showStudentSelectionDialog(
                   child: Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: Color(0xFF4361EE).withValues(alpha: 0.1),
+                        backgroundColor: Color(
+                          0xFF4361EE,
+                        ).withValues(alpha: 0.1),
                         child: Text(
                           student['nama'][0],
                           style: TextStyle(color: Color(0xFF4361EE)),

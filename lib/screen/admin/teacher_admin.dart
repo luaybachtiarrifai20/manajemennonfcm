@@ -764,24 +764,24 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
 
   void _showAddEditDialog({Map<String, dynamic>? teacher}) {
     final nameController = TextEditingController(
-      text: teacher?['nama']?.toString() ?? '',
+      text: teacher?['name']?.toString() ?? '',
     );
     final emailController = TextEditingController(
       text: teacher?['email']?.toString() ?? '',
     );
     final nipController = TextEditingController(
-      text: teacher?['nip']?.toString() ?? '',
+      text: teacher?['employee_number']?.toString() ?? '',
     );
 
     // New fields for updated structure
-    String? selectedGender = teacher?['jenis_kelamin']?.toString();
-    String? selectedWaliKelasId = teacher?['wali_kelas_id']?.toString();
-    String? selectedStatus = teacher?['status_kepegawaian']?.toString();
+    String? selectedGender = teacher?['gender']?.toString();
+    String? selectedWaliKelasId = teacher?['homeroom_class_id']?.toString();
+    String? selectedStatus = teacher?['employment_status']?.toString();
 
     // Parse subject IDs from comma-separated string
     List<String> selectedSubjectIds = [];
-    if (teacher != null && teacher['mata_pelajaran_ids'] != null) {
-      final idsString = teacher['mata_pelajaran_ids'].toString();
+    if (teacher != null && teacher['subject_ids'] != null) {
+      final idsString = teacher['subject_ids'].toString();
       if (idsString.isNotEmpty) {
         selectedSubjectIds = idsString
             .split(',')
@@ -793,8 +793,8 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
 
     // Parse class IDs from comma-separated string
     List<String> selectedClassIds = [];
-    if (teacher != null && teacher['kelas_ids'] != null) {
-      final idsString = teacher['kelas_ids'].toString();
+    if (teacher != null && teacher['class_ids'] != null) {
+      final idsString = teacher['class_ids'].toString();
       if (idsString.isNotEmpty) {
         selectedClassIds = idsString
             .split(',')
@@ -804,10 +804,12 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
       }
     }
 
-    // Validate that selectedWaliKelasId exists in _classes
+    // Validate that selectedWaliKelasId exists in _classes AND has a name (matching dropdown filter)
     if (selectedWaliKelasId != null) {
       final exists = _classes.any(
-        (c) => c['id']?.toString() == selectedWaliKelasId,
+        (c) =>
+            c['id']?.toString() == selectedWaliKelasId &&
+            c['name'] != null, // Must match dropdown filter
       );
       if (!exists) {
         selectedWaliKelasId = null;
@@ -924,12 +926,22 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                 icon: Icons.person_outline,
                                 items: [
                                   DropdownMenuItem(
-                                    value: 'L',
-                                    child: Text('Laki-laki'),
+                                    value: 'M',
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'Male',
+                                        'id': 'Laki-laki',
+                                      }),
+                                    ),
                                   ),
                                   DropdownMenuItem(
-                                    value: 'P',
-                                    child: Text('Perempuan'),
+                                    value: 'F',
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'Female',
+                                        'id': 'Perempuan',
+                                      }),
+                                    ),
                                   ),
                                 ],
                                 onChanged: (value) {
@@ -968,13 +980,13 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                         .where(
                                           (subject) =>
                                               subject['id'] != null &&
-                                              subject['nama'] != null,
+                                              subject['name'] != null,
                                         )
                                         .map(
                                           (subject) => CheckboxListTile(
                                             contentPadding: EdgeInsets.zero,
                                             title: Text(
-                                              subject['nama']?.toString() ??
+                                              subject['name']?.toString() ??
                                                   'Unknown Subject',
                                               style: TextStyle(fontSize: 14),
                                             ),
@@ -1037,13 +1049,13 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                         .where(
                                           (classItem) =>
                                               classItem['id'] != null &&
-                                              classItem['nama'] != null,
+                                              classItem['name'] != null,
                                         )
                                         .map(
                                           (classItem) => CheckboxListTile(
                                             contentPadding: EdgeInsets.zero,
                                             title: Text(
-                                              classItem['nama']?.toString() ??
+                                              classItem['name']?.toString() ??
                                                   'Unknown Class',
                                               style: TextStyle(fontSize: 14),
                                             ),
@@ -1096,13 +1108,21 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                       .where(
                                         (classItem) =>
                                             classItem['id'] != null &&
-                                            classItem['nama'] != null,
+                                            classItem['name'] != null,
                                       )
+                                      .fold<Map<String, Map<String, dynamic>>>(
+                                        {},
+                                        (map, item) {
+                                          map[item['id'].toString()] = item;
+                                          return map;
+                                        },
+                                      )
+                                      .values
                                       .map(
                                         (classItem) => DropdownMenuItem<String>(
                                           value: classItem['id'].toString(),
                                           child: Text(
-                                            classItem['nama']?.toString() ??
+                                            classItem['name']?.toString() ??
                                                 'Unknown Class',
                                           ),
                                         ),
@@ -1133,12 +1153,22 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                     ),
                                   ),
                                   DropdownMenuItem(
-                                    value: 'tetap',
-                                    child: Text('Tetap'),
+                                    value: 'permanent',
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'Permanent',
+                                        'id': 'Tetap',
+                                      }),
+                                    ),
                                   ),
                                   DropdownMenuItem(
-                                    value: 'tidak_tetap',
-                                    child: Text('Tidak Tetap'),
+                                    value: 'contract',
+                                    child: Text(
+                                      languageProvider.getTranslatedText({
+                                        'en': 'Contract',
+                                        'id': 'Kontrak',
+                                      }),
+                                    ),
                                   ),
                                 ],
                                 onChanged: (value) {
@@ -1180,7 +1210,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                   onPressed: () async {
                                     final name = nameController.text.trim();
                                     final email = emailController.text.trim();
-                                    final nip = nipController.text.trim();
+                                    // final nip = nipController.text.trim(); // Removed unused variable
 
                                     // Validate required fields
                                     if (name.isEmpty ||
@@ -1207,14 +1237,18 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                     try {
                                       // Prepare data with new structure
                                       final data = {
-                                        'nama': name,
-                                        'email': email,
-                                        'nip': nip.isNotEmpty ? nip : null,
-                                        'jenis_kelamin': selectedGender,
+                                        'name': nameController.text,
+                                        'email': emailController.text,
+                                        'employee_number':
+                                            nipController.text.isNotEmpty
+                                            ? nipController.text
+                                            : null,
+                                        'gender': selectedGender,
+                                        'homeroom_class_id':
+                                            selectedWaliKelasId,
+                                        'employment_status': selectedStatus,
                                         'subject_ids': selectedSubjectIds,
                                         'class_ids': selectedClassIds,
-                                        'wali_kelas_id': selectedWaliKelasId,
-                                        'status_kepegawaian': selectedStatus,
                                       };
 
                                       String teacherId;
@@ -1449,8 +1483,9 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
   Widget _buildTeacherCard(Map<String, dynamic> teacher, int index) {
     final languageProvider = context.read<LanguageProvider>();
     final isHomeroomTeacher =
-        teacher['is_wali_kelas'] == 1 || teacher['is_wali_kelas'] == true;
-    final className = teacher['class_name'] ?? '-';
+        teacher['is_homeroom_teacher'] == 1 ||
+        teacher['is_homeroom_teacher'] == true;
+    final className = teacher['homeroom_class_name'] ?? '-';
 
     return GestureDetector(
       onTap: () => _navigateToDetail(teacher),
@@ -1520,7 +1555,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    teacher['nama'] ?? 'No Name',
+                                    teacher['name'] ?? 'No Name',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -1531,7 +1566,7 @@ class TeacherAdminScreenState extends State<TeacherAdminScreen>
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'NIP: ${teacher['nip'] ?? '-'}',
+                                    'NIP: ${teacher['employee_number'] ?? '-'}',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey.shade600,
