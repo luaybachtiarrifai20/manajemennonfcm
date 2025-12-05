@@ -231,7 +231,7 @@ class ApiClassService {
   Future<dynamic> addClass(Map<String, dynamic> data) async {
     try {
       // Validasi data required
-      if (data['nama'] == null || data['nama'].toString().isEmpty) {
+      if (data['name'] == null || data['name'].toString().isEmpty) {
         throw Exception('Nama kelas harus diisi');
       }
 
@@ -253,7 +253,7 @@ class ApiClassService {
   Future<dynamic> updateClass(String id, Map<String, dynamic> data) async {
     try {
       // Validasi data required
-      if (data['nama'] == null || data['nama'].toString().isEmpty) {
+      if (data['name'] == null || data['name'].toString().isEmpty) {
         throw Exception('Nama kelas harus diisi');
       }
 

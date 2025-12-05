@@ -816,7 +816,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
 
   void _showAddEditDialog({Map<String, dynamic>? subject}) {
     final codeController = TextEditingController(text: subject?['kode']);
-    final nameController = TextEditingController(text: subject?['nama']);
+    final nameController = TextEditingController(text: subject?['name']);
     final descriptionController = TextEditingController(
       text: subject?['deskripsi'],
     );
@@ -964,7 +964,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                               try {
                                 final data = {
                                   'kode': codeController.text,
-                                  'nama': nameController.text,
+                                  'name': nameController.text,
                                   'deskripsi': descriptionController.text,
                                 };
 
@@ -1076,9 +1076,9 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
             }),
             content: languageProvider.getTranslatedText({
               'en':
-                  'Are you sure you want to delete subject "${subject['nama']}"?',
+                  'Are you sure you want to delete subject "${subject['name']}"?',
               'id':
-                  'Yakin ingin menghapus mata pelajaran "${subject['nama']}"?',
+                  'Yakin ingin menghapus mata pelajaran "${subject['name']}"?',
             }),
             confirmText: languageProvider.getTranslatedText({
               'en': 'Delete',
@@ -1140,7 +1140,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
   List<dynamic> _getFilteredSubjects() {
     return _subjectList.where((subject) {
       final searchTerm = _searchController.text.toLowerCase();
-      final subjectName = subject['nama']?.toString().toLowerCase() ?? '';
+      final subjectName = subject['name']?.toString().toLowerCase() ?? '';
       final subjectCode = subject['kode']?.toString().toLowerCase() ?? '';
 
       final matchesSearch =
@@ -1281,7 +1281,7 @@ class SubjectManagementScreenState extends State<SubjectManagementScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      subject['nama'] ?? 'No Name',
+                                      subject['name'] ?? 'No Name',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -2014,7 +2014,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
       });
 
       // Load semua kelas yang tersedia
-      final allClassesResponse = await _apiService.get('/kelas');
+      final allClassesResponse = await _apiService.get('/class');
 
       // Load kelas yang sudah ditetapkan untuk mata pelajaran ini
       // getKelasByMataPelajaran already returns List<dynamic>
@@ -2038,6 +2038,10 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
         _isLoading = false;
       });
 
+      if (allClasses.isNotEmpty) {
+        print('First class data: ${allClasses[0]}');
+      }
+
       _animationController.forward();
     } catch (error) {
       setState(() {
@@ -2053,15 +2057,15 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
 
   Future<void> _addClassToSubject(Map<String, dynamic> kelas) async {
     try {
-      await _apiService.post('/mata-pelajaran-kelas', {
-        'mata_pelajaran_id': widget.subject['id'],
-        'kelas_id': kelas['id'],
+      await _apiService.post('/mata-pelajaran-class', {
+        'subject_id': widget.subject['id'],
+        'class_id': kelas['id'],
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Kelas ${kelas['nama']} berhasil ditambahkan'),
+            content: Text('Kelas ${kelas['name']} berhasil ditambahkan'),
             backgroundColor: Colors.green,
           ),
         );
@@ -2083,7 +2087,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
       builder: (context) => ConfirmationDialog(
         title: 'Hapus Kelas',
         content:
-            'Yakin ingin menghapus kelas ${kelas['nama']} dari mata pelajaran ini?',
+            'Yakin ingin menghapus kelas ${kelas['name']} dari mata pelajaran ini?',
         confirmText: 'Hapus',
         confirmColor: Colors.red,
       ),
@@ -2092,13 +2096,13 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
     if (confirmed == true) {
       try {
         await _apiService.delete(
-          '/mata-pelajaran-kelas?mata_pelajaran_id=${widget.subject['id']}&kelas_id=${kelas['id']}',
+          '/mata-pelajaran-class?subject_id=${widget.subject['id']}&class_id=${kelas['id']}',
         );
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Kelas ${kelas['nama']} berhasil dihapus'),
+              content: Text('Kelas ${kelas['name']} berhasil dihapus'),
               backgroundColor: Colors.green,
             ),
           );
@@ -2278,7 +2282,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                                           ),
                                         ),
                                         title: Text(
-                                          kelas['nama'] ?? 'Kelas',
+                                          kelas['name'] ?? 'Kelas',
                                           style: TextStyle(
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -2390,7 +2394,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
   List<dynamic> _getFilteredClasses() {
     final searchTerm = _searchController.text.toLowerCase();
     return _availableClasses.where((kelas) {
-      final className = kelas['nama']?.toString().toLowerCase() ?? '';
+      final className = kelas['name']?.toString().toLowerCase() ?? '';
       final classLevel = kelas['tingkat']?.toString().toLowerCase() ?? '';
       final homeroomTeacher =
           kelas['wali_kelas_nama']?.toString().toLowerCase() ?? '';
@@ -2519,7 +2523,7 @@ class SubjectClassManagementPageState extends State<SubjectClassManagementPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                kelas['nama'] ?? 'Kelas',
+                                kelas['name'] ?? 'Kelas',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

@@ -35,9 +35,10 @@ class ExcelClassService {
       final validatedData = validateClassData(classes);
 
       // Kirim request ke backend
+      final headers = await _getHeaders();
       final response = await http.post(
         Uri.parse('$baseUrl/class/export'),
-        headers: {'Content-Type': 'application/json'},
+        headers: headers,
         body: jsonEncode({'classes': validatedData}),
       );
 

@@ -337,7 +337,7 @@ class ApiSubjectService {
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/subject/import'),
+        Uri.parse('$baseUrl/mata-pelajaran/import'),
       );
 
       // Add headers
@@ -377,7 +377,7 @@ class ApiSubjectService {
   static Future<String> downloadTemplate() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/subject/template'),
+        Uri.parse('$baseUrl/mata-pelajaran/template'),
         headers: await _getHeaders(),
       );
 

@@ -863,7 +863,9 @@ class ApiService {
   // Get kelas by mata pelajaran
   Future<List<dynamic>> getKelasByMataPelajaran(String mataPelajaranId) async {
     try {
-      final result = await get('/class-by-subject?subject_id=$mataPelajaranId');
+      final result = await get(
+        '/class-by-mata-pelajaran?subject_id=$mataPelajaranId',
+      );
 
       // Handle Map format (pagination or error response)
       if (result is Map<String, dynamic>) {

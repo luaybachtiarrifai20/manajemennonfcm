@@ -1153,7 +1153,7 @@ class _RppFormDialogState extends State<RppFormDialog> {
     try {
       final apiService = ApiService();
       final result = await apiService.get(
-        '/kelas-by-mata-pelajaran?mata_pelajaran_id=$mataPelajaranId',
+        '/class-by-mata-pelajaran?mata_pelajaran_id=$mataPelajaranId',
       );
       setState(() {
         // Backend might return {success: true, data: [...]} or direct array

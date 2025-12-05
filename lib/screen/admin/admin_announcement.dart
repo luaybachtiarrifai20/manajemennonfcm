@@ -544,7 +544,15 @@ class AnnouncementManagementScreenState
       // Map display values to backend values
       String? mappedPrioritas;
       if (_selectedPriorityFilter != null) {
-        mappedPrioritas = _selectedPriorityFilter!.toLowerCase();
+        if (_selectedPriorityFilter == 'Penting' ||
+            _selectedPriorityFilter == 'Important') {
+          mappedPrioritas = 'important';
+        } else if (_selectedPriorityFilter == 'Biasa' ||
+            _selectedPriorityFilter == 'Normal') {
+          mappedPrioritas = 'normal';
+        } else {
+          mappedPrioritas = _selectedPriorityFilter!.toLowerCase();
+        }
       }
 
       String? mappedRoleTarget;
@@ -552,19 +560,19 @@ class AnnouncementManagementScreenState
         switch (_selectedTargetFilter) {
           case 'Semua':
           case 'All':
-            mappedRoleTarget = 'semua';
+            mappedRoleTarget = 'all';
             break;
           case 'Guru':
           case 'Teachers':
-            mappedRoleTarget = 'guru';
+            mappedRoleTarget = 'teacher';
             break;
           case 'Siswa':
           case 'Students':
-            mappedRoleTarget = 'siswa';
+            mappedRoleTarget = 'student';
             break;
           case 'Orang Tua':
           case 'Parents':
-            mappedRoleTarget = 'wali';
+            mappedRoleTarget = 'parent';
             break;
           default:
             mappedRoleTarget = _selectedTargetFilter!.toLowerCase();
@@ -662,7 +670,15 @@ class AnnouncementManagementScreenState
       // Map display values to backend values (same logic as _loadData)
       String? mappedPrioritas;
       if (_selectedPriorityFilter != null) {
-        mappedPrioritas = _selectedPriorityFilter!.toLowerCase();
+        if (_selectedPriorityFilter == 'Penting' ||
+            _selectedPriorityFilter == 'Important') {
+          mappedPrioritas = 'important';
+        } else if (_selectedPriorityFilter == 'Biasa' ||
+            _selectedPriorityFilter == 'Normal') {
+          mappedPrioritas = 'normal';
+        } else {
+          mappedPrioritas = _selectedPriorityFilter!.toLowerCase();
+        }
       }
 
       String? mappedRoleTarget;
@@ -670,19 +686,19 @@ class AnnouncementManagementScreenState
         switch (_selectedTargetFilter) {
           case 'Semua':
           case 'All':
-            mappedRoleTarget = 'semua';
+            mappedRoleTarget = 'all';
             break;
           case 'Guru':
           case 'Teachers':
-            mappedRoleTarget = 'guru';
+            mappedRoleTarget = 'teacher';
             break;
           case 'Siswa':
           case 'Students':
-            mappedRoleTarget = 'siswa';
+            mappedRoleTarget = 'student';
             break;
           case 'Orang Tua':
           case 'Parents':
-            mappedRoleTarget = 'wali';
+            mappedRoleTarget = 'parent';
             break;
           default:
             mappedRoleTarget = _selectedTargetFilter!.toLowerCase();
@@ -758,7 +774,7 @@ class AnnouncementManagementScreenState
     );
     String? selectedClassId = announcementData?['kelas_id'];
     String? selectedRole = announcementData?['target_role'] ?? 'all';
-    String? selectedPrioritas = announcementData?['priority'] ?? 'biasa';
+    String? selectedPrioritas = announcementData?['priority'] ?? 'normal';
     DateTime? tanggalAwal = announcementData?['start_date'] != null
         ? DateTime.parse(announcementData!['start_date'])
         : null;
@@ -1132,7 +1148,7 @@ class AnnouncementManagementScreenState
         ),
         items: [
           DropdownMenuItem(
-            value: 'biasa',
+            value: 'normal',
             child: Row(
               children: [
                 Icon(Icons.circle, color: Colors.grey, size: 16),
@@ -1147,7 +1163,7 @@ class AnnouncementManagementScreenState
             ),
           ),
           DropdownMenuItem(
-            value: 'penting',
+            value: 'important',
             child: Row(
               children: [
                 Icon(Icons.warning, color: Colors.orange, size: 16),
@@ -1201,9 +1217,9 @@ class AnnouncementManagementScreenState
             ),
           ),
           DropdownMenuItem(value: 'admin', child: Text('Admin')),
-          DropdownMenuItem(value: 'guru', child: Text('Guru')),
-          DropdownMenuItem(value: 'siswa', child: Text('Siswa')),
-          DropdownMenuItem(value: 'wali', child: Text('Wali')),
+          DropdownMenuItem(value: 'teacher', child: Text('Guru')),
+          DropdownMenuItem(value: 'student', child: Text('Siswa')),
+          DropdownMenuItem(value: 'parent', child: Text('Wali')),
         ],
         onChanged: onChanged,
         style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
@@ -1851,7 +1867,9 @@ class AnnouncementManagementScreenState
                               'id': 'Dibuat oleh',
                             }),
                             value:
-                                announcementData['pembuat_nama'] ?? 'Unknown',
+                                announcementData['creator_name'] ??
+                                announcementData['pembuat_nama'] ??
+                                'Unknown',
                           ),
                           SizedBox(height: 8),
                           _buildDetailRow(
@@ -1865,9 +1883,9 @@ class AnnouncementManagementScreenState
                               languageProvider,
                             ),
                           ),
-                          if (announcementData['tanggal_awal'] != null)
+                          if (announcementData['start_date'] != null)
                             SizedBox(height: 8),
-                          if (announcementData['tanggal_awal'] != null)
+                          if (announcementData['start_date'] != null)
                             _buildDetailRow(
                               icon: Icons.calendar_today,
                               label: languageProvider.getTranslatedText({
@@ -1875,21 +1893,19 @@ class AnnouncementManagementScreenState
                                 'id': 'Tanggal Mulai',
                               }),
                               value: _formatDate(
-                                announcementData['tanggal_awal'],
+                                announcementData['start_date'],
                               ),
                             ),
-                          if (announcementData['tanggal_akhir'] != null)
+                          if (announcementData['end_date'] != null)
                             SizedBox(height: 8),
-                          if (announcementData['tanggal_akhir'] != null)
+                          if (announcementData['end_date'] != null)
                             _buildDetailRow(
                               icon: Icons.event_busy,
                               label: languageProvider.getTranslatedText({
                                 'en': 'End Date',
                                 'id': 'Tanggal Berakhir',
                               }),
-                              value: _formatDate(
-                                announcementData['tanggal_akhir'],
-                              ),
+                              value: _formatDate(announcementData['end_date']),
                             ),
                         ],
                       ),

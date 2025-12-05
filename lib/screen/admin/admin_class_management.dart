@@ -25,7 +25,7 @@ class ClassManagementScreen extends StatefulWidget {
 class ClassManagementScreenState extends State<ClassManagementScreen>
     with SingleTickerProviderStateMixin {
   final ApiClassService _classService = ApiClassService();
-  final ApiTeacherService _teacherService = ApiTeacherService();
+
   List<dynamic> _classes = [];
   List<dynamic> _teachers = [];
   bool _isLoading = true;
@@ -148,10 +148,14 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
   Future<void> _fetchTeachers() async {
     try {
-      final teachers = await _teacherService.getTeacher();
+      // Fetch all teachers (limit 1000) to ensure we have the homeroom teacher in the list
+      final response = await ApiTeacherService.getTeachersPaginated(
+        limit: 1000,
+      );
       if (!mounted) return;
+
       setState(() {
-        _teachers = teachers;
+        _teachers = response['data'] ?? [];
       });
       if (kDebugMode) {
         print('✅ Loaded ${_teachers.length} teachers for wali kelas selection');
@@ -509,9 +513,49 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     await ExcelClassService.downloadTemplate(context);
   }
 
-  void _showAddEditDialog({Map<String, dynamic>? classData}) {
+  Future<void> _showAddEditDialog({Map<String, dynamic>? classData}) async {
+    // Fetch fresh data if editing to ensure we have all fields (especially IDs)
+    if (classData != null) {
+      try {
+        // Show loading indicator if needed, or just await (fast usually)
+        final freshData = await _classService.getClassById(
+          classData['id'].toString(),
+        );
+        if (freshData != null && freshData is Map<String, dynamic>) {
+          classData = freshData;
+
+          // Ensure the current homeroom teacher is in the _teachers list
+          // This handles cases where the teacher might be missing from the paginated list
+          // or soft-deleted but still assigned
+          final homeroomId = classData['homeroom_teacher_id']?.toString();
+          final homeroomName = classData['homeroom_teacher_name']?.toString();
+
+          if (homeroomId != null && homeroomName != null) {
+            final exists = _teachers.any(
+              (t) => t['id'].toString() == homeroomId,
+            );
+            if (!exists) {
+              setState(() {
+                _teachers.add({'id': homeroomId, 'name': homeroomName});
+                // Sort teachers by name for better UX
+                _teachers.sort(
+                  (a, b) =>
+                      (a['name'] ?? '').toString().compareTo(b['name'] ?? ''),
+                );
+              });
+            }
+          }
+        }
+      } catch (e) {
+        print('Error fetching fresh class data: $e');
+        // Fallback to existing classData
+      }
+    }
+
+    if (!mounted) return;
+
     final nameController = TextEditingController(
-      text: classData?['name'] ?? '',
+      text: classData?['name'] ?? classData?['nama'] ?? '',
     );
 
     final isEdit = classData != null;
@@ -520,9 +564,23 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     String? selectedGradeLevel = classData != null
         ? classData['grade_level']?.toString()
         : null;
-    String? selectedHomeroomTeacherId = classData != null
-        ? classData['homeroom_teacher_id']?.toString()
-        : null;
+    String? selectedHomeroomTeacherId;
+    if (classData != null) {
+      // Try flat keys
+      selectedHomeroomTeacherId =
+          classData['homeroom_teacher_id']?.toString() ??
+          classData['wali_kelas_id']?.toString();
+
+      // Try nested objects if flat key failed
+      if (selectedHomeroomTeacherId == null) {
+        if (classData['homeroom_teacher'] is Map) {
+          selectedHomeroomTeacherId = classData['homeroom_teacher']['id']
+              ?.toString();
+        } else if (classData['wali_kelas'] is Map) {
+          selectedHomeroomTeacherId = classData['wali_kelas']['id']?.toString();
+        }
+      }
+    }
 
     showDialog(
       context: context,
@@ -682,7 +740,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
 
                                     if (isEdit) {
                                       await _classService.updateClass(
-                                        classData['id'],
+                                        classData!['id'],
                                         data,
                                       );
                                       if (context.mounted) {
@@ -847,6 +905,20 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
     required Function(String?) onChanged,
     required LanguageProvider languageProvider,
   }) {
+    // Deduplicate teachers based on ID
+    final uniqueTeachers = <String, Map<String, dynamic>>{};
+    for (var teacher in _teachers) {
+      if (teacher['user_id'] != null) {
+        uniqueTeachers[teacher['user_id'].toString()] = teacher;
+      }
+    }
+
+    // Validate value - ensure it exists in the list
+    String? validValue = value;
+    if (validValue != null && !uniqueTeachers.containsKey(validValue)) {
+      validValue = null;
+    }
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
@@ -854,7 +926,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
         border: Border.all(color: Colors.grey.shade200),
       ),
       child: DropdownButtonFormField<String>(
-        initialValue: value,
+        initialValue: validValue,
         decoration: InputDecoration(
           labelText: languageProvider.getTranslatedText({
             'en': 'Homeroom Teacher',
@@ -874,9 +946,9 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
               }),
             ),
           ),
-          ..._teachers.map((teacher) {
+          ...uniqueTeachers.values.map((teacher) {
             return DropdownMenuItem<String>(
-              value: teacher['id']?.toString(),
+              value: teacher['user_id'].toString(),
               child: Text(teacher['name'] ?? 'Unknown'),
             );
           }),
@@ -1251,7 +1323,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                     ),
                     SizedBox(height: 12),
                     Text(
-                      classData['nama'] ?? 'No Name',
+                      classData['name'] ?? 'No Name',
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
@@ -1287,7 +1359,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         'id': 'Jumlah Siswa',
                       }),
                       value:
-                          '${classData['jumlah_siswa'] ?? 0} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
+                          '${classData['student_count'] ?? 0} ${languageProvider.getTranslatedText({'en': 'students', 'id': 'siswa'})}',
                     ),
                     _buildDetailItem(
                       icon: Icons.person,
@@ -1296,7 +1368,7 @@ class ClassManagementScreenState extends State<ClassManagementScreen>
                         'id': 'Wali Kelas',
                       }),
                       value:
-                          classData['wali_kelas_nama'] ??
+                          classData['homeroom_teacher_name'] ??
                           languageProvider.getTranslatedText({
                             'en': 'Not Assigned',
                             'id': 'Belum Ditugaskan',

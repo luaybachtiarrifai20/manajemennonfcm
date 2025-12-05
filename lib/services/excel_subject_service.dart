@@ -8,6 +8,7 @@ import 'package:manajemensekolah/utils/language_utils.dart';
 import 'package:open_file/open_file.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ExcelSubjectService {
   // static const String baseUrl = ApiService.baseUrl;
@@ -24,10 +25,16 @@ class ExcelSubjectService {
       // Validasi data terlebih dahulu
       final validatedData = validateSubjectData(subjects);
 
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
       // Kirim request ke backend
       final response = await http.post(
         Uri.parse('$baseUrl/subject/export'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'subjects': validatedData}),
       );
 
@@ -165,20 +172,23 @@ class ExcelSubjectService {
       }
 
       // Validasi field required
-      if (subject['code'] == null || subject['code'].toString().isEmpty) {
+      final code = subject['code'] ?? subject['kode'];
+      if (code == null || code.toString().isEmpty) {
         errors.add('Baris ${i + 1}: Kode mata pelajaran tidak boleh kosong');
       } else {
-        validatedSubject['code'] = subject['code'];
+        validatedSubject['code'] = code;
       }
 
-      if (subject['name'] == null || subject['name'].toString().isEmpty) {
+      final name = subject['name'] ?? subject['nama'];
+      if (name == null || name.toString().isEmpty) {
         errors.add('Baris ${i + 1}: Nama mata pelajaran tidak boleh kosong');
       } else {
-        validatedSubject['name'] = subject['name'];
+        validatedSubject['name'] = name;
       }
 
       // Field optional
-      validatedSubject['description'] = subject['description'] ?? '';
+      validatedSubject['description'] =
+          subject['description'] ?? subject['deskripsi'] ?? '';
       validatedSubject['class_names'] = _getClassNames(subject);
 
       if (errors.isEmpty) {
