@@ -22,13 +22,13 @@ class Siswa {
   factory Siswa.fromJson(Map<String, dynamic> json) {
     return Siswa(
       id: json['id'].toString(),
-      nama: json['nama'] ?? '',
+      nama: json['name'] ?? '',
       kelas: json['kelas_nama'] ?? '',
-      nis: json['nis'] ?? '',
-      alamat: json['alamat'] ?? '',
-      nameParent: json['nameParent'] ?? '',
-      noTelepon: json['noTelepon'] ?? '',
-      classId: json['kelas_id'],
+      nis: json['student_number'] ?? '',
+      alamat: json['address'] ?? '',
+      nameParent: json['guardian_name'] ?? '',
+      noTelepon: json['phone_number'] ?? '',
+      classId: json['class_id'],
     );
   }
 }

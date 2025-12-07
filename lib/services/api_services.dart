@@ -125,7 +125,8 @@ class ApiService {
       final semuaNilai = await get('/nilai');
       if (semuaNilai is List) {
         return semuaNilai.where((nilai) {
-          return nilai['subject_id'] == mataPelajaranId;
+          return nilai['mata_pelajaran_id'].toString() ==
+              mataPelajaranId.toString();
         }).toList();
       }
       return [];

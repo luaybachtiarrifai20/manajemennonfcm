@@ -312,12 +312,12 @@ class GradePageState extends State<GradePage> {
       for (var subjectId in _selectedSubjectIds) {
         final subject = _mataPelajaranList.firstWhere(
           (s) => s['id'].toString() == subjectId,
-          orElse: () => {'nama': 'Subject #$subjectId'},
+          orElse: () => {'name': 'Subject #$subjectId'},
         );
 
         filterChips.add({
           'label':
-              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mapel'})}: ${subject['nama']}',
+              '${languageProvider.getTranslatedText({'en': 'Subject', 'id': 'Mapel'})}: ${subject['name']}',
           'onRemove': () {
             setState(() {
               _selectedSubjectIds.remove(subjectId);
@@ -354,7 +354,7 @@ class GradePageState extends State<GradePage> {
               }),
               options: _mataPelajaranList.map((subject) {
                 return FilterOption(
-                  label: subject['nama'] ?? 'Subject',
+                  label: subject['name'] ?? 'Subject',
                   value: subject['id'].toString(),
                 );
               }).toList(),
@@ -448,7 +448,7 @@ class GradePageState extends State<GradePage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  subject['nama'] ??
+                                  subject['name'] ??
                                       languageProvider.getTranslatedText({
                                         'en': 'Subject',
                                         'id': 'Mata Pelajaran',
@@ -1156,7 +1156,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  kelas['nama'] ??
+                                  kelas['name'] ??
                                       languageProvider.getTranslatedText({
                                         'en': 'Class',
                                         'id': 'Kelas',
@@ -1171,7 +1171,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                                 ),
                                 SizedBox(height: 2),
                                 Text(
-                                  '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Tingkat'})}: ${kelas['tingkat'] ?? '-'}',
+                                  '${languageProvider.getTranslatedText({'en': 'Grade', 'id': 'Tingkat'})}: ${kelas['grade_level'] ?? '-'}',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey.shade600,
@@ -1232,7 +1232,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                                 ),
                                 SizedBox(height: 1),
                                 Text(
-                                  widget.subject['nama'] ??
+                                  widget.subject['name'] ??
                                       languageProvider.getTranslatedText({
                                         'en': 'No subject',
                                         'id': 'Tidak ada mata pelajaran',
@@ -1386,7 +1386,7 @@ class ClassSelectionPageState extends State<ClassSelectionPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  widget.subject['nama'] ?? 'Subject',
+                                  widget.subject['name'] ?? 'Subject',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1888,7 +1888,7 @@ class GradeBookPageState extends State<GradeBookPage> {
     try {
       return _nilaiList.firstWhere((nilai) {
         final nilaiDate = nilai['tanggal']?.toString().split('T')[0];
-        return nilai['siswa_id'] == siswaId &&
+        return nilai['siswa_id'].toString() == siswaId &&
             nilai['jenis'] == jenis &&
             nilaiDate == date;
       }, orElse: () => <String, dynamic>{});
@@ -2916,7 +2916,7 @@ class GradeBookPageState extends State<GradeBookPage> {
           backgroundColor: Colors.grey.shade50,
           appBar: AppBar(
             title: Text(
-              '${languageProvider.getTranslatedText({'en': 'Grades', 'id': 'Nilai'})} - ${widget.subject['nama']} - ${widget.kelas['nama']}',
+              '${languageProvider.getTranslatedText({'en': 'Grades', 'id': 'Nilai'})} - ${widget.subject['name']} - ${widget.kelas['name']}',
               style: TextStyle(
                 fontFamily: 'Poppins',
                 fontSize: 18,
@@ -3013,7 +3013,7 @@ class GradeBookPageState extends State<GradeBookPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '${widget.subject['nama']} - ${widget.kelas['nama']}',
+                            '${widget.subject['name']} - ${widget.kelas['name']}',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
