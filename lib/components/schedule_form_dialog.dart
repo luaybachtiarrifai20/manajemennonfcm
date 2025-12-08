@@ -79,27 +79,36 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     }
 
     if (widget.hariList.isNotEmpty && _selectedHari.isEmpty) {
-      _selectedHari = widget.hariList.first['id'];
+      _selectedHari = widget.hariList.first['id']?.toString() ?? '';
     }
   }
 
   void _setEditFormValues() {
     setState(() {
       _selectedTeacher =
-          widget.schedule['guru_id'] ?? widget.schedule['teacher_id'] ?? '';
+          widget.schedule['guru_id']?.toString() ??
+          widget.schedule['teacher_id']?.toString() ??
+          '';
       _selectedSubject =
-          widget.schedule['mata_pelajaran_id'] ??
-          widget.schedule['subject_id'] ??
+          widget.schedule['mata_pelajaran_id']?.toString() ??
+          widget.schedule['subject_id']?.toString() ??
           '';
       _selectedClass =
-          widget.schedule['kelas_id'] ?? widget.schedule['class_id'] ?? '';
+          widget.schedule['kelas_id']?.toString() ??
+          widget.schedule['class_id']?.toString() ??
+          '';
       _selectedHari =
-          widget.schedule['hari_id'] ?? widget.schedule['day'] ?? '';
+          widget.schedule['hari_id']?.toString() ??
+          widget.schedule['day_id']?.toString() ??
+          '';
       _selectedSemester =
-          widget.schedule['semester_id'] ??
-          widget.schedule['semester'] ??
+          widget.schedule['semester_id']?.toString() ??
+          widget.schedule['semester']?.toString() ??
           widget.semester;
-      _selectedJamPelajaran = widget.schedule['jam_pelajaran_id'] ?? '';
+      _selectedJamPelajaran =
+          widget.schedule['lesson_hour_id']?.toString() ??
+          widget.schedule['jam_pelajaran_id']?.toString() ??
+          '';
 
       if (_selectedTeacher.isNotEmpty) {
         _filterSubjectsByTeacher(_selectedTeacher);
@@ -171,6 +180,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
               hariId: _selectedHari,
               semesterId: _selectedSemester,
               classId: _selectedClass,
+              academicYear: widget.academicYear,
             );
 
         setState(() {
@@ -181,7 +191,9 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             final currentJamExists = availableJamPelajaran.any(
               (jam) =>
                   jam['id'] == _selectedJamPelajaran &&
-                  (jam['is_terpakai'] != 1 && jam['is_terpakai'] != true),
+                      (jam['is_terpakai'] != 1 && jam['is_terpakai'] != true) ||
+                  jam['id'] == widget.schedule['lesson_hour_id'] ||
+                  jam['id'] == widget.schedule['jam_pelajaran_id'],
             );
             if (!currentJamExists) {
               _selectedJamPelajaran = '';
@@ -251,6 +263,20 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
     } catch (e) {
       return '07:00';
     }
+  }
+
+  String _translateDayName(String dayName, String languageCode) {
+    if (languageCode == 'en') return dayName;
+    const dayMap = {
+      'Monday': 'Senin',
+      'Tuesday': 'Selasa',
+      'Wednesday': 'Rabu',
+      'Thursday': 'Kamis',
+      'Friday': 'Jumat',
+      'Saturday': 'Sabtu',
+      'Sunday': 'Minggu',
+    };
+    return dayMap[dayName] ?? dayName;
   }
 
   @override
@@ -454,7 +480,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 return DropdownMenuItem<String>(
                   value: teacher['id'] as String,
                   child: Text(
-                    teacher['nama'] ?? 'Unknown',
+                    teacher['nama'] ?? teacher['name'] ?? 'Unknown',
                     style: TextStyle(fontSize: 14),
                   ),
                 );
@@ -539,7 +565,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 return DropdownMenuItem<String>(
                   value: subject['id'] as String,
                   child: Text(
-                    subject['nama'] ?? 'Unknown',
+                    subject['name'] ?? subject['nama'] ?? 'Unknown',
                     style: TextStyle(fontSize: 14),
                   ),
                 );
@@ -620,7 +646,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 return DropdownMenuItem<String>(
                   value: classItem['id']?.toString() ?? '',
                   child: Text(
-                    classItem['nama'] ?? 'Unknown',
+                    classItem['name'] ?? classItem['nama'] ?? 'Unknown',
                     style: TextStyle(fontSize: 14),
                   ),
                 );
@@ -698,7 +724,10 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 return DropdownMenuItem<String>(
                   value: day['id']?.toString() ?? '',
                   child: Text(
-                    day['nama'] ?? 'Unknown',
+                    _translateDayName(
+                      day['name'] ?? day['nama'] ?? 'Unknown',
+                      languageProvider.currentLanguage,
+                    ),
                     style: TextStyle(fontSize: 14),
                   ),
                 );
@@ -763,7 +792,9 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedSemester.isNotEmpty ? _selectedSemester : null,
+            initialValue: _selectedSemester.isNotEmpty
+                ? _selectedSemester
+                : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -779,7 +810,7 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                 return DropdownMenuItem<String>(
                   value: semester['id']?.toString() ?? '',
                   child: Text(
-                    semester['nama'] ?? 'Unknown',
+                    semester['name'] ?? semester['nama'] ?? 'Unknown',
                     style: TextStyle(fontSize: 14),
                   ),
                 );
@@ -844,9 +875,6 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
             border: Border.all(color: Colors.grey.shade200),
           ),
           child: DropdownButtonFormField<String>(
-            initialValue: _selectedJamPelajaran.isNotEmpty
-                ? _selectedJamPelajaran
-                : null,
             items: [
               DropdownMenuItem(
                 value: '',
@@ -858,33 +886,47 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                   style: TextStyle(color: Colors.grey),
                 ),
               ),
-              ...teachingHours.map<DropdownMenuItem<String>>((jam) {
-                final isAvailable =
-                    jam['is_terpakai'] != 1 && jam['is_terpakai'] != true;
-                final jamKe = jam['jam_ke'] ?? '';
-                final jamMulai = _formatTimeForDropdown(
-                  jam['jam_mulai']?.toString(),
-                );
-                final jamSelesai = _formatTimeForDropdown(
-                  jam['jam_selesai']?.toString(),
-                );
+              ...() {
+                final seenIds = <String>{};
+                return teachingHours
+                    .where((jam) {
+                      final id = jam['id']?.toString() ?? '';
+                      if (id.isEmpty || seenIds.contains(id)) {
+                        return false;
+                      }
+                      seenIds.add(id);
+                      return true;
+                    })
+                    .map<DropdownMenuItem<String>>((jam) {
+                      final isAvailable =
+                          jam['is_terpakai'] != 1 && jam['is_terpakai'] != true;
+                      final jamKe = jam['hour_number'] ?? jam['jam_ke'] ?? '';
+                      final jamMulai = _formatTimeForDropdown(
+                        jam['start_time']?.toString() ??
+                            jam['jam_mulai']?.toString(),
+                      );
+                      final jamSelesai = _formatTimeForDropdown(
+                        jam['end_time']?.toString() ??
+                            jam['jam_selesai']?.toString(),
+                      );
 
-                return DropdownMenuItem<String>(
-                  value: jam['id']?.toString() ?? '',
-                  child: Opacity(
-                    opacity: isAvailable ? 1.0 : 0.5,
-                    child: Text(
-                      isAvailable
-                          ? '$jamKe ($jamMulai - $jamSelesai)'
-                          : '$jamKe ($jamMulai - $jamSelesai) - Taken',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: isAvailable ? Colors.black : Colors.grey,
-                      ),
-                    ),
-                  ),
-                );
-              }),
+                      return DropdownMenuItem<String>(
+                        value: jam['id']?.toString() ?? '',
+                        child: Opacity(
+                          opacity: isAvailable ? 1.0 : 0.5,
+                          child: Text(
+                            isAvailable
+                                ? '$jamKe ($jamMulai - $jamSelesai)'
+                                : '$jamKe ($jamMulai - $jamSelesai) - Taken',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isAvailable ? Colors.black : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      );
+                    });
+              }(),
             ],
             onChanged: _isLoadingJamPelajaran
                 ? null
@@ -893,6 +935,15 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
                       _selectedJamPelajaran = value ?? '';
                     });
                   },
+            initialValue:
+                _selectedJamPelajaran.isNotEmpty &&
+                    teachingHours.any(
+                      (jam) =>
+                          (jam['id']?.toString() ?? '') ==
+                          _selectedJamPelajaran,
+                    )
+                ? _selectedJamPelajaran
+                : null,
             decoration: InputDecoration(
               prefixIcon: Icon(
                 Icons.access_time,
@@ -933,13 +984,13 @@ class ScheduleFormDialogState extends State<ScheduleFormDialog> {
   void _saveSchedule() {
     if (_formKey.currentState!.validate()) {
       final scheduleData = {
-        'guru_id': _selectedTeacher,
-        'mata_pelajaran_id': _selectedSubject,
-        'kelas_id': _selectedClass,
-        'hari_id': _selectedHari,
+        'teacher_id': _selectedTeacher,
+        'subject_id': _selectedSubject,
+        'class_id': _selectedClass,
+        'day_id': _selectedHari,
         'semester_id': _selectedSemester,
-        'tahun_ajaran': widget.academicYear,
-        'jam_pelajaran_id': _selectedJamPelajaran,
+        'academic_year': widget.academicYear,
+        'lesson_hour_id': _selectedJamPelajaran,
       };
 
       Navigator.pop(context, scheduleData);

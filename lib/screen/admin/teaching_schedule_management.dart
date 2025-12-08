@@ -694,11 +694,11 @@ class TeachingScheduleManagementScreenState
   }) async {
     try {
       final conflicts = await ApiScheduleService.getConflictingSchedules(
-        hariId: newScheduleData['hari_id'],
-        classId: newScheduleData['kelas_id'],
+        hariId: newScheduleData['day_id'],
+        classId: newScheduleData['class_id'],
         semesterId: newScheduleData['semester_id'],
-        tahunAjaran: newScheduleData['tahun_ajaran'],
-        jamPelajaranId: newScheduleData['jam_pelajaran_id'],
+        tahunAjaran: newScheduleData['academic_year'],
+        jamPelajaranId: newScheduleData['lesson_hour_id'],
         excludeScheduleId: editingScheduleId,
       );
 
@@ -2006,25 +2006,15 @@ class TeachingScheduleManagementScreenState
                               ],
                             ),
                           ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                          Text(
+                            _translateDay(
+                              schedule['hari_nama'] ?? '',
+                              languageProvider.currentLanguage,
                             ),
-                            decoration: BoxDecoration(
-                              color: _getPrimaryColor().withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _getPrimaryColor().withOpacity(0.3),
-                              ),
-                            ),
-                            child: Text(
-                              'Active',
-                              style: TextStyle(
-                                color: _getPrimaryColor(),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                              ),
+                            style: TextStyle(
+                              color: _getPrimaryColor(),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],
@@ -2115,7 +2105,7 @@ class TeachingScheduleManagementScreenState
                                 ),
                                 SizedBox(height: 1),
                                 Text(
-                                  '${schedule['hari_nama'] ?? ''} • ${_formatTime(schedule)}',
+                                  _formatTime(schedule),
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -2201,6 +2191,50 @@ class TeachingScheduleManagementScreenState
     return '$startTime - $endTime';
   }
 
+  String _translateDay(String dayName, String languageCode) {
+    if (dayName.isEmpty) return '';
+
+    final Map<String, String> enToId = {
+      'Monday': 'Senin',
+      'Tuesday': 'Selasa',
+      'Wednesday': 'Rabu',
+      'Thursday': 'Kamis',
+      'Friday': 'Jumat',
+      'Saturday': 'Sabtu',
+      'Sunday': 'Minggu',
+    };
+
+    final Map<String, String> idToEn = {
+      'Senin': 'Monday',
+      'Selasa': 'Tuesday',
+      'Rabu': 'Wednesday',
+      'Kamis': 'Thursday',
+      'Jumat': 'Friday',
+      'Sabtu': 'Saturday',
+      'Minggu': 'Sunday',
+    };
+
+    // Normalize input
+    String normalizedDay = dayName.trim();
+    // Capitalize first letter
+    if (normalizedDay.isNotEmpty) {
+      normalizedDay =
+          normalizedDay[0].toUpperCase() + normalizedDay.substring(1);
+    }
+
+    if (languageCode == 'id') {
+      // If target is ID, try to translate from EN to ID
+      // If input is already ID (exists in idToEn keys), return as is
+      if (idToEn.containsKey(normalizedDay)) return normalizedDay;
+      return enToId[normalizedDay] ?? normalizedDay;
+    } else {
+      // If target is EN, try to translate from ID to EN
+      // If input is already EN (exists in enToId keys), return as is
+      if (enToId.containsKey(normalizedDay)) return normalizedDay;
+      return idToEn[normalizedDay] ?? normalizedDay;
+    }
+  }
+
   void _showScheduleDetail(Map<String, dynamic> schedule) {
     final languageProvider = context.read<LanguageProvider>();
 
@@ -2259,7 +2293,10 @@ class TeachingScheduleManagementScreenState
                 'en': 'Day',
                 'id': 'Hari',
               }),
-              value: schedule['hari_nama'] ?? 'No Day',
+              value: _translateDay(
+                schedule['hari_nama'] ?? 'No Day',
+                languageProvider.currentLanguage,
+              ),
             ),
             _buildDetailItem(
               icon: Icons.access_time,
@@ -2275,7 +2312,7 @@ class TeachingScheduleManagementScreenState
                 'en': 'Grade Level',
                 'id': 'Tingkat Kelas',
               }),
-              value: _getGradeLevel(schedule['kelas_id'] ?? ''),
+              value: _getGradeLevel(schedule['class_id'] ?? ''),
             ),
           ],
         ),

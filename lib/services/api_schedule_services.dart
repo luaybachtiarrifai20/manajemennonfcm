@@ -243,11 +243,13 @@ class ApiScheduleService {
     String? hariId,
     String? semesterId,
     String? classId,
+    String? academicYear,
   }) async {
     String url = '$baseUrl/lesson-hour-filter?';
     if (hariId != null) url += 'day_id=$hariId&';
     if (semesterId != null) url += 'semester_id=$semesterId&';
     if (classId != null) url += 'class_id=$classId&';
+    if (academicYear != null) url += 'academic_year=$academicYear&';
 
     final response = await http.get(
       Uri.parse(url),
