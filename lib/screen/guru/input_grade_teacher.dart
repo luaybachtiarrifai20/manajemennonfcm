@@ -2110,8 +2110,9 @@ class GradeBookPageState extends State<GradeBookPage> {
     String jenis,
     String date,
     String field,
-    String value,
-  ) async {
+    String value, {
+    bool reload = true,
+  }) async {
     // Check if value changed
     final currentData = _getNilaiForSiswaAndJenisAndDate(siswaId, jenis, date);
     final currentValue = currentData?[field]?.toString() ?? '';
@@ -2148,7 +2149,9 @@ class GradeBookPageState extends State<GradeBookPage> {
       }
 
       // Update local data in background
-      _loadData();
+      if (reload) {
+        _loadData();
+      }
     } catch (e) {
       print('Error saving inline grade: $e');
       _showErrorSnackBar('Failed to save: $e');
@@ -2183,12 +2186,54 @@ class GradeBookPageState extends State<GradeBookPage> {
                 ],
               ),
               ElevatedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _isEditMode = false;
-                    _editJenis = null;
-                    _editDate = null;
-                  });
+                onPressed: () async {
+                  // Show loading indicator
+                  setState(() => _isLoading = true);
+
+                  try {
+                    // Iterate and save all
+                    for (var siswa in _filteredSiswaList) {
+                      final nilaiKey = "${siswa.id}_nilai";
+                      final deskripsiKey = "${siswa.id}_deskripsi";
+
+                      // Save Nilai
+                      if (_editControllers.containsKey(nilaiKey)) {
+                        await _saveInlineGrade(
+                          siswa.id,
+                          _editJenis!,
+                          _editDate!,
+                          'nilai',
+                          _editControllers[nilaiKey]!.text,
+                          reload: false,
+                        );
+                      }
+
+                      // Save Deskripsi
+                      if (_editControllers.containsKey(deskripsiKey)) {
+                        await _saveInlineGrade(
+                          siswa.id,
+                          _editJenis!,
+                          _editDate!,
+                          'deskripsi',
+                          _editControllers[deskripsiKey]!.text,
+                          reload: false,
+                        );
+                      }
+                    }
+
+                    // Reload data once
+                    await _loadData();
+
+                    setState(() {
+                      _isEditMode = false;
+                      _editJenis = null;
+                      _editDate = null;
+                      _isLoading = false;
+                    });
+                  } catch (e) {
+                    setState(() => _isLoading = false);
+                    _showErrorSnackBar('Failed to save changes: $e');
+                  }
                 },
                 icon: Icon(Icons.check, size: 16),
                 label: Text(

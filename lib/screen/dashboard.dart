@@ -397,7 +397,7 @@ class _DashboardState extends State<Dashboard>
       }
 
       final classIds = schedule
-          .map((s) => s['kelas_id']?.toString())
+          .map((s) => s['class_id']?.toString())
           .where((id) => id != null)
           .toSet()
           .toList();
