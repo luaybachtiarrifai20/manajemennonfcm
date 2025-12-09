@@ -1502,7 +1502,7 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
   String _getStudentStatus(String siswaId) {
     try {
       final absenRecord = _absensiData.firstWhere(
-        (a) => a['siswa_id']?.toString() == siswaId.toString(),
+        (a) => a['student_id']?.toString() == siswaId.toString(),
         orElse: () => {'status': 'alpha'}, // Fallback if not found
       );
       return absenRecord['status'] ?? 'alpha';
@@ -1679,16 +1679,22 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
 
   // Helper functions
   Color _getStatusColor(String status) {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'hadir':
+      case 'present':
         return Colors.green;
       case 'izin':
+      case 'excused':
+      case 'permission':
         return Colors.blue;
       case 'sakit':
+      case 'sick':
         return Colors.orange;
       case 'alpha':
+      case 'absent':
         return Colors.red;
       case 'terlambat':
+      case 'late':
         return Colors.purple;
       default:
         return Colors.grey;
@@ -1740,20 +1746,26 @@ class _AdminAbsensiDetailPageState extends State<AdminAbsensiDetailPage>
 
     for (var siswa in _siswaList) {
       final status = _getStudentStatus(siswa.id);
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'hadir':
+        case 'present':
           hadir++;
           break;
         case 'terlambat':
+        case 'late':
           terlambat++;
           break;
         case 'izin':
+        case 'excused':
+        case 'permission':
           izin++;
           break;
         case 'sakit':
+        case 'sick':
           sakit++;
           break;
         case 'alpha':
+        case 'absent':
           alpha++;
           break;
       }
