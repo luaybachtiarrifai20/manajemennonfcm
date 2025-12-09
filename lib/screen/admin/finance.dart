@@ -498,14 +498,25 @@ class FinanceScreenState extends State<FinanceScreen>
   Future<void> _loadKelasData() async {
     try {
       // Load data kelas
-      final kelasResponse = await _apiService.get('/class');
+      final kelasResponse = await _apiService.get('/class?limit=1000');
       setState(() {
-        _kelasList = kelasResponse is List ? kelasResponse : [];
+        if (kelasResponse is Map && kelasResponse.containsKey('data')) {
+          _kelasList = kelasResponse['data'] is List
+              ? kelasResponse['data']
+              : [];
+        } else {
+          _kelasList = kelasResponse is List ? kelasResponse : [];
+        }
       });
 
       // Load data siswa
-      final siswaResponse = await _apiService.get('/student');
-      final List<dynamic> allSiswa = siswaResponse is List ? siswaResponse : [];
+      final siswaResponse = await _apiService.get('/student?limit=1000');
+      final List<dynamic> allSiswa;
+      if (siswaResponse is Map && siswaResponse.containsKey('data')) {
+        allSiswa = siswaResponse['data'] is List ? siswaResponse['data'] : [];
+      } else {
+        allSiswa = siswaResponse is List ? siswaResponse : [];
+      }
 
       // Kelompokkan siswa berdasarkan kelas
       Map<String, List<dynamic>> siswaByKelas = {};
@@ -593,8 +604,8 @@ class FinanceScreenState extends State<FinanceScreen>
     _searchSiswaController.clear();
 
     // Jika edit, load data tujuan yang sudah dipilih
-    if (jenisPembayaran?['tujuan'] != null) {
-      _loadExistingTujuan(jenisPembayaran!['tujuan']);
+    if (jenisPembayaran?['goal'] != null) {
+      _loadExistingTujuan(jenisPembayaran!['goal']);
     }
 
     showModalBottomSheet(
@@ -1389,15 +1400,15 @@ class FinanceScreenState extends State<FinanceScreen>
                         ),
                       ),
                       Text(
-                        'Rp ${tagihan['jumlah']}',
+                        'Rp ${tagihan['amount']}',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      if (tagihan['jatuh_tempo'] != null)
+                      if (tagihan['due_date'] != null)
                         Text(
-                          'Jatuh tempo: ${tagihan['jatuh_tempo']?.split('T')[0] ?? '-'}',
+                          'Jatuh tempo: ${tagihan['due_date']?.split('T')[0] ?? '-'}',
                           style: TextStyle(
                             fontSize: 10,
                             color: Colors.grey.shade500,
@@ -1437,7 +1448,7 @@ class FinanceScreenState extends State<FinanceScreen>
   // Dialog untuk input pembayaran manual
   void _showManualPaymentDialog(Map<String, dynamic> tagihan) {
     final TextEditingController jumlahController = TextEditingController(
-      text: tagihan['jumlah']?.toString() ?? '',
+      text: tagihan['amount']?.toString() ?? '',
     );
     final TextEditingController tanggalController = TextEditingController(
       text: DateTime.now().toString().split(' ')[0],
@@ -1630,10 +1641,10 @@ class FinanceScreenState extends State<FinanceScreen>
 
                 try {
                   await _apiService.inputPembayaranManual({
-                    'tagihan_id': tagihan['id'],
+                    'bill_id': tagihan['id'],
                     'metode_bayar': metodeBayar,
-                    'jumlah_bayar': int.parse(jumlahController.text),
-                    'tanggal_bayar': tanggalController.text,
+                    'amount': double.parse(jumlahController.text),
+                    'payment_date': tanggalController.text,
                   });
 
                   if (!mounted) return;
@@ -1902,10 +1913,7 @@ class FinanceScreenState extends State<FinanceScreen>
                       'Jenis',
                       pembayaran['jenis_pembayaran_nama'] ?? '-',
                     ),
-                    _buildInfoItem(
-                      'Jumlah',
-                      'Rp ${pembayaran['jumlah_bayar']}',
-                    ),
+                    _buildInfoItem('Jumlah', 'Rp ${pembayaran['amount_paid']}'),
                   ],
                 ),
               ),
@@ -1927,20 +1935,20 @@ class FinanceScreenState extends State<FinanceScreen>
 
   void _showAddEditJenisPembayaran({Map<String, dynamic>? jenisPembayaran}) {
     final namaController = TextEditingController(
-      text: jenisPembayaran?['nama'],
+      text: jenisPembayaran?['name'],
     );
     final deskripsiController = TextEditingController(
-      text: jenisPembayaran?['deskripsi'],
+      text: jenisPembayaran?['description'],
     );
     final jumlahController = TextEditingController(
-      text: jenisPembayaran?['jumlah']?.toString(),
+      text: jenisPembayaran?['amount']?.toString(),
     );
     final periodeController = TextEditingController(
-      text: jenisPembayaran?['periode'],
+      text: jenisPembayaran?['periode'] ?? 'bulanan',
     );
 
     Map<String, dynamic>? tujuanData = jenisPembayaran != null
-        ? _parseTujuan(jenisPembayaran['tujuan'])
+        ? _parseTujuan(jenisPembayaran['goal'])
         : null;
     String? status = jenisPembayaran?['status'] ?? 'aktif';
 
@@ -2181,9 +2189,9 @@ class FinanceScreenState extends State<FinanceScreen>
                                   'name': namaController.text,
                                   'description': deskripsiController.text,
                                   'amount': double.parse(jumlahController.text),
-                                  'period': periodeController.text,
+                                  'periode': periodeController.text,
                                   'status': status,
-                                  'target': tujuanData,
+                                  'goal': tujuanData,
                                 };
 
                                 if (jenisPembayaran == null) {
@@ -2336,7 +2344,7 @@ class FinanceScreenState extends State<FinanceScreen>
       builder: (context) => ConfirmationDialog(
         title: 'Hapus Jenis Pembayaran',
         content:
-            'Yakin ingin menghapus jenis pembayaran "${jenisPembayaran['nama']}"?',
+            'Yakin ingin menghapus jenis pembayaran "${jenisPembayaran['name']}"?',
         confirmText: 'Hapus',
         confirmColor: Colors.red,
       ),
@@ -2446,7 +2454,7 @@ class FinanceScreenState extends State<FinanceScreen>
                         ),
                         _buildInfoItem(
                           'Jumlah Bayar',
-                          'Rp ${pembayaran['jumlah_bayar']}',
+                          'Rp ${pembayaran['amount_paid']}',
                         ),
                         _buildInfoItem(
                           'Metode Bayar',
@@ -2646,8 +2654,8 @@ class FinanceScreenState extends State<FinanceScreen>
   List<dynamic> _getFilteredJenisPembayaran() {
     return _jenisPembayaranList.where((item) {
       final searchTerm = _searchController.text.toLowerCase();
-      final nama = item['nama']?.toString().toLowerCase() ?? '';
-      final deskripsi = item['deskripsi']?.toString().toLowerCase() ?? '';
+      final nama = item['name']?.toString().toLowerCase() ?? '';
+      final deskripsi = item['description']?.toString().toLowerCase() ?? '';
 
       final matchesSearch =
           searchTerm.isEmpty ||
@@ -2755,7 +2763,7 @@ class FinanceScreenState extends State<FinanceScreen>
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    item['nama'] ?? 'No Name',
+                                    item['name'] ?? 'No Name',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -2766,7 +2774,7 @@ class FinanceScreenState extends State<FinanceScreen>
                                   ),
                                   SizedBox(height: 2),
                                   Text(
-                                    'Rp ${item['jumlah']}',
+                                    'Rp ${item['amount']}',
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey[600],
@@ -2802,10 +2810,10 @@ class FinanceScreenState extends State<FinanceScreen>
 
                         SizedBox(height: 8),
 
-                        if (item['deskripsi'] != null &&
-                            item['deskripsi'].isNotEmpty)
+                        if (item['description'] != null &&
+                            item['description'].isNotEmpty)
                           Text(
-                            item['deskripsi'],
+                            item['description'],
                             style: TextStyle(
                               fontSize: 12,
                               color: Colors.grey[600],
@@ -2814,7 +2822,7 @@ class FinanceScreenState extends State<FinanceScreen>
                             overflow: TextOverflow.ellipsis,
                           ),
 
-                        if (item['tujuan'] != null)
+                        if (item['goal'] != null)
                           Container(
                             margin: EdgeInsets.only(top: 8),
                             padding: EdgeInsets.symmetric(
@@ -2835,7 +2843,7 @@ class FinanceScreenState extends State<FinanceScreen>
                                 SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
-                                    _getTujuanDescription(item['tujuan']),
+                                    _getTujuanDescription(item['goal']),
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: _getPrimaryColor(),
@@ -2973,7 +2981,7 @@ class FinanceScreenState extends State<FinanceScreen>
               children: [
                 _buildStatItem(
                   icon: Icons.attach_money,
-                  value: 'Rp ${_dashboardData['pendapatan_bulan_ini'] ?? '0'}',
+                  value: 'Rp ${_dashboardData['total_payment_month'] ?? '0'}',
                   label: 'Pendapatan Bulan Ini',
                   color: Colors.white,
                 ),
@@ -3655,7 +3663,7 @@ class FinanceScreenState extends State<FinanceScreen>
                             ),
                             SizedBox(width: 4),
                             Text(
-                              'Rp ${pembayaran['jumlah_bayar']}',
+                              'Rp ${pembayaran['amount_paid']}',
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey,
