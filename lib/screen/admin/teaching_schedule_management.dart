@@ -293,18 +293,23 @@ class TeachingScheduleManagementScreenState
 
       // Load with pagination and backend filtering
       final results = await Future.wait([
-        ApiScheduleService.getSchedulesPaginated(
-          page: _currentPage,
-          limit: _perPage,
-          guruId: _selectedGuruId,
-          classId: _selectedClassId,
-          hariId: _selectedHariId,
-          semesterId: semesterToUse,
-          tahunAjaran: academicYearToUse,
-          search: _searchController.text.trim().isEmpty
-              ? null
-              : _searchController.text.trim(),
-        ),
+        _showTableView
+            ? ApiScheduleService.getAllSchedules(
+                semesterId: semesterToUse,
+                tahunAjaran: academicYearToUse,
+              )
+            : ApiScheduleService.getSchedulesPaginated(
+                page: _currentPage,
+                limit: _perPage,
+                guruId: _selectedGuruId,
+                classId: _selectedClassId,
+                hariId: _selectedHariId,
+                semesterId: semesterToUse,
+                tahunAjaran: academicYearToUse,
+                search: _searchController.text.trim().isEmpty
+                    ? null
+                    : _searchController.text.trim(),
+              ),
         apiTeacherService.getTeacher(),
         _apiSubjectService.getSubject(),
         apiServiceClass.getClass(),
@@ -315,6 +320,9 @@ class TeachingScheduleManagementScreenState
 
       if (!mounted) return;
 
+      print(
+        'DEBUG: _loadData results received. _showTableView: $_showTableView',
+      );
       final scheduleResponse = results[0] as Map<String, dynamic>;
       final teacher = results[1] as List<dynamic>;
       final subject = results[2] as List<dynamic>;
@@ -323,12 +331,26 @@ class TeachingScheduleManagementScreenState
       final semester = results[5] as List<dynamic>;
       final jamPelajaran = results[6] as List<dynamic>;
 
+      print(
+        'DEBUG: _loadData scheduleResponse data length: ${(scheduleResponse['data'] ?? []).length}',
+      );
+
       setState(() {
         _scheduleList = scheduleResponse['data'] ?? [];
         _teacherList = teacher;
         _subjectList = subject;
         _classList = classData;
         _hariList = hari;
+        print('DEBUG: _loadData hari count: ${hari.length}');
+        if (hari.isEmpty) {
+          print(
+            'DEBUG: hari is empty. _availableDays count: ${_availableDays.length}',
+          );
+          if (_availableDays.isNotEmpty) {
+            _hariList = _availableDays;
+            print('DEBUG: Using _availableDays as fallback for _hariList');
+          }
+        }
         _semesterList = semester;
         _jamPelajaranList = jamPelajaran;
         _paginationMeta = scheduleResponse['pagination'];
@@ -493,53 +515,121 @@ class TeachingScheduleManagementScreenState
 
     // Initialize the structure
     for (var day in _hariList) {
-      final dayName = day['nama'] ?? '';
+      final dayName = day['name'] ?? day['nama'] ?? '';
       dayClassScheduleMap[dayName] = {};
 
       for (var classItem in _classList) {
-        final className = classItem['nama'] ?? '';
+        final className = classItem['name'] ?? classItem['nama'] ?? '';
         dayClassScheduleMap[dayName]![className] = {};
 
         // Initialize all time slots as empty
         for (var jam in _jamPelajaranList) {
           final timeSlot =
-              '${jam['jam_mulai'] ?? ''}-${jam['jam_selesai'] ?? ''}';
+              '${jam['start_time'] ?? jam['jam_mulai'] ?? ''}-${jam['end_time'] ?? jam['jam_selesai'] ?? ''}';
           dayClassScheduleMap[dayName]![className]![timeSlot] = null;
         }
       }
     }
 
+    // Create lookup maps for IDs
+    final Map<String, String> dayIdToName = {};
+    for (var day in _hariList) {
+      final id = day['id']?.toString() ?? '';
+      final name = day['name'] ?? day['nama'] ?? '';
+      if (id.isNotEmpty) dayIdToName[id] = name;
+    }
+
+    final Map<String, String> classIdToName = {};
+    for (var cls in _classList) {
+      final id = cls['id']?.toString() ?? '';
+      final name = cls['name'] ?? cls['nama'] ?? '';
+      if (id.isNotEmpty) classIdToName[id] = name;
+    }
+
+    print(
+      'DEBUG: _generateTimetableData _hariList length: ${_hariList.length}',
+    );
+    print('DEBUG: _generateTimetableData dayIdToName: $dayIdToName');
+
     // Fill the structure with actual schedules
+    print('DEBUG: Total filtered schedules: ${_getFilteredSchedules().length}');
     for (var schedule in _getFilteredSchedules()) {
-      final dayName = schedule['day_name'] ?? '';
-      final className = schedule['class_name'] ?? '';
+      // Use ID to find the correct name (handles language mismatch)
+      final dayId =
+          schedule['hari_id']?.toString() ??
+          schedule['day_id']?.toString() ??
+          '';
+      final classId =
+          schedule['kelas_id']?.toString() ??
+          schedule['class_id']?.toString() ??
+          '';
+
+      final dayName = dayIdToName[dayId] ?? schedule['hari_nama'] ?? '';
+      final className = classIdToName[classId] ?? schedule['kelas_nama'] ?? '';
+
       final timeSlot =
-          '${schedule['start_time'] ?? ''}-${schedule['end_time'] ?? ''}';
-      final subjectName = schedule['subject_name'] ?? '';
-      final teacherName = schedule['teacher_name'] ?? '';
+          '${schedule['jam_mulai'] ?? schedule['start_time'] ?? ''}-${schedule['jam_selesai'] ?? schedule['end_time'] ?? ''}';
 
       if (dayClassScheduleMap.containsKey(dayName) &&
-          dayClassScheduleMap[dayName]!.containsKey(className)) {
-        dayClassScheduleMap[dayName]![className]![timeSlot] = {
-          'subject': subjectName,
-          'teacher': teacherName,
-        };
+          dayClassScheduleMap[dayName]!.containsKey(className) &&
+          dayClassScheduleMap[dayName]![className]!.containsKey(timeSlot)) {
+        dayClassScheduleMap[dayName]![className]![timeSlot] = schedule;
+      } else {
+        print('DEBUG: Failed to map schedule:');
+        print(
+          '  Day: $dayName (ID: $dayId) - Exists: ${dayClassScheduleMap.containsKey(dayName)}',
+        );
+        print(
+          '  Class: $className (ID: $classId) - Exists: ${dayClassScheduleMap[dayName]?.containsKey(className)}',
+        );
+        print(
+          '  Time: $timeSlot - Exists: ${dayClassScheduleMap[dayName]?[className]?.containsKey(timeSlot)}',
+        );
       }
     }
 
     // Convert to grid data format
-    for (var jam in _jamPelajaranList) {
-      final timeSlot = '${jam['jam_mulai'] ?? ''}-${jam['jam_selesai'] ?? ''}';
+    // Debug: Print first 5 keys in map
+    print(
+      'DEBUG: dayClassScheduleMap keys (first 5): ${dayClassScheduleMap.keys.take(5).toList()}',
+    );
 
-      // Create a row for each time slot
+    for (var jam in _jamPelajaranList) {
+      final timeSlot =
+          '${jam['start_time'] ?? jam['jam_mulai'] ?? ''}-${jam['end_time'] ?? jam['jam_selesai'] ?? ''}';
+      final start = jam['start_time'] ?? jam['jam_mulai'];
+      final end = jam['end_time'] ?? jam['jam_selesai'];
+
+      List<ScheduleGridData> rowData = [];
+
       for (var day in _hariList) {
-        final dayName = day['nama'] ?? '';
+        final dayName = day['name'] ?? day['nama'] ?? '';
+        final dayId = day['id']?.toString().toLowerCase();
+
+        // Debug: Print dayId being used
+        // print('DEBUG: Processing Day ID: $dayId');
 
         for (var classItem in _classList) {
-          final className = classItem['nama'] ?? '';
+          final className = classItem['name'] ?? classItem['nama'] ?? '';
+          final classId = classItem['id']?.toString().toLowerCase();
 
+          // The original map structure is dayClassScheduleMap[dayName][className][timeSlot]
+          // The provided edit attempts to use a flat key 'dayId_classId_start_end' which won't work with the current map structure.
+          // Reverting to original access pattern for scheduleInfo to maintain functionality.
           final scheduleInfo =
               dayClassScheduleMap[dayName]?[className]?[timeSlot];
+
+          if (scheduleInfo != null) {
+            print(
+              'DEBUG: Found match for key: ${dayName}_${className}_${timeSlot}',
+            );
+            print(
+              'DEBUG: Subject: ${scheduleInfo['subject_name'] ?? scheduleInfo['mata_pelajaran_nama']}, Teacher: ${scheduleInfo['teacher_name'] ?? scheduleInfo['guru_nama']}',
+            );
+          } else {
+            // Uncomment to debug missing matches (can be spammy)
+            // print('DEBUG: No match for key: ${dayName}_${className}_${timeSlot}');
+          }
 
           timetableData.add(
             ScheduleGridData(
@@ -547,8 +637,14 @@ class TeachingScheduleManagementScreenState
               waktu: timeSlot,
               hari: dayName,
               kelas: className,
-              mataPelajaran: scheduleInfo?['subject'] ?? '-',
-              guru: scheduleInfo?['teacher'] ?? '',
+              mataPelajaran:
+                  scheduleInfo?['subject_name'] ??
+                  scheduleInfo?['mata_pelajaran_nama'] ??
+                  '-',
+              guru:
+                  scheduleInfo?['teacher_name'] ??
+                  scheduleInfo?['guru_nama'] ??
+                  '',
             ),
           );
         }
@@ -1142,10 +1238,21 @@ class TeachingScheduleManagementScreenState
     final searchTerm = _searchController.text.toLowerCase();
     return _scheduleList.where((schedule) {
       final subjectName =
-          schedule['mata_pelajaran_nama']?.toString().toLowerCase() ?? '';
-      final teacherName = schedule['guru_nama']?.toString().toLowerCase() ?? '';
-      final className = schedule['kelas_nama']?.toString().toLowerCase() ?? '';
-      final dayName = schedule['hari_nama']?.toString().toLowerCase() ?? '';
+          schedule['subject_name']?.toString().toLowerCase() ??
+          schedule['mata_pelajaran_nama']?.toString().toLowerCase() ??
+          '';
+      final teacherName =
+          schedule['teacher_name']?.toString().toLowerCase() ??
+          schedule['guru_nama']?.toString().toLowerCase() ??
+          '';
+      final className =
+          schedule['class_name']?.toString().toLowerCase() ??
+          schedule['kelas_nama']?.toString().toLowerCase() ??
+          '';
+      final dayName =
+          schedule['day_name']?.toString().toLowerCase() ??
+          schedule['hari_nama']?.toString().toLowerCase() ??
+          '';
 
       final matchesSearch =
           searchTerm.isEmpty ||
@@ -1173,10 +1280,17 @@ class TeachingScheduleManagementScreenState
 
   Widget _buildTableView() {
     final languageProvider = context.read<LanguageProvider>();
-    final days = _hariList.map((day) => day['nama'] ?? '').toList();
-    final classes = _classList.map((cls) => cls['nama'] ?? '').toList();
+    final days = _hariList
+        .map((day) => day['name'] ?? day['nama'] ?? '')
+        .toList();
+    final classes = _classList
+        .map((cls) => cls['name'] ?? cls['nama'] ?? '')
+        .toList();
     final timeSlots = _jamPelajaranList
-        .map((jam) => '${jam['jam_mulai'] ?? ''}-${jam['jam_selesai'] ?? ''}')
+        .map(
+          (jam) =>
+              '${jam['start_time'] ?? jam['jam_mulai'] ?? ''}-${jam['end_time'] ?? jam['jam_selesai'] ?? ''}',
+        )
         .toList();
 
     return Column(
@@ -1227,7 +1341,7 @@ class TeachingScheduleManagementScreenState
                   horizontalMargin: 4,
                   headingRowHeight: 80, // Tinggi header tetap
                   dataRowMinHeight: 60, // Tinggi minimum row
-                  dataRowMaxHeight: 120, // Tinggi maksimum row
+                  dataRowMaxHeight: double.infinity, // Tinggi maksimum row
                   headingRowColor: WidgetStateProperty.resolveWith<Color?>(
                     (states) => _getPrimaryColor(),
                   ),
@@ -1346,7 +1460,9 @@ class TeachingScheduleManagementScreenState
   }
 
   Widget _buildDayScheduleCell(String timeSlot, String day) {
-    final classes = _classList.map((cls) => cls['nama'] ?? '').toList();
+    final classes = _classList
+        .map((cls) => cls['name'] ?? cls['nama'] ?? '')
+        .toList();
 
     return Container(
       padding: EdgeInsets.all(2),
@@ -1557,8 +1673,13 @@ class TeachingScheduleManagementScreenState
                           onTap: () {
                             setState(() {
                               _showTableView = !_showTableView;
+                              print(
+                                'DEBUG: Toggled view. _showTableView: $_showTableView',
+                              );
                               if (_showTableView) {
-                                _updateGridData();
+                                _loadData(); // Fetch full data for table view
+                              } else {
+                                _loadData(); // Revert to paginated data for list view
                               }
                             });
                           },

@@ -24,6 +24,12 @@ class ExcelScheduleService {
       // Validasi data terlebih dahulu
       final validatedData = validateScheduleData(schedules);
 
+      // Translate day names based on selected language
+      final currentLang = languageProvider.currentLanguage;
+      for (var item in validatedData) {
+        item['day_name'] = _translateDay(item['day_name'], currentLang);
+      }
+
       // Kirim request ke backend
       final response = await http.post(
         Uri.parse('$baseUrl/teaching-schedule/export'),
@@ -190,10 +196,11 @@ class ExcelScheduleService {
         validatedSchedule['day_name'] = schedule['day_name'];
       }
 
-      if (schedule['lesson_hour'] == null) {
+      final lessonHour = schedule['lesson_hour'] ?? schedule['hour_number'];
+      if (lessonHour == null) {
         errors.add('Baris ${i + 1}: Jam ke tidak boleh kosong');
       } else {
-        validatedSchedule['lesson_hour'] = schedule['lesson_hour'];
+        validatedSchedule['lesson_hour'] = lessonHour;
       }
 
       if (schedule['semester_name'] == null ||
@@ -224,5 +231,32 @@ class ExcelScheduleService {
     }
 
     return validatedData;
+  }
+
+  static String _translateDay(String dayName, String targetLang) {
+    const enToId = {
+      'Monday': 'Senin',
+      'Tuesday': 'Selasa',
+      'Wednesday': 'Rabu',
+      'Thursday': 'Kamis',
+      'Friday': 'Jumat',
+      'Saturday': 'Sabtu',
+      'Sunday': 'Minggu',
+    };
+    const idToEn = {
+      'Senin': 'Monday',
+      'Selasa': 'Tuesday',
+      'Rabu': 'Wednesday',
+      'Kamis': 'Thursday',
+      'Jumat': 'Friday',
+      'Sabtu': 'Saturday',
+      'Minggu': 'Sunday',
+    };
+
+    if (targetLang == 'id') {
+      return enToId[dayName] ?? dayName;
+    } else {
+      return idToEn[dayName] ?? dayName;
+    }
   }
 }

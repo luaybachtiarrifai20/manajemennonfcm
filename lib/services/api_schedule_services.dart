@@ -260,7 +260,36 @@ class ApiScheduleService {
     return result is List ? result : [];
   }
 
-  // Tambahkan method ini di class ApiScheduleService
+  // Get All Schedules (No Pagination)
+  static Future<Map<String, dynamic>> getAllSchedules({
+    String? semesterId,
+    String? tahunAjaran,
+  }) async {
+    final queryParameters = {
+      if (semesterId != null) 'semester_id': semesterId,
+      if (tahunAjaran != null) 'academic_year': tahunAjaran,
+    };
+
+    final uri = Uri.parse(
+      '$baseUrl/teaching-schedule/all',
+    ).replace(queryParameters: queryParameters);
+
+    print('DEBUG: Calling getAllSchedules with URI: $uri');
+    final response = await http.get(uri, headers: await _getHeaders());
+
+    print('DEBUG: getAllSchedules Response Status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print(
+        'DEBUG: getAllSchedules Data count: ${(data['data'] as List).length}',
+      );
+      return data;
+    } else {
+      print('DEBUG: getAllSchedules Error: ${response.body}');
+      throw Exception('Failed to load all schedules');
+    }
+  }
+
   static Future<List<dynamic>> getConflictingSchedules({
     required String hariId,
     required String classId,
