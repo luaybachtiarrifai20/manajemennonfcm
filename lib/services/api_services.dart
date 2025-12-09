@@ -161,6 +161,11 @@ class ApiService {
     }
   }
 
+  static Future<String?> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('token');
+  }
+
   static Future<Map<String, String>> _getHeaders() async {
     try {
       final prefs = await SharedPreferences.getInstance();

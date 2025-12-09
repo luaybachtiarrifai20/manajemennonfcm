@@ -203,31 +203,31 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                             ),
                             _buildStatusChip(
                               label: 'Menunggu',
-                              value: 'Menunggu',
+                              value: 'Pending',
                               selectedValue: tempSelectedStatus,
                               onSelected: () {
                                 setModalState(() {
-                                  tempSelectedStatus = 'Menunggu';
+                                  tempSelectedStatus = 'Pending';
                                 });
                               },
                             ),
                             _buildStatusChip(
                               label: 'Disetujui',
-                              value: 'Disetujui',
+                              value: 'Approved',
                               selectedValue: tempSelectedStatus,
                               onSelected: () {
                                 setModalState(() {
-                                  tempSelectedStatus = 'Disetujui';
+                                  tempSelectedStatus = 'Approved';
                                 });
                               },
                             ),
                             _buildStatusChip(
                               label: 'Ditolak',
-                              value: 'Ditolak',
+                              value: 'Rejected',
                               selectedValue: tempSelectedStatus,
                               onSelected: () {
                                 setModalState(() {
-                                  tempSelectedStatus = 'Ditolak';
+                                  tempSelectedStatus = 'Rejected';
                                 });
                               },
                             ),
@@ -445,13 +445,13 @@ class _AdminRppScreenState extends State<AdminRppScreen>
   }
 
   void _updateStatus(String rppId, String status) {
+    final rpp = _rppList.firstWhere((rpp) => rpp['id'] == rppId);
     showDialog(
       context: context,
       builder: (context) => UpdateStatusDialog(
         rppId: rppId,
-        currentStatus: _rppList.firstWhere(
-          (rpp) => rpp['id'] == rppId,
-        )['status'],
+        currentStatus: rpp['status'],
+        currentNote: rpp['catatan'],
         onStatusUpdated: _loadAllRpp,
       ),
     );
@@ -466,10 +466,13 @@ class _AdminRppScreenState extends State<AdminRppScreen>
 
   Color _getStatusColor(String status) {
     switch (status) {
+      case 'Approved':
       case 'Disetujui':
         return Colors.green;
+      case 'Pending':
       case 'Menunggu':
         return Colors.orange;
+      case 'Rejected':
       case 'Ditolak':
         return Colors.red;
       default:
@@ -612,9 +615,11 @@ class _AdminRppScreenState extends State<AdminRppScreen>
                                 ),
                               ),
                               child: Text(
-                                rpp['status'] == 'Menunggu'
+                                rpp['status'] == 'Pending' ||
+                                        rpp['status'] == 'Menunggu'
                                     ? 'Menunggu'
-                                    : rpp['status'] == 'Disetujui'
+                                    : rpp['status'] == 'Approved' ||
+                                          rpp['status'] == 'Disetujui'
                                     ? 'Disetujui'
                                     : 'Ditolak',
                                 style: TextStyle(
@@ -1160,12 +1165,14 @@ class _AdminRppScreenState extends State<AdminRppScreen>
 class UpdateStatusDialog extends StatefulWidget {
   final String rppId;
   final String currentStatus;
+  final String? currentNote;
   final VoidCallback onStatusUpdated;
 
   const UpdateStatusDialog({
     super.key,
     required this.rppId,
     required this.currentStatus,
+    this.currentNote,
     required this.onStatusUpdated,
   });
 
@@ -1174,18 +1181,43 @@ class UpdateStatusDialog extends StatefulWidget {
 }
 
 class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
-  String _selectedStatus = 'Menunggu';
-  final _catatanController = TextEditingController();
   bool _isUpdating = false;
+  late TextEditingController _catatanController;
+  String _selectedStatus = 'Pending';
 
   @override
   void initState() {
     super.initState();
-    _selectedStatus = widget.currentStatus;
+    _catatanController = TextEditingController(text: widget.currentNote ?? '');
+    _mapInitialStatus();
+  }
+
+  @override
+  void dispose() {
+    _catatanController.dispose();
+    super.dispose();
+  }
+
+  void _mapInitialStatus() {
+    // Map Indonesian/Display status to Backend/Value status
+    String status = widget.currentStatus ?? 'Pending';
+    if (status == 'Menunggu' || status == 'Pending') {
+      _selectedStatus = 'Pending';
+    } else if (status == 'Disetujui' || status == 'Approved') {
+      _selectedStatus = 'Approved';
+    } else if (status == 'Ditolak' || status == 'Rejected') {
+      _selectedStatus = 'Rejected';
+    } else {
+      _selectedStatus = 'Pending';
+    }
   }
 
   Future<void> _updateStatus() async {
-    if (_selectedStatus == widget.currentStatus) {
+    // Check if either status or note has changed
+    bool statusChanged = _selectedStatus != widget.currentStatus;
+    bool noteChanged = _catatanController.text != (widget.currentNote ?? '');
+
+    if (!statusChanged && !noteChanged) {
       Navigator.pop(context);
       return;
     }
@@ -1237,9 +1269,17 @@ class _UpdateStatusDialogState extends State<UpdateStatusDialog> {
                 labelText: 'Status',
                 border: OutlineInputBorder(),
               ),
-              items: ['Menunggu', 'Disetujui', 'Ditolak'].map((status) {
-                return DropdownMenuItem(value: status, child: Text(status));
-              }).toList(),
+              items:
+                  [
+                    {'value': 'Pending', 'label': 'Menunggu'},
+                    {'value': 'Approved', 'label': 'Disetujui'},
+                    {'value': 'Rejected', 'label': 'Ditolak'},
+                  ].map((status) {
+                    return DropdownMenuItem(
+                      value: status['value'],
+                      child: Text(status['label']!),
+                    );
+                  }).toList(),
               onChanged: (value) {
                 setState(() {
                   _selectedStatus = value!;
@@ -1378,7 +1418,7 @@ class RppAdminDetailPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    rpp['judul'] ?? '-',
+                    rpp['title'] ?? '-',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
@@ -1389,9 +1429,10 @@ class RppAdminDetailPage extends StatelessWidget {
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
-                      rpp['status'] == 'Menunggu'
+                      rpp['status'] == 'Pending' || rpp['status'] == 'Menunggu'
                           ? 'Menunggu'
-                          : rpp['status'] == 'Disetujui'
+                          : rpp['status'] == 'Approved' ||
+                                rpp['status'] == 'Disetujui'
                           ? 'Disetujui'
                           : 'Ditolak',
                       style: TextStyle(
@@ -1434,18 +1475,30 @@ class RppAdminDetailPage extends StatelessWidget {
                     ),
                   ),
                   SizedBox(height: 12),
-                  _buildDetailItem('Guru Pengajar', rpp['guru_nama'] ?? '-'),
+                  _buildDetailItem(
+                    'Guru Pengajar',
+                    rpp['teacher_name'] ?? rpp['guru_nama'] ?? '-',
+                  ),
                   _buildDetailItem(
                     'Mata Pelajaran',
-                    rpp['mata_pelajaran_nama'] ?? '-',
+                    rpp['subject_name'] ?? rpp['mata_pelajaran_nama'] ?? '-',
                   ),
-                  _buildDetailItem('Kelas', rpp['kelas_nama'] ?? '-'),
+                  _buildDetailItem(
+                    'Kelas',
+                    rpp['class_name'] ?? rpp['kelas_nama'] ?? '-',
+                  ),
+                  _buildDetailItem(
+                    'Tahun Ajaran',
+                    '${rpp['academic_year'] ?? rpp['tahun_ajaran'] ?? '-'}',
+                  ),
                   _buildDetailItem('Semester', rpp['semester'] ?? '-'),
-                  _buildDetailItem('Tahun Ajaran', rpp['tahun_ajaran'] ?? '-'),
                   _buildDetailItem(
                     'Tanggal Dibuat',
                     rpp['created_at']?.toString().substring(0, 10) ?? '-',
                   ),
+                  if (rpp['catatan'] != null &&
+                      rpp['catatan'].toString().isNotEmpty)
+                    _buildDetailItem('Catatan', rpp['catatan']),
 
                   if (rpp['catatan_admin'] != null) ...[
                     SizedBox(height: 8),
@@ -1469,6 +1522,67 @@ class RppAdminDetailPage extends StatelessWidget {
                       ),
                     ),
                   ],
+                ],
+              ),
+            ),
+
+            SizedBox(height: 16),
+
+            // Isi RPP
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Isi RPP',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  _buildContentSection(
+                    'Kompetensi Inti',
+                    rpp['core_competence'],
+                  ),
+                  _buildContentSection(
+                    'Kompetensi Dasar',
+                    rpp['basic_competence'],
+                  ),
+                  _buildContentSection('Indikator', rpp['indicator']),
+                  _buildContentSection(
+                    'Tujuan Pembelajaran',
+                    rpp['learning_objective'],
+                  ),
+                  _buildContentSection('Materi Pokok', rpp['main_material']),
+                  _buildContentSection(
+                    'Metode Pembelajaran',
+                    rpp['learning_method'],
+                  ),
+                  _buildContentSection('Media/Alat', rpp['media_tools']),
+                  _buildContentSection(
+                    'Sumber Belajar',
+                    rpp['learning_source'],
+                  ),
+                  _buildContentSection(
+                    'Langkah-langkah Pembelajaran',
+                    rpp['learning_activities'],
+                  ),
+                  _buildContentSection('Penilaian', rpp['assessment']),
                 ],
               ),
             ),
@@ -1533,6 +1647,7 @@ class RppAdminDetailPage extends StatelessWidget {
       builder: (context) => UpdateStatusDialog(
         rppId: rpp['id'],
         currentStatus: rpp['status'],
+        currentNote: rpp['catatan'],
         onStatusUpdated: () {
           Navigator.pop(context); // Tutup dialog detail
           Navigator.pop(context); // Kembali ke list
@@ -1567,12 +1682,49 @@ class RppAdminDetailPage extends StatelessWidget {
     );
   }
 
+  Widget _buildContentSection(String title, String? content) {
+    if (content == null || content.isEmpty) return SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+              fontSize: 14,
+            ),
+          ),
+          SizedBox(height: 4),
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Text(
+              content,
+              style: TextStyle(color: Colors.black87, height: 1.5),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Color _getStatusColor(String status) {
     switch (status) {
+      case 'Approved':
       case 'Disetujui':
         return Colors.green;
+      case 'Pending':
       case 'Menunggu':
         return Colors.orange;
+      case 'Rejected':
       case 'Ditolak':
         return Colors.red;
       default:

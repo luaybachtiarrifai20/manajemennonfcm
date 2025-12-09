@@ -23,10 +23,19 @@ class ExcelRppService {
       // Validasi data terlebih dahulu
       final validatedData = validateRppData(rppList);
 
-      // Kirim request ke backend
+      // Kirim request ke backend menggunakan ApiService untuk handle auth headers
+      // Note: ApiService.post returns decoded JSON, so we need to handle it differently
+      // or we can just add headers manually here if we want to keep using http.post for blob response
+
+      final token =
+          await ApiService.getToken(); // Need to expose this or get from prefs
+
       final response = await http.post(
         Uri.parse('$baseUrl/rpp/export'),
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
         body: jsonEncode({'rppList': validatedData}),
       );
 
@@ -131,14 +140,24 @@ class ExcelRppService {
       validatedRpp['academic_year'] = rpp['academic_year'] ?? '';
       validatedRpp['status'] = rpp['status'] ?? '';
       validatedRpp['created_at'] = rpp['created_at'] ?? '';
-      validatedRpp['admin_notes'] = rpp['admin_notes'] ?? '';
-      validatedRpp['basic_competency'] = rpp['basic_competency'] ?? '';
-      validatedRpp['learning_objectives'] = rpp['learning_objectives'] ?? '';
-      validatedRpp['learning_materials'] = rpp['learning_materials'] ?? '';
-      validatedRpp['learning_methods'] = rpp['learning_methods'] ?? '';
-      validatedRpp['learning_media'] = rpp['learning_media'] ?? '';
-      validatedRpp['learning_sources'] = rpp['learning_sources'] ?? '';
-      validatedRpp['learning_steps'] = rpp['learning_steps'] ?? '';
+
+      // Map keys to match backend expectation
+      validatedRpp['note_admin'] =
+          rpp['catatan_admin'] ?? rpp['note_admin'] ?? '';
+      validatedRpp['basic_competence'] =
+          rpp['basic_competence'] ?? rpp['basic_competency'] ?? '';
+      validatedRpp['learning_objective'] =
+          rpp['learning_objective'] ?? rpp['learning_objectives'] ?? '';
+      validatedRpp['main_material'] =
+          rpp['main_material'] ?? rpp['learning_materials'] ?? '';
+      validatedRpp['learning_method'] =
+          rpp['learning_method'] ?? rpp['learning_methods'] ?? '';
+      validatedRpp['media_tools'] =
+          rpp['media_tools'] ?? rpp['learning_media'] ?? '';
+      validatedRpp['learning_source'] =
+          rpp['learning_source'] ?? rpp['learning_sources'] ?? '';
+      validatedRpp['learning_activities'] =
+          rpp['learning_activities'] ?? rpp['learning_steps'] ?? '';
       validatedRpp['assessment'] = rpp['assessment'] ?? '';
 
       if (errors.isEmpty) {
