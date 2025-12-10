@@ -711,6 +711,23 @@ class ApiService {
     }
   }
 
+  // Delete absences by summary (teacher, subject, class, date)
+  static Future<dynamic> deleteAbsensiSummary({
+    required String guruId,
+    required String subjectId,
+    required String date,
+    String? classId,
+  }) async {
+    String query =
+        '/attendance?teacher_id=$guruId&subject_id=$subjectId&date=$date';
+    if (classId != null && classId.isNotEmpty) {
+      query += '&class_id=$classId';
+    }
+
+    final apiService = ApiService();
+    return await apiService.delete(query);
+  }
+
   // Paginated absensi (returns map with data + pagination)
   static Future<Map<String, dynamic>> getAbsensiPaginated({
     int page = 1,

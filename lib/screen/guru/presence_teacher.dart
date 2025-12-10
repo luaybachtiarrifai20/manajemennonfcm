@@ -401,7 +401,7 @@ class PresencePageState extends State<PresencePage>
         (mp) => mp['id'] == mataPelajaranId,
         orElse: () => {'nama': 'Unknown'},
       );
-      return mataPelajaran['nama'];
+      return mataPelajaran['nama'] ?? mataPelajaran['name'] ?? 'Unknown';
     } catch (e) {
       return 'Unknown';
     }
@@ -414,7 +414,7 @@ class PresencePageState extends State<PresencePage>
         (mp) => mp['id'] == _selectedMataPelajaran,
         orElse: () => {'nama': 'Unknown'},
       );
-      return mataPelajaran['nama'] ?? 'Unknown';
+      return mataPelajaran['nama'] ?? mataPelajaran['name'] ?? 'Unknown';
     } catch (e) {
       return 'Unknown';
     }
@@ -435,7 +435,7 @@ class PresencePageState extends State<PresencePage>
         (k) => k['id'].toString() == classId,
         orElse: () => {'nama': 'Unknown Class'},
       );
-      final kelasName = kelas['nama'] ?? 'Unknown Class';
+      final kelasName = kelas['nama'] ?? kelas['name'] ?? 'Unknown Class';
       final count = _filteredSiswaList
           .where((s) => s.classId == classId)
           .length;
@@ -785,6 +785,7 @@ class PresencePageState extends State<PresencePage>
                                     value: mp['id'],
                                     child: Text(
                                       mp['nama'] ??
+                                          mp['name'] ??
                                           mp['mata_pelajaran_nama'] ??
                                           'Unknown',
                                     ),
@@ -1648,6 +1649,31 @@ class PresencePageState extends State<PresencePage>
                 ),
               ),
 
+              // Delete button
+              Positioned(
+                top: 8,
+                right: 8,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _deleteAbsensi(summary, languageProvider),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: Colors.red.shade700,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
               Padding(
                 padding: EdgeInsets.all(16),
                 child: Column(
@@ -1696,27 +1722,6 @@ class PresencePageState extends State<PresencePage>
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ],
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: _getPrimaryColor().withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: _getPrimaryColor().withOpacity(0.3),
-                            ),
-                          ),
-                          child: Text(
-                            '${summary.totalSiswa} Siswa',
-                            style: TextStyle(
-                              color: _getPrimaryColor(),
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                            ),
                           ),
                         ),
                       ],
@@ -2577,13 +2582,13 @@ class PresencePageState extends State<PresencePage>
           final status = _absensiStatus[siswa.id] ?? 'hadir';
 
           await ApiService.tambahAbsensi({
-            'siswa_id': siswa.id,
-            'guru_id': guruId,
-            'mata_pelajaran_id': _selectedMataPelajaran,
-            'kelas_id': siswa.classId, // Add kelas_id from student data
-            'tanggal': tanggal,
-            'status': status,
-            'keterangan': '',
+            'student_id': siswa.id,
+            'teacher_id': guruId,
+            'subject_id': _selectedMataPelajaran,
+            'class_id': siswa.classId,
+            'date': tanggal,
+            'status': _mapStatusToBackend(status),
+            'notes': '',
           });
 
           successCount++;
@@ -2614,6 +2619,9 @@ class PresencePageState extends State<PresencePage>
 
         // Reset form setelah berhasil
         _resetForm();
+
+        // Pindah ke tab Hasil (index 0)
+        _tabController.animateTo(0);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -2717,11 +2725,13 @@ class PresencePageState extends State<PresencePage>
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'izin':
-        return Colors.blue;
+    switch (status.toLowerCase()) {
+      case 'hadir':
+        return Colors.green;
       case 'sakit':
         return Colors.orange;
+      case 'izin':
+        return Colors.blue;
       case 'alpha':
         return Colors.red;
       case 'terlambat':
@@ -2732,16 +2742,21 @@ class PresencePageState extends State<PresencePage>
   }
 
   String _getStatusText(String status, LanguageProvider languageProvider) {
-    switch (status) {
-      case 'izin':
+    switch (status.toLowerCase()) {
+      case 'hadir':
         return languageProvider.getTranslatedText({
-          'en': 'Permission',
-          'id': 'Izin',
+          'en': 'Present',
+          'id': 'Hadir',
         });
       case 'sakit':
         return languageProvider.getTranslatedText({
           'en': 'Sick',
           'id': 'Sakit',
+        });
+      case 'izin':
+        return languageProvider.getTranslatedText({
+          'en': 'Permission',
+          'id': 'Izin',
         });
       case 'alpha':
         return languageProvider.getTranslatedText({
@@ -2758,6 +2773,110 @@ class PresencePageState extends State<PresencePage>
           'en': 'Present',
           'id': 'Hadir',
         });
+    }
+  }
+
+  String _mapStatusToBackend(String status) {
+    switch (status.toLowerCase()) {
+      case 'hadir':
+        return 'present';
+      case 'terlambat':
+        return 'late';
+      case 'izin':
+        return 'excused';
+      case 'sakit':
+        return 'sick';
+      case 'alpha':
+        return 'absent';
+      default:
+        return 'present';
+    }
+  }
+
+  Future<void> _deleteAbsensi(
+    AbsensiSummary summary,
+    LanguageProvider languageProvider,
+  ) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          languageProvider.getTranslatedText({
+            'en': 'Delete Attendance',
+            'id': 'Hapus Absensi',
+          }),
+        ),
+        content: Text(
+          languageProvider.getTranslatedText({
+            'en':
+                'Are you sure you want to delete attendance for ${summary.mataPelajaranNama} on ${DateFormat('dd MMMM yyyy', 'id_ID').format(summary.tanggal)}?',
+            'id':
+                'Apakah Anda yakin ingin menghapus absensi ${summary.mataPelajaranNama} pada ${DateFormat('dd MMMM yyyy', 'id_ID').format(summary.tanggal)}?',
+          }),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              languageProvider.getTranslatedText({
+                'en': 'Cancel',
+                'id': 'Batal',
+              }),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text(
+              languageProvider.getTranslatedText({
+                'en': 'Delete',
+                'id': 'Hapus',
+              }),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await ApiService.deleteAbsensiSummary(
+        guruId: widget.guru['id'],
+        subjectId: summary.mataPelajaranId,
+        date: DateFormat('yyyy-MM-dd').format(summary.tanggal),
+        classId: summary.classId,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            languageProvider.getTranslatedText({
+              'en': 'Attendance deleted successfully',
+              'id': 'Absensi berhasil dihapus',
+            }),
+          ),
+          backgroundColor: Colors.green.shade400,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // Reload summary data
+      _loadAbsensiSummary();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${languageProvider.getTranslatedText({'en': 'Error:', 'id': 'Error:'})} $e',
+          ),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
     }
   }
 
@@ -3050,12 +3169,13 @@ class _AbsensiDetailPageState extends State<AbsensiDetailPage> {
         final status = _absensiStatus[siswa.id]!;
 
         await ApiService.tambahAbsensi({
-          'siswa_id': siswa.id,
-          'guru_id': widget.guru['id'],
-          'mata_pelajaran_id': widget.mataPelajaranId,
-          'tanggal': DateFormat('yyyy-MM-dd').format(widget.tanggal),
-          'status': status,
-          'keterangan': '',
+          'student_id': siswa.id,
+          'teacher_id': widget.guru['id'],
+          'subject_id': widget.mataPelajaranId,
+          'class_id': siswa.classId,
+          'date': DateFormat('yyyy-MM-dd').format(widget.tanggal),
+          'status': _mapStatusToBackend(status),
+          'notes': '',
         });
 
         successCount++;
@@ -3128,6 +3248,23 @@ class _AbsensiDetailPageState extends State<AbsensiDetailPage> {
       return kelas['nama'] ?? 'Unknown Class';
     } catch (e) {
       return 'Unknown Class';
+    }
+  }
+
+  String _mapStatusToBackend(String status) {
+    switch (status.toLowerCase()) {
+      case 'hadir':
+        return 'present';
+      case 'terlambat':
+        return 'late';
+      case 'izin':
+        return 'excused';
+      case 'sakit':
+        return 'sick';
+      case 'alpha':
+        return 'absent';
+      default:
+        return 'present';
     }
   }
 
