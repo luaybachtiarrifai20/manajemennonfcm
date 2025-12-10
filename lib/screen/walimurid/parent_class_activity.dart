@@ -66,7 +66,7 @@ class ParentClassActivityScreenState extends State<ParentClassActivityScreen> {
       final filteredStudents = allStudents.where((student) {
         // Cek berbagai kemungkinan field yang menghubungkan siswa dengan wali
         return student['email_wali'] == userData['email'] ||
-            student['nama_wali'] == userData['nama'] ||
+            student['guardian_name'] == userData['nama'] ||
             student['parent_id'] == parentId ||
             student['wali_id'] == parentId ||
             (userData['siswa_id'] != null &&

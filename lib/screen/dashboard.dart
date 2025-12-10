@@ -519,8 +519,8 @@ class _DashboardState extends State<Dashboard>
 
       // Cek berdasarkan email atau nama wali
       final studentsWithThisParent = allStudents.where((student) {
-        final emailMatch = student['email_wali'] == userData['email'];
-        final nameMatch = student['nama_wali'] == userData['nama'];
+        final emailMatch = student['guardian_email'] == userData['email'];
+        final nameMatch = student['guardian_name'] == userData['nama'];
 
         if (emailMatch || nameMatch) {
           if (kDebugMode) {
@@ -555,7 +555,9 @@ class _DashboardState extends State<Dashboard>
         print('🔄 Memuat data pengumuman untuk role: ${widget.role}');
       }
 
-      final announcementData = await ApiService().get('/pengumuman');
+      final announcementData = await ApiService().get(
+        '/announcement/user/current',
+      );
 
       if (kDebugMode) {
         print('✅ Response dari API:');

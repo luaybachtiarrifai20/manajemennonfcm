@@ -51,7 +51,7 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
       if (kDebugMode) {
         print('🔄 Memuat data pengumuman untuk role: $_userRole');
       }
-      final response = await _apiService.get('/pengumuman');
+      final response = await _apiService.get('/announcement/user/current');
 
       if (kDebugMode) {
         print('✅ Response dari API:');
@@ -94,8 +94,8 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
 
     final searchLower = _searchController.text.toLowerCase();
     return _pengumuman.where((p) {
-      final judul = p['judul']?.toString().toLowerCase() ?? '';
-      final konten = p['konten']?.toString().toLowerCase() ?? '';
+      final judul = p['title']?.toString().toLowerCase() ?? '';
+      final konten = p['content']?.toString().toLowerCase() ?? '';
       final pembuat = p['pembuat_nama']?.toString().toLowerCase() ?? '';
       return judul.contains(searchLower) ||
           konten.contains(searchLower) ||
@@ -195,7 +195,7 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                         SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            pengumumanData['judul'] ?? 'No Title',
+                            pengumumanData['title'] ?? 'No Title',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -224,7 +224,8 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Priority badge
-                    if (pengumumanData['prioritas'] == 'penting')
+                    if (pengumumanData['priority'] == 'important' ||
+                        pengumumanData['priority'] == 'penting')
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 12,
@@ -259,7 +260,7 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
 
                     // Content text
                     Text(
-                      pengumumanData['konten'] ?? '',
+                      pengumumanData['content'] ?? '',
                       style: TextStyle(
                         fontSize: 16,
                         height: 1.6,
@@ -298,31 +299,27 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                               languageProvider,
                             ),
                           ),
-                          if (pengumumanData['tanggal_awal'] != null)
+                          if (pengumumanData['start_date'] != null)
                             SizedBox(height: 8),
-                          if (pengumumanData['tanggal_awal'] != null)
+                          if (pengumumanData['start_date'] != null)
                             _buildDetailRow(
                               icon: Icons.calendar_today,
                               label: languageProvider.getTranslatedText({
                                 'en': 'Start Date',
                                 'id': 'Tanggal Mulai',
                               }),
-                              value: _formatDate(
-                                pengumumanData['tanggal_awal'],
-                              ),
+                              value: _formatDate(pengumumanData['start_date']),
                             ),
-                          if (pengumumanData['tanggal_akhir'] != null)
+                          if (pengumumanData['end_date'] != null)
                             SizedBox(height: 8),
-                          if (pengumumanData['tanggal_akhir'] != null)
+                          if (pengumumanData['end_date'] != null)
                             _buildDetailRow(
                               icon: Icons.event_busy,
                               label: languageProvider.getTranslatedText({
                                 'en': 'End Date',
                                 'id': 'Tanggal Berakhir',
                               }),
-                              value: _formatDate(
-                                pengumumanData['tanggal_akhir'],
-                              ),
+                              value: _formatDate(pengumumanData['end_date']),
                             ),
                         ],
                       ),
@@ -458,7 +455,8 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                   ),
 
                   // Priority badge
-                  if (pengumumanData['prioritas'] == 'penting')
+                  if (pengumumanData['priority'] == 'important' ||
+                      pengumumanData['priority'] == 'penting')
                     Positioned(
                       top: 12,
                       right: 12,
@@ -506,7 +504,7 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    pengumumanData['judul'] ?? 'No Title',
+                                    pengumumanData['title'] ?? 'No Title',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
@@ -567,7 +565,7 @@ class AnnouncementScreenState extends State<AnnouncementScreen> {
                                   ),
                                   SizedBox(height: 1),
                                   Text(
-                                    pengumumanData['konten'] ?? '',
+                                    pengumumanData['content'] ?? '',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
