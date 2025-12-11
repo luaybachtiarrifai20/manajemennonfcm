@@ -135,50 +135,68 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
   }
 
   Future<void> _loadUserData() async {
+    if (kDebugMode) {
+      print('===== _loadUserData STARTED =====');
+    }
     try {
       final prefs = await SharedPreferences.getInstance();
       final userData = json.decode(prefs.getString('user') ?? '{}');
 
+      final userId = userData['id']?.toString() ?? '';
+
       setState(() {
-        _teacherId = userData['id']?.toString() ?? '';
+        _teacherId = userId; // Initially set to userId
         _teacherName = userData['nama']?.toString() ?? 'Guru';
       });
 
-      // Fetch actual guru ID
-      if (_teacherId.isNotEmpty) {
+      if (kDebugMode) {
+        print('User ID from prefs: $userId');
+      }
+
+      if (userId.isNotEmpty) {
+        // 1. Resolve Teacher ID first (needed for both Schedule and Activities)
         try {
-          final guruData = await ApiTeacherService.getGuruByUserId(_teacherId);
+          final guruData = await ApiTeacherService.getGuruByUserId(userId);
           if (guruData != null && guruData['id'] != null) {
-            setState(() {
-              _teacherId = guruData['id'].toString();
-            });
+            final teacherId = guruData['id'].toString();
+
             if (kDebugMode) {
-              print('Resolved Guru ID: $_teacherId');
+              print('Resolved Teacher ID: $teacherId');
+            }
+
+            setState(() {
+              _teacherId = teacherId; // Update to Teacher ID for activities
+            });
+
+            // 2. Load Schedule using TEACHER ID
+            // Backend now expects Teacher Table ID
+            await _loadSchedule(teacherId);
+
+            // 3. Load Activities using TEACHER ID
+            await _loadActivities();
+          } else {
+            if (kDebugMode) {
+              print('❌ Failed to resolve Teacher ID from User ID');
+              print('Cannot load schedule or activities without Teacher ID');
             }
           }
         } catch (e) {
           if (kDebugMode) {
-            print('Failed to resolve guru ID: $e');
+            print('Error during teacher resolution: $e');
           }
         }
-      }
-
-      if (_teacherId.isEmpty) {
+      } else {
         setState(() => _isLoading = false);
-        return;
       }
-
-      await _loadSchedule();
-      await _loadActivities();
     } catch (e) {
-      setState(() => _isLoading = false);
       if (kDebugMode) {
-        print('Error load user data: $e');
+        print('Error in _loadUserData: $e');
       }
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _loadSchedule() async {
+  Future<void> _loadSchedule([String? userId]) async {
     try {
       // Get current academic year dynamically
       final now = DateTime.now();
@@ -190,14 +208,18 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
           ? '$currentYear/${currentYear + 1}'
           : '${currentYear - 1}/$currentYear';
 
+      // Use provided userId or fall back to _teacherId
+      final guruIdToUse = userId ?? _teacherId;
+
       if (kDebugMode) {
         print('===== LOADING SCHEDULE =====');
-        print('Teacher ID: $_teacherId');
+        print('Teacher ID (for API): $guruIdToUse');
         print('Academic Year: $tahunAjaran');
+        print('calling ApiScheduleService.getScheduleByGuru...');
       }
 
       final schedule = await ApiScheduleService.getScheduleByGuru(
-        guruId: _teacherId,
+        guruId: guruIdToUse,
         tahunAjaran: tahunAjaran,
       );
 
@@ -215,7 +237,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         }
         try {
           finalSchedule = await ApiScheduleService.getScheduleByGuru(
-            guruId: _teacherId,
+            guruId: guruIdToUse,
           );
           if (kDebugMode) {
             print(
@@ -233,14 +255,18 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
       final uniqueClasses = <String, dynamic>{};
 
       for (var scheduleItem in finalSchedule) {
-        final subjectId = scheduleItem['mata_pelajaran_id']?.toString();
+        // Support both old (Indonesian) and new (English) column names
+        final subjectId =
+            (scheduleItem['subject_id'] ?? scheduleItem['mata_pelajaran_id'])
+                ?.toString();
         final subjectName = scheduleItem['mata_pelajaran_nama']?.toString();
-        final classId = scheduleItem['kelas_id']?.toString();
+        final classId = (scheduleItem['class_id'] ?? scheduleItem['kelas_id'])
+            ?.toString();
         final className = scheduleItem['kelas_nama']?.toString();
 
         if (kDebugMode) {
           print(
-            'Schedule item: $subjectName (ID: $subjectId), Class: $className (ID: $classId), Day: ${scheduleItem['hari_nama']}, Time: ${scheduleItem['jam_mulai']} - ${scheduleItem['jam_selesai']}',
+            'Schedule item: $subjectName (ID: $subjectId), Class: $className (ID: $classId), Day: ${scheduleItem['hari_nama']}, Time: ${scheduleItem['start_time'] ?? scheduleItem['jam_mulai']} - ${scheduleItem['end_time'] ?? scheduleItem['jam_selesai']}',
           );
         }
 
@@ -258,6 +284,8 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         print(
           'Subject list: ${uniqueSubjects.values.map((s) => s['nama']).toList()}',
         );
+        print('Subject IDs: ${uniqueSubjects.keys.toList()}');
+        print('Unique classes: ${uniqueClasses.length}');
         print('===========================');
       }
 
@@ -265,6 +293,11 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         _scheduleList = finalSchedule;
         _subjectList = uniqueSubjects.values.toList();
       });
+
+      if (kDebugMode) {
+        print('✅ _subjectList after setState: ${_subjectList.length} subjects');
+        print('Subject list content: $_subjectList');
+      }
     } catch (e) {
       if (kDebugMode) {
         print('ERROR loading schedule: $e');
@@ -454,17 +487,17 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         onSubjectSelected: _loadMaterials,
         onChapterSelected: _loadSubChapterMaterials,
         onActivityAdded: _loadActivities,
-        initialTarget: activity['target'] ?? 'umum',
+        initialTarget: activity['target_role'] ?? 'umum',
         activityType: activity['jenis'] ?? 'tugas',
         isEditMode: true,
         activityData: activity,
-        initialDate: activity['tanggal'] != null
-            ? DateTime.tryParse(activity['tanggal'].toString())
+        initialDate: activity['date'] != null
+            ? DateTime.tryParse(activity['date'].toString())
             : null,
-        initialSubjectId: activity['mata_pelajaran_id']?.toString(),
-        initialClassId: activity['kelas_id']?.toString(),
-        initialBabId: activity['bab_id']?.toString(),
-        initialSubBabId: activity['sub_bab_id']?.toString(),
+        initialSubjectId: activity['subject_id']?.toString(),
+        initialClassId: activity['class_id']?.toString(),
+        initialBabId: activity['chapter_id']?.toString(),
+        initialSubBabId: activity['sub_chapter_id']?.toString(),
       ),
     );
   }
@@ -485,9 +518,9 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
         content: Text(
           languageProvider.getTranslatedText({
             'en':
-                'Are you sure you want to delete "${activity['judul']}"? This action cannot be undone.',
+                'Are you sure you want to delete "${activity['title']}"? This action cannot be undone.',
             'id':
-                'Apakah Anda yakin ingin menghapus "${activity['judul']}"? Tindakan ini tidak dapat dibatalkan.',
+                'Apakah Anda yakin ingin menghapus "${activity['title']}"? Tindakan ini tidak dapat dibatalkan.',
           }),
         ),
         actions: [
@@ -1069,10 +1102,10 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
 
   // ========== CARD SEPERTI PENGUMUMAN ==========
   Widget _buildActivityCard(dynamic activity, BuildContext context) {
-    final day = activity['hari']?.toString() ?? 'Unknown';
+    final day = activity['day']?.toString() ?? 'Unknown';
     final cardColor = _getDayColor(day);
     final isAssignment = activity['jenis'] == 'tugas';
-    final isSpecificTarget = activity['target'] == 'khusus';
+    final isSpecificTarget = activity['target_role'] == 'khusus';
     final languageProvider = Provider.of<LanguageProvider>(
       context,
       listen: false,
@@ -1166,7 +1199,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      activity['judul'] ?? 'Judul Kegiatan',
+                                      activity['title'] ?? 'Judul Kegiatan',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -1178,7 +1211,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                     ),
                                     SizedBox(height: 2),
                                     Text(
-                                      '${activity['mata_pelajaran_nama']} • ${activity['kelas_nama']}',
+                                      '${activity['subject_name']} • ${activity['class_name']}',
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: Colors.grey.shade600,
@@ -1227,7 +1260,7 @@ class ClassActifityScreenState extends State<ClassActifityScreen>
                                   ),
                                   SizedBox(height: 1),
                                   Text(
-                                    '${activity['hari']} • ${_formatDate(activity['tanggal'])}',
+                                    '${activity['day']} • ${_formatDate(activity['date'])}',
                                     style: TextStyle(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
@@ -1710,6 +1743,7 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   DateTime? _deadline;
   String? _selectedDay;
   bool _isSubmitting = false;
+  bool _isLoadingStudents = false;
   List<dynamic> _studentList = [];
 
   // Bab & Sub Bab Materi
@@ -1838,16 +1872,44 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   Future<void> _loadStudents() async {
     if (_selectedClassId == null) return;
 
+    setState(() {
+      _isLoadingStudents = true;
+      _studentList = []; // Clear previous list
+    });
+
+    if (kDebugMode) {
+      print('[_loadStudents] Starting load for class: $_selectedClassId');
+    }
+
     try {
       final students = await ApiClassActivityService.getSiswaByKelas(
         _selectedClassId!,
       );
+
+      if (!mounted) {
+        if (kDebugMode)
+          print('[_loadStudents] Widget unmounted, skipping setState');
+        return;
+      }
+
+      if (kDebugMode) {
+        print('[_loadStudents] Loaded ${students.length} students');
+      }
+
       setState(() {
-        _studentList = students;
+        _studentList = students ?? [];
+        _isLoadingStudents = false;
       });
-    } catch (e) {
+    } catch (e, stackTrace) {
       if (kDebugMode) {
         print('Error loading students: $e');
+        print(stackTrace);
+      }
+      if (mounted) {
+        setState(() {
+          _studentList = [];
+          _isLoadingStudents = false;
+        });
       }
     }
   }
@@ -1945,8 +2007,9 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   }
 
   String _getBabName(dynamic bab) {
-    // Try multiple possible field names (backend returns 'judul_bab')
-    return bab['judul_bab']?.toString() ??
+    // Try multiple possible field names (backend returns 'chapter_title')
+    return bab['chapter_title']?.toString() ??
+        bab['judul_bab']?.toString() ??
         bab['nama']?.toString() ??
         bab['judul']?.toString() ??
         bab['title']?.toString() ??
@@ -1955,8 +2018,9 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
   }
 
   String _getSubBabName(dynamic subBab) {
-    // Try multiple possible field names (backend returns 'judul_sub_bab')
-    return subBab['judul_sub_bab']?.toString() ??
+    // Try multiple possible field names (backend returns 'sub_chapter_title')
+    return subBab['sub_chapter_title']?.toString() ??
+        subBab['judul_sub_bab']?.toString() ??
         subBab['nama']?.toString() ??
         subBab['judul']?.toString() ??
         subBab['title']?.toString() ??
@@ -2032,8 +2096,12 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
 
     // Filter schedules by selected subject and deduplicate by class_id
     for (var schedule in widget.scheduleList) {
-      if (schedule['mata_pelajaran_id'].toString() == _selectedSubjectId) {
-        final classId = schedule['kelas_id'].toString();
+      final scheduleSubjectId =
+          (schedule['subject_id'] ?? schedule['mata_pelajaran_id'])?.toString();
+
+      if (scheduleSubjectId == _selectedSubjectId) {
+        final classId = (schedule['class_id'] ?? schedule['kelas_id'])
+            .toString();
 
         // Untuk target KHUSUS: tidak ada filter waktu, semua jadwal bisa dipilih
         if (widget.initialTarget == 'khusus') {
@@ -2063,13 +2131,35 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
           }
           // Filter berdasarkan waktu untuk kelas lainnya
           else {
-            final scheduleDay = schedule['hari_nama']?.toString() ?? '';
-            final jamMulai = schedule['jam_mulai']?.toString() ?? '';
+            var scheduleDay =
+                schedule['hari_nama']?.toString() ??
+                schedule['day_name']?.toString() ??
+                '';
+            final jamMulai =
+                schedule['jam_mulai']?.toString() ??
+                schedule['start_time']?.toString() ??
+                '';
+
+            // Map English days to Indonesian if needed
+            final dayMap = {
+              'Monday': 'Senin',
+              'Tuesday': 'Selasa',
+              'Wednesday': 'Rabu',
+              'Thursday': 'Kamis',
+              'Friday': 'Jumat',
+              'Saturday': 'Sabtu',
+              'Sunday': 'Minggu',
+            };
+
+            if (dayMap.containsKey(scheduleDay)) {
+              scheduleDay = dayMap[scheduleDay]!;
+            }
 
             if (kDebugMode) {
               print(
                 'Schedule: ${schedule['kelas_nama']}, Day: $scheduleDay, Start: $jamMulai',
               );
+              print('Checking against Current Day: $currentDay');
             }
 
             // Check if schedule is today
@@ -2119,13 +2209,18 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
       print('Unique classes found: ${uniqueClasses.length}');
     }
 
-    // Convert to dropdown items
-    return uniqueClasses.values.map((kelas) {
-      return DropdownMenuItem<String>(
-        value: kelas['id'].toString(),
-        child: Text(kelas['nama'] ?? 'Unknown'),
-      );
-    }).toList();
+    // Convert to dropdown items safely
+    try {
+      return uniqueClasses.values.map((kelas) {
+        return DropdownMenuItem<String>(
+          value: kelas['id'].toString(),
+          child: Text(kelas['nama'] ?? 'Unknown'),
+        );
+      }).toList();
+    } catch (e) {
+      if (kDebugMode) print('Error generating class dropdown items: $e');
+      return [];
+    }
   }
 
   Future<void> _submitForm() async {
@@ -2145,30 +2240,30 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
       );
 
       final data = {
-        'guru_id': widget.teacherId,
-        'mata_pelajaran_id': _selectedSubjectId,
-        'kelas_id': _selectedClassId,
-        'judul': _judulController.text,
+        'teacher_id': widget.teacherId,
+        'subject_id': _selectedSubjectId,
+        'class_id': _selectedClassId,
+        'title': _judulController.text,
         'deskripsi': _deskripsiController.text,
         'jenis': widget.activityType,
         'target': widget.initialTarget,
-        'tanggal': _selectedDate!.toIso8601String().split('T')[0],
-        'hari': _selectedDay,
+        'date': _selectedDate!.toIso8601String().split('T')[0],
+        'day': _selectedDay,
       };
 
-      // Save bab_id and sub_bab_id if selected from materi
+      // Save chapter_id and sub_chapter_id if selected from materi
       if (_useMateriTitle && _selectedBabId != null) {
-        data['bab_id'] = _selectedBabId;
+        data['chapter_id'] = _selectedBabId;
       } else if (_selectedChapterId != null) {
         // Fallback to old chapter props if exists
-        data['bab_id'] = _selectedChapterId;
+        data['chapter_id'] = _selectedChapterId;
       }
 
       if (_useMateriTitle && _selectedSubBabId != null) {
-        data['sub_bab_id'] = _selectedSubBabId;
+        data['sub_chapter_id'] = _selectedSubBabId;
       } else if (_selectedSubChapterId != null) {
         // Fallback to old sub chapter props if exists
-        data['sub_bab_id'] = _selectedSubChapterId;
+        data['sub_chapter_id'] = _selectedSubChapterId;
       }
 
       if (_deadline != null && widget.activityType == 'tugas') {
@@ -2408,14 +2503,30 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
                 items: _selectedSubjectId == null
                     ? null
                     : _getUniqueClassItems(),
+                value:
+                    (_selectedClassId != null &&
+                        _getUniqueClassItems().any(
+                          (item) => item.value == _selectedClassId,
+                        ))
+                    ? _selectedClassId
+                    : null,
                 onChanged: _selectedSubjectId == null
                     ? null
                     : (value) {
+                        if (kDebugMode) {
+                          print(
+                            'Class Dropdown onChanged: $value, target: ${widget.initialTarget}',
+                          );
+                        }
                         setState(() {
                           _selectedClassId = value;
                         });
+
+                        // Defer loading students to let the dropdown update complete
                         if (widget.initialTarget == 'khusus') {
-                          _loadStudents();
+                          Future.delayed(Duration(milliseconds: 100), () {
+                            if (mounted) _loadStudents();
+                          });
                         }
                       },
                 validator: (value) => value == null
@@ -2715,42 +2826,98 @@ class _AddActivityDialogState extends State<AddActivityDialog> {
               if (widget.initialTarget == 'khusus' &&
                   _selectedClassId != null) ...[
                 SizedBox(height: 12),
-                Text(
-                  languageProvider.getTranslatedText({
-                    'en': 'Select Students',
-                    'id': 'Pilih Siswa',
-                  }),
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            languageProvider.getTranslatedText({
+                              'en': 'Select Students',
+                              'id': 'Pilih Siswa',
+                            }),
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          if (kDebugMode)
+                            Text(
+                              'Debug: Target=${widget.initialTarget}, Count=${_studentList.length}, Loading=$_isLoadingStudents',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.refresh, size: 20),
+                      onPressed: _loadStudents,
+                      tooltip: 'Refresh Students',
+                    ),
+                  ],
                 ),
                 SizedBox(height: 8),
                 Container(
-                  height: 150,
+                  height: 200, // Increased height for better visibility
                   decoration: BoxDecoration(
                     border: Border.all(color: Colors.grey),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: _studentList.isEmpty
+                  child: _isLoadingStudents
+                      ? Center(child: CircularProgressIndicator())
+                      : _studentList.isEmpty
                       ? Center(child: Text('Tidak ada siswa'))
-                      : ListView.builder(
-                          itemCount: _studentList.length,
-                          itemBuilder: (context, index) {
-                            final student = _studentList[index];
-                            final studentId = student['id'].toString();
-                            return CheckboxListTile(
-                              title: Text(student['nama'] ?? 'Unknown'),
-                              subtitle: Text(student['nis'] ?? ''),
-                              value: _selectedStudents.contains(studentId),
-                              onChanged: (checked) {
-                                setState(() {
-                                  if (checked == true) {
-                                    _selectedStudents.add(studentId);
-                                  } else {
-                                    _selectedStudents.remove(studentId);
-                                  }
-                                });
-                              },
-                            );
-                          },
+                      : SingleChildScrollView(
+                          child: Column(
+                            children: _studentList.map((student) {
+                              final studentId = student['id'].toString();
+                              final isSelected = _selectedStudents.contains(
+                                studentId,
+                              );
+                              return ListTile(
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 0,
+                                ),
+                                dense: true,
+                                title: Text(
+                                  student['name']?.toString() ??
+                                      student['nama']?.toString() ??
+                                      'Unknown',
+                                  style: TextStyle(fontSize: 13),
+                                ),
+                                subtitle: Text(
+                                  student['student_number']?.toString() ??
+                                      student['nis']?.toString() ??
+                                      '',
+                                  style: TextStyle(fontSize: 11),
+                                ),
+                                trailing: Checkbox(
+                                  value: isSelected,
+                                  onChanged: (bool? checked) {
+                                    setState(() {
+                                      if (checked == true) {
+                                        _selectedStudents.add(studentId);
+                                      } else {
+                                        _selectedStudents.remove(studentId);
+                                      }
+                                    });
+                                  },
+                                ),
+                                onTap: () {
+                                  setState(() {
+                                    if (isSelected) {
+                                      _selectedStudents.remove(studentId);
+                                    } else {
+                                      _selectedStudents.add(studentId);
+                                    }
+                                  });
+                                },
+                              );
+                            }).toList(),
+                          ),
                         ),
                 ),
               ],

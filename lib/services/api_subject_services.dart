@@ -157,7 +157,7 @@ class ApiSubjectService {
   }
 
   static Future<List<dynamic>> getBabMateri({String? mataPelajaranId}) async {
-    String url = '$baseUrl/chapter-material?';
+    String url = '$baseUrl/bab-material?';
     if (mataPelajaranId != null) url += 'subject_id=$mataPelajaranId&';
 
     final response = await http.get(
@@ -172,7 +172,7 @@ class ApiSubjectService {
   // Sub Bab Materi
   static Future<List<dynamic>> getSubBabMateri({required String babId}) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/sub-chapter-material?chapter_id=$babId'),
+      Uri.parse('$baseUrl/sub-bab-material?chapter_id=$babId'),
       headers: await _getHeaders(),
     );
 
@@ -183,7 +183,7 @@ class ApiSubjectService {
   // Tambah Bab Materi
   static Future<dynamic> addBabMateri(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/chapter-material'),
+      Uri.parse('$baseUrl/bab-material'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -194,7 +194,7 @@ class ApiSubjectService {
   // Tambah Sub Bab Materi
   static Future<dynamic> addSubBabMateri(Map<String, dynamic> data) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/sub-chapter-material'),
+      Uri.parse('$baseUrl/sub-bab-material'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -219,7 +219,7 @@ class ApiSubjectService {
     Map<String, dynamic> data,
   ) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/chapter-material/$id'),
+      Uri.parse('$baseUrl/bab-material/$id'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -233,7 +233,7 @@ class ApiSubjectService {
     Map<String, dynamic> data,
   ) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/sub-chapter-material/$id'),
+      Uri.parse('$baseUrl/sub-bab-material/$id'),
       headers: await _getHeaders(),
       body: json.encode(data),
     );
@@ -258,7 +258,7 @@ class ApiSubjectService {
   // Delete Bab Materi
   static Future<void> deleteBabMateri(String id) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/chapter-material/$id'),
+      Uri.parse('$baseUrl/bab-material/$id'),
       headers: await _getHeaders(),
     );
 
@@ -268,7 +268,7 @@ class ApiSubjectService {
   // Delete Sub Bab Materi
   static Future<void> deleteSubBabMateri(String id) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/sub-chapter-material/$id'),
+      Uri.parse('$baseUrl/sub-bab-material/$id'),
       headers: await _getHeaders(),
     );
 

@@ -300,6 +300,11 @@ class ApiClassActivityService {
         headers: headers,
       );
 
+      if (kDebugMode) {
+        print('API Response Status: ${response.statusCode}');
+        print('API Response Body: ${response.body}');
+      }
+
       final result = _handleResponse(response);
 
       if (result is List) {
